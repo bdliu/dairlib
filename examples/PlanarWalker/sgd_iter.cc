@@ -62,7 +62,7 @@ shared_ptr<HybridDircon<double>> sgdIter(double stride_length, double duration,
                                          string output_prefix) {
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+      "examples/PlanarWalker/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
 
 // world
 // base

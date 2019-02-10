@@ -54,7 +54,7 @@ using systems::trajectory_optimization::DirconKinConstraintType;
 void visualizeGait(std::string file, int steps, double rate) {
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+      "examples/PlanarWalker/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
 
   // Buildtrajectory optimization
   // int n = tree.get_num_positions();
