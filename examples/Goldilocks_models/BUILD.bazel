@@ -1,0 +1,72 @@
+
+cc_binary(
+    name = "visualize_gait",
+    srcs = ["visualize_gait.cc"],
+    data = ["PlanarWalkerWithTorso.urdf"],
+    deps = [
+        "//systems/goldilocks_models",
+        "@drake//attic/multibody:rigid_body_tree",
+        "@drake//attic/multibody:rigid_body_tree_construction",
+        "@drake//attic/multibody/parsers",
+        "@drake//attic/multibody/rigid_body_plant:drake_visualizer",
+        "@drake//common",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",
+    ],
+)
+
+
+cc_library(
+    name = "traj_opt_given_weigths",
+    srcs = ["traj_opt_given_weigths.cc"],
+    hdrs = ["traj_opt_given_weigths.h"],
+    deps = [
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "@drake//attic/multibody:rigid_body_tree",
+        "@drake//attic/multibody:rigid_body_tree_construction",
+        "@drake//attic/multibody/parsers",
+        "@drake//attic/multibody/rigid_body_plant:drake_visualizer",
+        "@drake//common",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",
+    ],
+)
+
+
+cc_binary(
+    name = "find_goldilocks_models",
+    srcs = ["find_goldilocks_models.cc"],
+    data = [
+        "PlanarWalkerWithTorso.urdf",
+    ],
+    deps = [
+        ":traj_opt_given_weigths",
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "@drake//attic/multibody:rigid_body_tree",
+        "@drake//common",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",
+    ],
+)
+
+
+

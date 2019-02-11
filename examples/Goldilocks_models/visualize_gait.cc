@@ -34,7 +34,7 @@ namespace dairlib {
 void visualizeGait() {
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "examples/Goldilocks_model/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
 
   // int n = tree.get_num_positions();
   // int nu = tree.get_num_actuators();
