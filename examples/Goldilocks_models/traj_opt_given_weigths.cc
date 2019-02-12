@@ -99,9 +99,9 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 // right_knee_pindot
 
 
-  int n = tree.get_num_positions();
+  int n_q = tree.get_num_positions();
   int n_v = tree.get_num_velocities();
-  int n_x = n + n_v;
+  int n_x = n_q + n_v;
   int n_u = tree.get_num_actuators();
   std::cout<<"n_x = "<<n_x<<"\n";
   std::cout<<"n_u = "<<n_u<<"\n";
@@ -238,53 +238,47 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   const double R = 10;  // Cost on input effort
   auto u = trajopt->input();
   trajopt->AddRunningCost(u.transpose()*R*u);
-  MatrixXd Q = MatrixXd::Zero(2*n, 2*n);
-  for (int i=0; i < n; i++) {
-    Q(i+n, i+n) = 10;
+  MatrixXd Q = MatrixXd::Zero(2*n_q, 2*n_q);
+  for (int i=0; i < n_q; i++) {
+    Q(i+n_q, i+n_q) = 10;
   }
   trajopt->AddRunningCost(x.transpose()*Q*x);
 
   // initial guess if the file exists
-  // if (!init_file.empty()) {
-  //   MatrixXd z0 = readCSV(directory + init_file);
-  //   trajopt->SetInitialGuessForAllVariables(z0);
-  // }
-  if(true){
-
-
-
-    //TODO: debug the code below
-
-    // VectorXd time_at_knot_point = readCSV(directory + "init_traj_time_at_knots.csv");
-    // MatrixXd state_at_knot_point = readCSV(directory + "init_traj_state_at_knots.csv");
-    // MatrixXd input_at_knot_point = readCSV(directory + "init_traj_input_at_knots.csv");
-    // std::cout<<time_at_knot_point.rows()<<", "<<time_at_knot_point.cols()<<"\n";
-    // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-    // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-    // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-    // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-    // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
-    // int n_init_knots = time_at_knot_point.size();
-
-    // std::vector<double> T_knotpoint(n_init_knots, 0);
-    // std::vector<MatrixXd> Y_state(n_init_knots, MatrixXd::Zero(state_at_knot_point.rows(), 1));
-    // std::vector<MatrixXd> Y_input(n_init_knots, MatrixXd::Zero(input_at_knot_point.rows(), 1));
-    // for(int i=0;i<n_init_knots;i++){
-    //   T_knotpoint[i] = time_at_knot_point(i);
-    //   Y_state[i] = state_at_knot_point.col(i);
-    //   Y_input[i] = input_at_knot_point.col(i);
-    // }
-
-    // PiecewisePolynomial<double> traj_init_x = PiecewisePolynomial<double>::FirstOrderHold(T_knotpoint, Y_state);
-    // PiecewisePolynomial<double> traj_init_u = PiecewisePolynomial<double>::FirstOrderHold(T_knotpoint, Y_input);
-
-    // trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
-
-
-
-
-
+  if (!init_file.empty()) {
+    MatrixXd z0 = readCSV(directory + init_file);
+    trajopt->SetInitialGuessForAllVariables(z0);
   }
+  // if(true){
+    // // TODO: maybe should construct the pp from coefficient
+
+  //   VectorXd time_at_knot_point = readCSV(directory + "init_traj_time_at_knots.csv");
+  //   MatrixXd state_at_knot_point = readCSV(directory + "init_traj_state_at_knots.csv");
+  //   MatrixXd input_at_knot_point = readCSV(directory + "init_traj_input_at_knots.csv");
+  //     // std::cout<<time_at_knot_point.rows()<<", "<<time_at_knot_point.cols()<<"\n";
+  //     // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
+  //     // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
+  //     // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
+  //     // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
+  //     // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
+  //   int n_init_knots = time_at_knot_point.size();
+
+  //   std::vector<double> T_knotpoint(n_init_knots, 0);
+  //   std::vector<MatrixXd> Y_state(n_init_knots, MatrixXd::Zero(state_at_knot_point.rows(), 1));
+  //   std::vector<MatrixXd> Y_input(n_init_knots, MatrixXd::Zero(input_at_knot_point.rows(), 1));
+  //   for(int i=0;i<n_init_knots;i++){
+  //     T_knotpoint[i] = time_at_knot_point(i);
+  //     Y_state[i] = state_at_knot_point.col(i);
+  //     Y_input[i] = input_at_knot_point.col(i);
+  //     // std::cout<<"T_knotpoint = "<<T_knotpoint[i]<<"\n";
+  //     // std::cout<<"Y_input = "<<Y_input[i]<<"\n";
+  //   }
+
+  //   PiecewisePolynomial<double> traj_init_x = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_state);
+  //   PiecewisePolynomial<double> traj_init_u = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_input);
+
+  //   trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
+  // }
 
   std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -301,12 +295,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   writeCSV(directory + output_prefix + string("z.csv"), z);
 
   // store the time, state, and input at knot points
-  VectorXd time_at_knot_point = trajopt->GetSampleTimes();
-  MatrixXd state_at_knot_point = trajopt->GetStateSamples();
-  MatrixXd input_at_knot_point = trajopt->GetInputSamples();
-  writeCSV(directory + string("init_traj_time_at_knots.csv"), time_at_knot_point);
-  writeCSV(directory + string("init_traj_state_at_knots.csv"), state_at_knot_point);
-  writeCSV(directory + string("init_traj_input_at_knots.csv"), input_at_knot_point);
+  // VectorXd time_at_knot_point = trajopt->GetSampleTimes();
+  // MatrixXd state_at_knot_point = trajopt->GetStateSamples();
+  // MatrixXd input_at_knot_point = trajopt->GetInputSamples();
+  // writeCSV(directory + string("init_traj_time_at_knots.csv"), time_at_knot_point);
+  // writeCSV(directory + string("init_traj_state_at_knots.csv"), state_at_knot_point);
+  // writeCSV(directory + string("init_traj_input_at_knots.csv"), input_at_knot_point);
     // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
     // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
     // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
