@@ -100,6 +100,11 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
   int n = tree.get_num_positions();
+  int n_v = tree.get_num_velocities();
+  int n_x = n + n_v;
+  int n_u = tree.get_num_actuators();
+  std::cout<<"n_x = "<<n_x<<"\n";
+  std::cout<<"n_u = "<<n_u<<"\n";
 
   int leftLegIdx = tree.FindBodyIndex("left_lower_leg");
   int rightLegIdx = tree.FindBodyIndex("right_lower_leg");
@@ -240,11 +245,48 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   trajopt->AddRunningCost(x.transpose()*Q*x);
 
   // initial guess if the file exists
-  if (!init_file.empty()) {
-    MatrixXd z0 = readCSV(directory + init_file);
-    trajopt->SetInitialGuessForAllVariables(z0);
+  // if (!init_file.empty()) {
+  //   MatrixXd z0 = readCSV(directory + init_file);
+  //   trajopt->SetInitialGuessForAllVariables(z0);
+  // }
+  if(true){
+
+
+
+    //TODO: debug the code below
+
+    // VectorXd time_at_knot_point = readCSV(directory + "init_traj_time_at_knots.csv");
+    // MatrixXd state_at_knot_point = readCSV(directory + "init_traj_state_at_knots.csv");
+    // MatrixXd input_at_knot_point = readCSV(directory + "init_traj_input_at_knots.csv");
+    // std::cout<<time_at_knot_point.rows()<<", "<<time_at_knot_point.cols()<<"\n";
+    // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
+    // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
+    // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
+    // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
+    // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
+    // int n_init_knots = time_at_knot_point.size();
+
+    // std::vector<double> T_knotpoint(n_init_knots, 0);
+    // std::vector<MatrixXd> Y_state(n_init_knots, MatrixXd::Zero(state_at_knot_point.rows(), 1));
+    // std::vector<MatrixXd> Y_input(n_init_knots, MatrixXd::Zero(input_at_knot_point.rows(), 1));
+    // for(int i=0;i<n_init_knots;i++){
+    //   T_knotpoint[i] = time_at_knot_point(i);
+    //   Y_state[i] = state_at_knot_point.col(i);
+    //   Y_input[i] = input_at_knot_point.col(i);
+    // }
+
+    // PiecewisePolynomial<double> traj_init_x = PiecewisePolynomial<double>::FirstOrderHold(T_knotpoint, Y_state);
+    // PiecewisePolynomial<double> traj_init_u = PiecewisePolynomial<double>::FirstOrderHold(T_knotpoint, Y_input);
+
+    // trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
+
+
+
+
+
   }
 
+  std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto result = trajopt->Solve();
   auto finish = std::chrono::high_resolution_clock::now();
@@ -275,8 +317,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // visualizer
   drake::lcm::DrakeLcm lcm;
   drake::systems::DiagramBuilder<double> builder;
-  const drake::trajectories::PiecewisePolynomial<double> pp_xtraj =
-      trajopt->ReconstructStateTrajectory();
+  const PiecewisePolynomial<double> pp_xtraj = trajopt->ReconstructStateTrajectory();
   auto state_source = builder.AddSystem<drake::systems::TrajectorySource>(pp_xtraj);
   auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree, &lcm);
   publisher->set_publish_period(1.0 / 60.0);

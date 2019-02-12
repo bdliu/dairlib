@@ -6,4 +6,5 @@ __pycache__/
 *.ipynb_checkpoints
 *.DS_Store*
 
+examples/Goldilocks_models/data/
 snopt.out
