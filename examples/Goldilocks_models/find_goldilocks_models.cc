@@ -18,8 +18,13 @@ void findGoldilocksModels() {
       string weights_file = "";
       string output_prefix = "";
 
+
+
+
       trajOptGivenWeights(stride_length, duration, iter, 
                          directory, init_file,  weights_file, output_prefix); 
+
+
 
 
 
