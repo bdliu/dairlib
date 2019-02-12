@@ -170,7 +170,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   trajopt->AddDurationBounds(duration, duration);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Print file", directory+"snopt.out");
+                           "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
 
