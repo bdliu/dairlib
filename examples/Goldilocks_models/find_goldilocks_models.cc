@@ -10,17 +10,18 @@ namespace goldilocks_models {
 void findGoldilocksModels() {
 
       double stride_length = 0.3;
-      double duration = 1;
-      int iter = 200;
-      string directory = "";
-      string init_file = "";
+      double duration = .5;
+      int iter = 500;
+      string directory = "examples/Goldilocks_models/data/";
+      string init_file = "z.csv";
       string weights_file = "";
       string output_prefix = "";
 
       trajOptGivenWeights(stride_length, duration, iter, 
                          directory, init_file,  weights_file, output_prefix); 
 
-      std::cout<<"end\n";
+
+
 }
 }  // namespace goldilocks_models
 }  // namespace dairlib

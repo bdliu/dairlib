@@ -118,6 +118,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
+    std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
 
   std::vector<DirconKinematicData<double>*> leftConstraints;
   leftConstraints.push_back(&leftFootConstraint);
@@ -129,7 +130,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   auto leftOptions = DirconOptions(leftDataSet.countConstraints());
   leftOptions.setConstraintRelative(0, true); //TODO: ask what is relative constraint here?
-  std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
+    // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
 
   auto rightOptions = DirconOptions(rightDataSet.countConstraints());
   rightOptions.setConstraintRelative(0, true);
@@ -152,7 +153,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   for (uint i = 0; i < num_time_samples.size(); i++) 
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1; //Overlaps between modes
-  std::cout<<"N = "<<N<<"\n";
+    // std::cout<<"N = "<<N<<"\n";
 
   std::vector<DirconKinematicDataSet<double>*> dataset_list;
   dataset_list.push_back(&leftDataSet);
@@ -169,7 +170,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   trajopt->AddDurationBounds(duration, duration);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Print file", "snopt.out");
+                           "Print file", directory+"snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
 
@@ -239,7 +240,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   }
   trajopt->AddRunningCost(x.transpose()*Q*x);
 
-
+  // initial guess if the file exists
   if (!init_file.empty()) {
     MatrixXd z0 = readCSV(directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
@@ -257,6 +258,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   VectorXd z = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
   writeCSV(directory + output_prefix + string("z.csv"), z);
 
+
   // visualizer
   drake::lcm::DrakeLcm lcm;
   drake::systems::DiagramBuilder<double> builder;
@@ -271,12 +273,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   auto diagram = builder.Build();
 
 
-  // while (true) {
+  while (true) {
     drake::systems::Simulator<double> simulator(*diagram);
-    simulator.set_target_realtime_rate(1);
+    simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  // }
+  }
 
   return ;
 }
