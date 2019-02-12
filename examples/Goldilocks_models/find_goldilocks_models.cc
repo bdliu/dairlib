@@ -13,7 +13,8 @@ void findGoldilocksModels() {
       double duration = .5;
       int iter = 500;
       string directory = "examples/Goldilocks_models/data/";
-      string init_file = "z.csv";
+      string init_file = "";
+      // string init_file = "z.csv";
       string weights_file = "";
       string output_prefix = "";
 

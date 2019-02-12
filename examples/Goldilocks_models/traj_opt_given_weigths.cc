@@ -118,7 +118,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
-    std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
+    // std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
 
   std::vector<DirconKinematicData<double>*> leftConstraints;
   leftConstraints.push_back(&leftFootConstraint);
@@ -167,13 +167,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
                                                         max_dt, dataset_list,
                                                         options_list);
 
-  trajopt->AddDurationBounds(duration, duration);
+  // trajopt->AddDurationBounds(duration, duration); // You can comment this out to not put any constraint on the time
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
-
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
                            0);
 
@@ -255,8 +254,22 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   std::cout << result << std::endl;
   std::cout << "Cost:" << trajopt->GetOptimalCost() <<std::endl;
 
+  // store the solution of the decision variable 
   VectorXd z = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
   writeCSV(directory + output_prefix + string("z.csv"), z);
+
+  // store the time, state, and input at knot points
+  VectorXd time_at_knot_point = trajopt->GetSampleTimes();
+  MatrixXd state_at_knot_point = trajopt->GetStateSamples();
+  MatrixXd input_at_knot_point = trajopt->GetInputSamples();
+  writeCSV(directory + string("init_traj_time_at_knots.csv"), time_at_knot_point);
+  writeCSV(directory + string("init_traj_state_at_knots.csv"), state_at_knot_point);
+  writeCSV(directory + string("init_traj_input_at_knots.csv"), input_at_knot_point);
+    // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
+    // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
+    // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
+    // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
+    // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
 
 
   // visualizer
