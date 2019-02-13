@@ -1,9 +1,9 @@
-#include "examples/Goldilocks_models/traj_opt_given_weigths.h"
-
 #include <gflags/gflags.h>
 
 #include <memory>
 #include <chrono>
+
+#include <string>
 
 #include "drake/multibody/rigid_body_tree_construction.h"
 #include "drake/multibody/joints/floating_base_types.h"
@@ -24,6 +24,7 @@
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
 #include "systems/trajectory_optimization/dircon_opt_constraints.h"
+#include "systems/trajectory_optimization/hybrid_dircon.h"
 
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -37,6 +38,10 @@ using drake::systems::trajectory_optimization::MultipleShooting;
 using drake::trajectories::PiecewisePolynomial;
 using drake::solvers::Binding;
 using drake::solvers::Constraint;
+using drake::solvers::VectorXDecisionVariable;
+using drake::solvers::MatrixXDecisionVariable;
+using drake::symbolic::Variable;
+using drake::symbolic::Expression;
 using std::vector;
 using std::shared_ptr;
 using std::cout;
@@ -52,28 +57,14 @@ using systems::trajectory_optimization::DirconKinematicConstraint;
 using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 
-void trajOptGivenWeights(double stride_length, double duration, int iter, 
+void simpleTrajOpt(double stride_length, double duration, int iter, 
                          string directory,
-                         string init_file, 
-                         string weights_file,
+                         string init_file,
                          string output_prefix) {
 
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
       "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
-
-  // cout << endl << "****bodies****" << endl;
-  // for (int i = 0; i < tree.get_num_bodies(); i++)
-  //   cout << tree.getBodyOrFrameName(i) << endl;
-  // cout << endl << "****actuators****" << endl;
-  // for (int i = 0; i < tree.get_num_actuators(); i++)
-  //   cout << tree.actuators[i].name_ << endl;
-  // cout << endl << "****positions****" << endl;
-  // for (int i = 0; i < tree.get_num_positions(); i++)
-  //   cout << tree.get_position_name(i) << endl;
-  // cout << endl << "****velocities****" << endl;
-  // for (int i = 0; i < tree.get_num_velocities(); i++)
-  //   cout << tree.get_velocity_name(i) << endl;
 
 // world
 // base
@@ -114,11 +105,10 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   int n_q = tree.get_num_positions();
   int n_v = tree.get_num_velocities();
-  int n_x = n_q + n_v;
-  int n_u = tree.get_num_actuators();
-    // std::cout<<"n_x = "<<n_x<<"\n";
-    // std::cout<<"n_u = "<<n_u<<"\n";
-
+  // int n_x = n_q + n_v;
+  // int n_u = tree.get_num_actuators();
+  // std::cout<<"n_x = "<<n_x<<"\n";
+  // std::cout<<"n_u = "<<n_u<<"\n";
 
   int leftLegIdx = tree.FindBodyIndex("left_lower_leg");
   int rightLegIdx = tree.FindBodyIndex("right_lower_leg");
@@ -251,32 +241,20 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // make sure it's left stance 
   trajopt->AddLinearConstraint(x0(3) <= x0(5));
 
+  // swing foot clearance constraint (not finished; how to do this?)
+  VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
+  // KinematicsCache<Expression> cache = tree.doKinematics(xmid.head(n_q), xmid.tail(n_v));
+  // tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
+  // VectorXDecisionVariable swingFootPos    = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
+  // MatrixXDecisionVariable swingFootRotmat = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).linear();
+  // VectorXDecisionVariable swingFootContactPtPos = swingFootPos + swingFootRotmat * pt;
 
 
+  // auto leftFootConstraint_symb = DirconPositionData<Expression>(tree, leftLegIdx, pt,
+  //                                                        isXZ);
 
 
-  // drake::symbolic::Expression r_com = 
-
-
-
-  // Constraints related to the reduced order model
-  MatrixXd weights = MatrixXd::Zero(1,10);
-  weights(0,0) = -0.1;
-  weights(0,5) = 1; 
-  // MatrixXd weights = readCSV(directory + weights_file);
-  VectorX<drake::symbolic::Expression> features(10); //Hand pick features for now
-  features << 1, x(2), x(3), x(4), cos(x(2)), cos(x(3)), cos(x(4)), sin(x(2)), sin(x(3)), sin(x(4));
-  SymbolicManifold m_constraint(tree, features, weights);
-
-  // std::vector<Binding<Constraint>> manifold_bindings;
-  for (int i = 0; i < N; i++) {
-    auto m_i = trajopt->SubstitutePlaceholderVariables(m_constraint.getConstraintExpressions(), i);
-    trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size()));
-    // manifold_bindings.push_back(trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size())));
-  }
-
-
-
+  // add cost 
   const double R = 10;  // Cost on input effort
   auto u = trajopt->input();
   trajopt->AddRunningCost(u.transpose()*R*u);
@@ -291,36 +269,6 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     MatrixXd z0 = readCSV(directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
   }
-  // if(true){
-    // // TODO: maybe should construct the pp from coefficient
-
-  //   VectorXd time_at_knot_point = readCSV(directory + "init_traj_time_at_knots.csv");
-  //   MatrixXd state_at_knot_point = readCSV(directory + "init_traj_state_at_knots.csv");
-  //   MatrixXd input_at_knot_point = readCSV(directory + "init_traj_input_at_knots.csv");
-  //     // std::cout<<time_at_knot_point.rows()<<", "<<time_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-  //     // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-  //     // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
-  //   int n_init_knots = time_at_knot_point.size();
-
-  //   std::vector<double> T_knotpoint(n_init_knots, 0);
-  //   std::vector<MatrixXd> Y_state(n_init_knots, MatrixXd::Zero(state_at_knot_point.rows(), 1));
-  //   std::vector<MatrixXd> Y_input(n_init_knots, MatrixXd::Zero(input_at_knot_point.rows(), 1));
-  //   for(int i=0;i<n_init_knots;i++){
-  //     T_knotpoint[i] = time_at_knot_point(i);
-  //     Y_state[i] = state_at_knot_point.col(i);
-  //     Y_input[i] = input_at_knot_point.col(i);
-  //     // std::cout<<"T_knotpoint = "<<T_knotpoint[i]<<"\n";
-  //     // std::cout<<"Y_input = "<<Y_input[i]<<"\n";
-  //   }
-
-  //   PiecewisePolynomial<double> traj_init_x = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_state);
-  //   PiecewisePolynomial<double> traj_init_u = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_input);
-
-  //   trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
-  // }
 
   std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -340,9 +288,9 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // VectorXd time_at_knot_point = trajopt->GetSampleTimes();
   // MatrixXd state_at_knot_point = trajopt->GetStateSamples();
   // MatrixXd input_at_knot_point = trajopt->GetInputSamples();
-  // writeCSV(directory + string("init_traj_time_at_knots.csv"), time_at_knot_point);
-  // writeCSV(directory + string("init_traj_state_at_knots.csv"), state_at_knot_point);
-  // writeCSV(directory + string("init_traj_input_at_knots.csv"), input_at_knot_point);
+  // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
+  // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
+  // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
     // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
     // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
     // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
@@ -375,4 +323,19 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 }  // namespace goldilocks_models
 }  // namespace dairlib
+
+
+int main() {
+
+  double stride_length = 0.3;
+  double duration = .5;
+  int iter = 500;
+  string directory = "examples/Goldilocks_models/data/";
+  string init_file = "";
+  // string init_file = "z.csv";
+  string output_prefix = "testing_";
+
+  dairlib::goldilocks_models::simpleTrajOpt(stride_length, duration, iter, 
+                     directory, init_file, output_prefix);
+}
 

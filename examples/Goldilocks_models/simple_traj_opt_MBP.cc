@@ -38,6 +38,10 @@ using drake::systems::trajectory_optimization::MultipleShooting;
 using drake::trajectories::PiecewisePolynomial;
 using drake::solvers::Binding;
 using drake::solvers::Constraint;
+using drake::solvers::VectorXDecisionVariable;
+using drake::solvers::MatrixXDecisionVariable;
+using drake::symbolic::Variable;
+using drake::symbolic::Expression;
 using std::vector;
 using std::shared_ptr;
 using std::cout;
@@ -60,7 +64,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "examples/PlanarWalker/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
 
 // world
 // base
@@ -101,10 +105,10 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   int n_q = tree.get_num_positions();
   int n_v = tree.get_num_velocities();
-  int n_x = n_q + n_v;
-  int n_u = tree.get_num_actuators();
-  std::cout<<"n_x = "<<n_x<<"\n";
-  std::cout<<"n_u = "<<n_u<<"\n";
+  // int n_x = n_q + n_v;
+  // int n_u = tree.get_num_actuators();
+  // std::cout<<"n_x = "<<n_x<<"\n";
+  // std::cout<<"n_u = "<<n_u<<"\n";
 
   int leftLegIdx = tree.FindBodyIndex("left_lower_leg");
   int rightLegIdx = tree.FindBodyIndex("right_lower_leg");
@@ -230,11 +234,27 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   trajopt->AddConstraintToAllKnotPoints(x(3) <= M_PI/2.0);
   trajopt->AddConstraintToAllKnotPoints(x(5) <= M_PI/2.0);
 
-
   // x-distance constraint constraints
   trajopt->AddLinearConstraint(x0(0) == 0);
   trajopt->AddLinearConstraint(xf(0) == stride_length);
 
+  // make sure it's left stance 
+  trajopt->AddLinearConstraint(x0(3) <= x0(5));
+
+  // swing foot clearance constraint (not finished; how to do this?)
+  VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
+  // KinematicsCache<Expression> cache = tree.doKinematics(xmid.head(n_q), xmid.tail(n_v));
+  // tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
+  // VectorXDecisionVariable swingFootPos    = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
+  // MatrixXDecisionVariable swingFootRotmat = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).linear();
+  // VectorXDecisionVariable swingFootContactPtPos = swingFootPos + swingFootRotmat * pt;
+
+
+  // auto leftFootConstraint_symb = DirconPositionData<Expression>(tree, leftLegIdx, pt,
+  //                                                        isXZ);
+
+
+  // add cost 
   const double R = 10;  // Cost on input effort
   auto u = trajopt->input();
   trajopt->AddRunningCost(u.transpose()*R*u);
