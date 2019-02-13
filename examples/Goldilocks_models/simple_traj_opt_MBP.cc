@@ -104,19 +104,6 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   for (auto const& element : actuators_map)
     cout << element.first << " = " << element.second << endl;
 
-
-  //TODO: check if it's 0, 1, 2, 3
-
-  std::cout<<actuators_map["left_hip_torque"]<<"\n";
-  std::cout<<actuators_map["right_hip_torque"]<<"\n";
-  std::cout<<actuators_map["left_knee_torque"]<<"\n";
-  std::cout<<actuators_map["right_knee_torque"]<<"\n";
-
-
-
-
-
-
 // world
 // base
 // base_x
@@ -306,7 +293,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   trajopt->AddLinearConstraint(xf(positions_map["planar_x"]) == stride_length);
 
   // make sure it's left stance 
-  trajopt->AddLinearConstraint(x0(positions_map["left_hip_pin"]) <= x0(positions_map["right_hip_pin"]));
+  // trajopt->AddLinearConstraint(x0(positions_map["left_hip_pin"]) <= x0(positions_map["right_hip_pin"]));
 
 
   // swing foot clearance constraint (not finished; how to do this?)
