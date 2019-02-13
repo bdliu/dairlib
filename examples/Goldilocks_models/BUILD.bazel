@@ -49,13 +49,13 @@ cc_binary(
     srcs = ["simple_traj_opt_MBP.cc"],
     data = ["PlanarWalkerWithTorso.urdf"],
     deps = [
+        "//common",
+        "//systems/primitives",
         "//systems/goldilocks_models",
         "//systems/trajectory_optimization:dircon",
-        "@drake//attic/multibody:rigid_body_tree",
-        "@drake//attic/multibody:rigid_body_tree_construction",
         "@drake//attic/multibody/parsers",
-        "@drake//attic/multibody/rigid_body_plant:drake_visualizer",
         "@drake//common",
+        "@drake//math",
         "@drake//lcm",
         "@drake//manipulation/util",
         "@drake//solvers",
@@ -63,7 +63,10 @@ cc_binary(
         "@drake//systems/framework",
         "@drake//systems/primitives",
         "@drake//systems/trajectory_optimization",
-        "@gflags",
+        "@gflags",     
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
     ],
 )
 
