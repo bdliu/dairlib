@@ -83,15 +83,28 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   std::string full_name =
       FindResourceOrThrow("examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
-
   plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
       -9.81 * Eigen::Vector3d::UnitZ());
-
   plant.WeldFrames(
       plant.world_frame(), plant.GetFrameByName("base"),
       drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
-
   plant.Finalize();
+
+
+  auto plant_symb_smrt_ptr = plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
+  auto plant_symb_ptr = plant_symb_smrt_ptr.get();
+  // MultibodyPlant<Expression> plant_symb;
+  // Parser parser_symb(&plant_symb); // parser doesn't support this
+  // std::string full_name =
+  //     FindResourceOrThrow("examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  // parser_symb.AddModelFromFile(full_name);
+  // plant_symb.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  //     -9.81 * Eigen::Vector3d::UnitZ());
+  // plant_symb.WeldFrames(
+  //     plant_symb.world_frame(), plant_symb.GetFrameByName("base"),
+  //     drake::math::RigidTransform<Expression>(Vector3d::Zero()).GetAsIsometry3());
+  // plant_symb.Finalize();
+
 
   map<string,int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string,int> velocities_map = multibody::makeNameToVelocitiesMap(plant);
@@ -106,7 +119,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   int n_q = plant.num_positions();
   int n_v = plant.num_velocities();
-  int n_x = n_q + n_v;
+  // int n_x = n_q + n_v;
   // int n_u = plant.num_actuators();
   // std::cout<<"n_x = "<<n_x<<"\n";
   // std::cout<<"n_u = "<<n_u<<"\n";
@@ -337,8 +350,8 @@ int main() {
   double duration = .5;
   int iter = 500;
   string directory = "examples/Goldilocks_models/data/";
-  string init_file = "";
-  // string init_file = "z.csv";
+  // string init_file = "";
+  string init_file = "testing_z.csv";
   string output_prefix = "testing_";
 
   dairlib::goldilocks_models::simpleTrajOpt(stride_length, duration, iter, 
