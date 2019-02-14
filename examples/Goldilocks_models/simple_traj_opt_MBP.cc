@@ -268,7 +268,14 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
 
   // swing foot clearance constraint (not finished; how to do this?)
-  // VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
+  VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
+  
+  auto context_symb_smrt_ptr = plant_symb_ptr->AllocateContext(); //return std::unique_ptr< Context< T > >
+  auto context_symb_ptr = context_symb_smrt_ptr.get(); //return std::unique_ptr< Context< T > >
+  // const Isometry3<Expression> right_lower_leg_pose = plant_symb_ptr->EvalBodyPoseInWorld(*context_symb_ptr, right_lower_leg);
+
+
+
   // KinematicsCache<Expression> cache = tree.doKinematics(xmid.head(n_q), xmid.tail(n_v));
   // tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
   // VectorXDecisionVariable swingFootPos    = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
