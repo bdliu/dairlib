@@ -60,6 +60,8 @@ using drake::multibody::Body;
 using drake::multibody::Parser;
 using drake::systems::rendering::MultibodyPositionToGeometryPose;
 
+// using Isometry3 = Eigen::Transform<Scalar, 3, Eigen::Isometry>
+
 namespace dairlib {
 namespace goldilocks_models {
 
@@ -91,7 +93,10 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   plant.Finalize();
 
 
+  auto context = plant.CreateDefaultContext();
   auto plant_symb_smrt_ptr = plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
+  auto context_symb_smrt_ptr = plant_symb_smrt_ptr->CreateDefaultContext();
+  context_symb_smrt_ptr->SetTimeStateAndParametersFrom(*context);
   auto plant_symb_ptr = plant_symb_smrt_ptr.get();
   // MultibodyPlant<Expression> plant_symb;
   // Parser parser_symb(&plant_symb); // parser doesn't support this
@@ -104,6 +109,12 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   //     plant_symb.world_frame(), plant_symb.GetFrameByName("base"),
   //     drake::math::RigidTransform<Expression>(Vector3d::Zero()).GetAsIsometry3());
   // plant_symb.Finalize();
+
+  // drake::systems::DiagramBuilder<Expression> builder_symb;
+  // auto system_symb = *builder_symb.AddSystem<MultibodyPlant<Expression>>(plant_symb_smrt_ptr); //return MultibodyPlant<Expression>
+  // auto diagram_symb = builder_symb.Build();
+  
+
 
 
   map<string,int> positions_map = multibody::makeNameToPositionsMap(plant);
@@ -270,9 +281,9 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   // swing foot clearance constraint (not finished; how to do this?)
   VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
   
-  auto context_symb_smrt_ptr = plant_symb_ptr->AllocateContext(); //return std::unique_ptr< Context< T > >
   auto context_symb_ptr = context_symb_smrt_ptr.get(); //return std::unique_ptr< Context< T > >
   // const Isometry3<Expression> right_lower_leg_pose = plant_symb_ptr->EvalBodyPoseInWorld(*context_symb_ptr, right_lower_leg);
+  const auto right_lower_leg_pose = plant_symb_ptr->EvalBodyPoseInWorld(*context_symb_ptr, right_lower_leg);
 
 
 
