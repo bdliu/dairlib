@@ -52,7 +52,7 @@ using std::shared_ptr;
 using std::cout;
 using std::endl;
 using std::string;
-
+using std::map;
 
 using drake::multibody::MultibodyPlant;
 using drake::geometry::SceneGraph;
@@ -93,52 +93,16 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   plant.Finalize();
 
-  auto positions_map = multibody::makeNameToPositionsMap(plant);
-  auto velocities_map = multibody::makeNameToVelocitiesMap(plant);
-  auto actuators_map = multibody::makeNameToActuatorsMap(plant);
-
+  map<string,int> positions_map = multibody::makeNameToPositionsMap(plant);
+  map<string,int> velocities_map = multibody::makeNameToVelocitiesMap(plant);
+  map<string,int> actuators_map = multibody::makeNameToActuatorsMap(plant);
   for (auto const& element : positions_map)
-    cout << element.first << " = " << element.second << endl;
+    cout << element.first << " = " << element.second << endl; std::cout<<"\n";
   for (auto const& element : velocities_map)
-    cout << element.first << " = " << element.second << endl;
+    cout << element.first << " = " << element.second << endl; std::cout<<"\n";
   for (auto const& element : actuators_map)
-    cout << element.first << " = " << element.second << endl;
+    cout << element.first << " = " << element.second << endl; std::cout<<"\n";
 
-// world
-// base
-// base_x
-// base_xz
-// torso
-// torso_mass
-// left_upper_leg
-// left_upper_leg_mass
-// left_lower_leg
-// left_lower_leg_mass
-// right_upper_leg
-// right_upper_leg_mass
-// right_lower_leg
-// right_lower_leg_mass
-
-// left_hip_torque
-// right_hip_torque
-// left_knee_torque
-// right_knee_torque
-
-// planar_x
-// planar_z
-// planar_roty
-// left_hip_pin
-// left_knee_pin
-// right_hip_pin
-// right_knee_pin
-
-// planar_xdot
-// planar_zdot
-// planar_rotydot
-// left_hip_pindot
-// left_knee_pindot
-// right_hip_pindot
-// right_knee_pindot
 
   int n_q = plant.num_positions();
   int n_v = plant.num_velocities();
@@ -240,20 +204,14 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
 
   // Periodicity constraints
-  // planar_x - 0
-  // planar_z - 1
-  // planar_rot - 2
-  // left_hip_pin - 3
-  // left_knee_pin - 4
-  // right_hip_pin - 5
-  // right_knee_pin - 6
   auto x0 = trajopt->initial_state();
   // auto xf = trajopt->final_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size()-1,
                                         num_time_samples[num_time_samples.size()-1]-1);
 
+  //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
   trajopt->AddLinearConstraint(x0(positions_map["planar_z"]) == xf(positions_map["planar_z"]));
-  trajopt->AddLinearConstraint(x0(positions_map["planar_rot"]) == xf(positions_map["planar_rot"]));
+  trajopt->AddLinearConstraint(x0(positions_map["planar_roty"]) == xf(positions_map["planar_roty"])); 
   trajopt->AddLinearConstraint(x0(positions_map["left_hip_pin"]) == xf(positions_map["right_hip_pin"]));
   trajopt->AddLinearConstraint(x0(positions_map["left_knee_pin"]) == xf(positions_map["right_knee_pin"]));
   trajopt->AddLinearConstraint(x0(positions_map["right_hip_pin"]) == xf(positions_map["left_hip_pin"]));
@@ -283,8 +241,8 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_knee_pin"]) <= M_PI/2.0);
 
   // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_hip_pin"]) >= -M_PI/2);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_hip_pin"]) >= -M_PI/2);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_hip_pin"]) >= -M_PI/2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_hip_pin"]) >= -M_PI/2.0);
   trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_hip_pin"]) <= M_PI/2.0);
   trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_hip_pin"]) <= M_PI/2.0);
 
