@@ -57,14 +57,15 @@ using systems::trajectory_optimization::DirconKinematicConstraint;
 using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 
-void simpleTrajOpt(double stride_length, double duration, int iter, 
-                         string directory,
-                         string init_file,
-                         string output_prefix) {
+void simpleTrajOpt(double stride_length, double duration, int iter,
+                   string directory,
+                   string init_file,
+                   string output_prefix) {
 
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+    "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf",
+    drake::multibody::joints::kFixed, &tree);
 
 // world
 // base
@@ -118,16 +119,17 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   bool isXZ = true;
 
   auto leftFootConstraint = DirconPositionData<double>(tree, leftLegIdx, pt,
-                                                       isXZ);
-  auto rightFootConstraint = DirconPositionData<double>(tree, rightLegIdx, pt,
-                                                        isXZ);
+                            isXZ);
+  auto rightFootConstraint = DirconPositionData<double>(tree, rightLegIdx,
+                             pt,
+                             isXZ);
 
   Vector3d normal;
   normal << 0, 0, 1;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
-    // std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
+  // std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
 
   std::vector<DirconKinematicData<double>*> leftConstraints;
   leftConstraints.push_back(&leftFootConstraint);
@@ -135,21 +137,23 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   std::vector<DirconKinematicData<double>*> rightConstraints;
   rightConstraints.push_back(&rightFootConstraint);
-  auto rightDataSet = DirconKinematicDataSet<double>(tree, &rightConstraints);
+  auto rightDataSet = DirconKinematicDataSet<double>(tree,
+                      &rightConstraints);
 
   auto leftOptions = DirconOptions(leftDataSet.countConstraints());
-  leftOptions.setConstraintRelative(0, true); //TODO: ask what is relative constraint here?
-    // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
+  leftOptions.setConstraintRelative(0,
+                                    true); //TODO: ask what is relative constraint here?
+  // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
 
   auto rightOptions = DirconOptions(rightDataSet.countConstraints());
   rightOptions.setConstraintRelative(0, true);
 
   // Stated in the MultipleShooting class:
-    // This class assumes that there are a fixed number (N) time steps/samples, 
-    // and that the trajectory is discretized into timesteps h (N-1 of these), 
-    // state x (N of these), and control input u (N of these). 
+  // This class assumes that there are a fixed number (N) time steps/samples,
+  // and that the trajectory is discretized into timesteps h (N-1 of these),
+  // state x (N of these), and control input u (N of these).
   std::vector<int> num_time_samples;
-  num_time_samples.push_back(20); // First mode (20 sample points) 
+  num_time_samples.push_back(20); // First mode (20 sample points)
   num_time_samples.push_back(1);  // Second mode (1 sample point)
   std::vector<double> min_dt;
   min_dt.push_back(.01);   // bound for time difference between adjacent samples in the first mode // See HybridDircon constructor
@@ -159,10 +163,10 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   max_dt.push_back(.3);
 
   int N = 0;
-  for (uint i = 0; i < num_time_samples.size(); i++) 
+  for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1; //Overlaps between modes
-    // std::cout<<"N = "<<N<<"\n";
+  // std::cout<<"N = "<<N<<"\n";
 
   std::vector<DirconKinematicDataSet<double>*> dataset_list;
   dataset_list.push_back(&leftDataSet);
@@ -172,9 +176,10 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   options_list.push_back(leftOptions);
   options_list.push_back(rightOptions);
 
-  auto trajopt = std::make_shared<HybridDircon<double>>(tree, num_time_samples, min_dt,
-                                                        max_dt, dataset_list,
-                                                        options_list);
+  auto trajopt = std::make_shared<HybridDircon<double>>(tree,
+                 num_time_samples, min_dt,
+                 max_dt, dataset_list,
+                 options_list);
 
   // trajopt->AddDurationBounds(duration, duration); // You can comment this out to not put any constraint on the time
 
@@ -195,8 +200,8 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   // right_knee_pin - 6
   auto x0 = trajopt->initial_state();
   // auto xf = trajopt->final_state();
-  auto xf = trajopt->state_vars_by_mode(num_time_samples.size()-1,
-                                        num_time_samples[num_time_samples.size()-1]-1);
+  auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
+                                        num_time_samples[num_time_samples.size() - 1] - 1);
 
   trajopt->AddLinearConstraint(x0(1) == xf(1));
   trajopt->AddLinearConstraint(x0(2) == xf(2));
@@ -215,7 +220,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   // u periodic constraint
   auto u0 = trajopt->input(0);
-  auto uf = trajopt->input(N-1);
+  auto uf = trajopt->input(N - 1);
   trajopt->AddLinearConstraint(u0(0) == uf(1));
   trajopt->AddLinearConstraint(u0(1) == uf(0));
   trajopt->AddLinearConstraint(u0(2) == uf(3));
@@ -223,46 +228,48 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   // Knee joint limits
   auto x = trajopt->state();
-  trajopt->AddConstraintToAllKnotPoints(x(4) >= 5.0/180.0*M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(6) >= 5.0/180.0*M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(4) <= M_PI/2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(6) <= M_PI/2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(4) >= 5.0 / 180.0 * M_PI);
+  trajopt->AddConstraintToAllKnotPoints(x(6) >= 5.0 / 180.0 * M_PI);
+  trajopt->AddConstraintToAllKnotPoints(x(4) <= M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(6) <= M_PI / 2.0);
 
   // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(3) >= -M_PI/2);
-  trajopt->AddConstraintToAllKnotPoints(x(5) >= -M_PI/2);
-  trajopt->AddConstraintToAllKnotPoints(x(3) <= M_PI/2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(5) <= M_PI/2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(3) >= -M_PI / 2);
+  trajopt->AddConstraintToAllKnotPoints(x(5) >= -M_PI / 2);
+  trajopt->AddConstraintToAllKnotPoints(x(3) <= M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(5) <= M_PI / 2.0);
 
   // x-distance constraint constraints
   trajopt->AddLinearConstraint(x0(0) == 0);
   trajopt->AddLinearConstraint(xf(0) == stride_length);
 
-  // make sure it's left stance 
+  // make sure it's left stance
   trajopt->AddLinearConstraint(x0(3) <= x0(5));
 
+  /*
   // swing foot clearance constraint (not finished; how to do this?)
   VectorXDecisionVariable xmid = trajopt->state_vars_by_mode(0, floor(num_time_samples[0]/2));
   // KinematicsCache<Expression> cache = tree.doKinematics(xmid.head(n_q), xmid.tail(n_v));
-  // tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
-  // VectorXDecisionVariable swingFootPos    = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();  
+  // tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();
+  // VectorXDecisionVariable swingFootPos    = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).translation();
   // MatrixXDecisionVariable swingFootRotmat = tree.CalcBodyPoseInWorldFrame(cache, tree.get_body(rightLegIdx)).linear();
   // VectorXDecisionVariable swingFootContactPtPos = swingFootPos + swingFootRotmat * pt;
 
 
   // auto leftFootConstraint_symb = DirconPositionData<Expression>(tree, leftLegIdx, pt,
   //                                                        isXZ);
+  */
 
 
-  // add cost 
+  // add cost
   const double R = 10;  // Cost on input effort
   auto u = trajopt->input();
-  trajopt->AddRunningCost(u.transpose()*R*u);
-  MatrixXd Q = MatrixXd::Zero(2*n_q, 2*n_q);
-  for (int i=0; i < n_q; i++) {
-    Q(i+n_q, i+n_q) = 10;
+  trajopt->AddRunningCost(u.transpose()*R * u);
+  MatrixXd Q = MatrixXd::Zero(2 * n_q, 2 * n_q);
+  for (int i = 0; i < n_q; i++) {
+    Q(i + n_q, i + n_q) = 10;
   }
-  trajopt->AddRunningCost(x.transpose()*Q*x);
+  trajopt->AddRunningCost(x.transpose()*Q * x);
 
   // initial guess if the file exists
   if (!init_file.empty()) {
@@ -270,18 +277,19 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
     trajopt->SetInitialGuessForAllVariables(z0);
   }
 
-  std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
+  std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto result = trajopt->Solve();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
-  std::cout << "Solve time:" << elapsed.count() <<std::endl;
+  std::cout << "Solve time:" << elapsed.count() << std::endl;
   std::cout << result << std::endl;
-  std::cout << "Cost:" << trajopt->GetOptimalCost() <<std::endl;
+  std::cout << "Cost:" << trajopt->GetOptimalCost() << std::endl;
 
-  // store the solution of the decision variable 
-  VectorXd z = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
+  // store the solution of the decision variable
+  VectorXd z = trajopt->GetSolution(
+                 trajopt->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("z.csv"), z);
 
   // store the time, state, and input at knot points
@@ -291,19 +299,22 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
   // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
   // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
-    // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-    // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-    // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-    // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-    // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
+  // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
+  // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
+  // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
+  // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
+  // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
 
 
   // visualizer
   drake::lcm::DrakeLcm lcm;
   drake::systems::DiagramBuilder<double> builder;
-  const PiecewisePolynomial<double> pp_xtraj = trajopt->ReconstructStateTrajectory();
-  auto state_source = builder.AddSystem<drake::systems::TrajectorySource>(pp_xtraj);
-  auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree, &lcm);
+  const PiecewisePolynomial<double> pp_xtraj =
+    trajopt->ReconstructStateTrajectory();
+  auto state_source = builder.AddSystem<drake::systems::TrajectorySource>
+                      (pp_xtraj);
+  auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree,
+                   &lcm);
   publisher->set_publish_period(1.0 / 60.0);
   builder.Connect(state_source->get_output_port(),
                   publisher->get_input_port(0));
@@ -335,7 +346,7 @@ int main() {
   // string init_file = "z.csv";
   string output_prefix = "testing_";
 
-  dairlib::goldilocks_models::simpleTrajOpt(stride_length, duration, iter, 
-                     directory, init_file, output_prefix);
+  dairlib::goldilocks_models::simpleTrajOpt(stride_length, duration, iter,
+      directory, init_file, output_prefix);
 }
 

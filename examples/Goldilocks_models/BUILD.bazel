@@ -120,3 +120,21 @@ cc_binary(
 
 
 
+cc_library(
+    name = "dummy_constraint",
+    srcs = [
+        "dummy_constraint.cc",
+    ],
+    hdrs = [
+        "dummy_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "//multibody:utils",
+    ],
+)
+
+
+
