@@ -246,74 +246,74 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
 
   //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
-  trajopt->AddLinearConstraint(x0(positions_map["planar_z"]) == xf(
-                                 positions_map["planar_z"]));
-  trajopt->AddLinearConstraint(x0(positions_map["planar_roty"]) == xf(
-                                 positions_map["planar_roty"]));
-  trajopt->AddLinearConstraint(x0(positions_map["left_hip_pin"]) == xf(
-                                 positions_map["right_hip_pin"]));
-  trajopt->AddLinearConstraint(x0(positions_map["left_knee_pin"]) == xf(
-                                 positions_map["right_knee_pin"]));
-  trajopt->AddLinearConstraint(x0(positions_map["right_hip_pin"]) == xf(
-                                 positions_map["left_hip_pin"]));
-  trajopt->AddLinearConstraint(x0(positions_map["right_knee_pin"]) == xf(
-                                 positions_map["left_knee_pin"]));
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
+                                 positions_map.at("planar_z")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_roty")) == xf(
+                                 positions_map.at("planar_roty")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) == xf(
+                                 positions_map.at("right_hip_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("left_knee_pin")) == xf(
+                                 positions_map.at("right_knee_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("right_hip_pin")) == xf(
+                                 positions_map.at("left_hip_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("right_knee_pin")) == xf(
+                                 positions_map.at("left_knee_pin")));
 
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["planar_xdot"]) == xf(
-                                 n_q + velocities_map["planar_xdot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["planar_zdot"]) == xf(
-                                 n_q + velocities_map["planar_zdot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["planar_rotydot"]) ==
-                               xf(n_q + velocities_map["planar_rotydot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["left_hip_pindot"]) ==
-                               xf(n_q + velocities_map["right_hip_pindot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["left_knee_pindot"])
-                               == xf(n_q + velocities_map["right_knee_pindot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["right_hip_pindot"])
-                               == xf(n_q + velocities_map["left_hip_pindot"]));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map["right_knee_pindot"])
-                               == xf(n_q + velocities_map["left_knee_pindot"]));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_xdot"))
+                           == xf(n_q + velocities_map.at("planar_xdot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_zdot"))
+                           == xf(n_q + velocities_map.at("planar_zdot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_rotydot"))
+                           == xf(n_q + velocities_map.at("planar_rotydot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_hip_pindot"))
+                           == xf(n_q + velocities_map.at("right_hip_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_knee_pindot"))
+                           == xf(n_q + velocities_map.at("right_knee_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_hip_pindot"))
+                           == xf(n_q + velocities_map.at("left_hip_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_knee_pindot"))
+                           == xf(n_q + velocities_map.at("left_knee_pindot")));
 
   // u periodic constraint
   auto u0 = trajopt->input(0);
   auto uf = trajopt->input(N - 1);
-  trajopt->AddLinearConstraint(u0(actuators_map["left_hip_torque"]) == uf(
-                                 actuators_map["right_hip_torque"]));
-  trajopt->AddLinearConstraint(u0(actuators_map["right_hip_torque"]) == uf(
-                                 actuators_map["left_hip_torque"]));
-  trajopt->AddLinearConstraint(u0(actuators_map["left_knee_torque"]) == uf(
-                                 actuators_map["right_knee_torque"]));
-  trajopt->AddLinearConstraint(u0(actuators_map["right_knee_torque"]) == uf(
-                                 actuators_map["left_knee_torque"]));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("left_hip_torque")) == uf(
+                                 actuators_map.at("right_hip_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("right_hip_torque")) == uf(
+                                 actuators_map.at("left_hip_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("left_knee_torque")) == uf(
+                                 actuators_map.at("right_knee_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("right_knee_torque")) == uf(
+                                 actuators_map.at("left_knee_torque")));
 
   // Knee joint limits
   auto x = trajopt->state();
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_knee_pin"]) >=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) >=
                                         5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_knee_pin"]) >=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) >=
                                         5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_knee_pin"]) <=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) <=
                                         M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_knee_pin"]) <=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) <=
                                         M_PI / 2.0);
 
   // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_hip_pin"]) >=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) >=
                                         -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_hip_pin"]) >=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) >=
                                         -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["left_hip_pin"]) <=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) <=
                                         M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map["right_hip_pin"]) <=
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) <=
                                         M_PI / 2.0);
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(positions_map["planar_x"]) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map["planar_x"]) ==
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_x")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("planar_x")) ==
                                stride_length);
 
   // make sure it's left stance
-  // trajopt->AddLinearConstraint(x0(positions_map["left_hip_pin"]) <= x0(positions_map["right_hip_pin"]));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <= x0(positions_map.at("right_hip_pin")));
 
 
   // swing foot clearance constraint (not finished; how to do this?)
