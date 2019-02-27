@@ -1,4 +1,5 @@
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
+#include "examples/Goldilocks_models/goldilocks_model_traj_opt.h"
 
 #include <gflags/gflags.h>
 
@@ -255,25 +256,24 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
-  // drake::symbolic::Expression r_com = 
+
+  // // Constraints related to the reduced order model
+  // MatrixXd weights = MatrixXd::Zero(1,10);
+  // weights(0,0) = -0.1;
+  // weights(0,5) = 1; 
+  // // MatrixXd weights = readCSV(directory + weights_file);
+  // VectorX<drake::symbolic::Expression> features(10); //Hand pick features for now
+  // features << 1, x(2), x(3), x(4), cos(x(2)), cos(x(3)), cos(x(4)), sin(x(2)), sin(x(3)), sin(x(4));
+  // SymbolicManifold m_constraint(tree, features, weights);
+
+  // // std::vector<Binding<Constraint>> manifold_bindings;
+  // for (int i = 0; i < N; i++) {
+  //   auto m_i = trajopt->SubstitutePlaceholderVariables(m_constraint.getConstraintExpressions(), i);
+  //   trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size()));
+  //   // manifold_bindings.push_back(trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size())));
+  // }
 
 
-
-  // Constraints related to the reduced order model
-  MatrixXd weights = MatrixXd::Zero(1,10);
-  weights(0,0) = -0.1;
-  weights(0,5) = 1; 
-  // MatrixXd weights = readCSV(directory + weights_file);
-  VectorX<drake::symbolic::Expression> features(10); //Hand pick features for now
-  features << 1, x(2), x(3), x(4), cos(x(2)), cos(x(3)), cos(x(4)), sin(x(2)), sin(x(3)), sin(x(4));
-  SymbolicManifold m_constraint(tree, features, weights);
-
-  // std::vector<Binding<Constraint>> manifold_bindings;
-  for (int i = 0; i < N; i++) {
-    auto m_i = trajopt->SubstitutePlaceholderVariables(m_constraint.getConstraintExpressions(), i);
-    trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size()));
-    // manifold_bindings.push_back(trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size())));
-  }
 
 
 
@@ -322,6 +322,23 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   //   trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
   // }
 
+
+
+
+
+
+
+
+
+
+  // Here is the place here you pass the DRICOn problem inside your class to add the constraints 
+
+  // Make the original DIRCON problem as public member, so ther you can still use it below.
+
+
+
+
+
   std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto result = trajopt->Solve();
@@ -333,8 +350,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   std::cout << "Cost:" << trajopt->GetOptimalCost() <<std::endl;
 
   // store the solution of the decision variable 
-  VectorXd z = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
-  writeCSV(directory + output_prefix + string("z.csv"), z);
+  VectorXd y = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
+  writeCSV(directory + output_prefix + string("y.csv"), y);
 
   // store the time, state, and input at knot points
   // VectorXd time_at_knot_point = trajopt->GetSampleTimes();

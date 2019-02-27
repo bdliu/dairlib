@@ -1,0 +1,113 @@
+
+#include <memory>
+#include <chrono>
+
+#include <string>
+
+#include "drake/systems/analysis/simulator.h"
+#include "drake/systems/framework/diagram.h"
+#include "drake/systems/framework/diagram_builder.h"
+#include "drake/systems/primitives/trajectory_source.h"
+
+#include "drake/lcm/drake_lcm.h"
+
+#include "drake/multibody/parsing/parser.h"
+#include "drake/systems/rendering/multibody_position_to_geometry_pose.h"
+#include "drake/geometry/geometry_visualization.h"
+
+#include "common/find_resource.h"
+#include "systems/primitives/subvector_pass_through.h"
+
+#include "drake/solvers/snopt_solver.h"
+#include "drake/solvers/mathematical_program.h"
+#include "drake/solvers/constraint.h"
+#include "systems/trajectory_optimization/dircon_util.h"
+#include "systems/trajectory_optimization/dircon_position_data.h"
+#include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
+#include "systems/trajectory_optimization/dircon_opt_constraints.h"
+#include "systems/trajectory_optimization/hybrid_dircon.h"
+
+#include "multibody/multibody_utils.h"
+#include "multibody/visualization_utils.h"
+
+#include "systems/goldilocks_models/symbolic_manifold.h"
+#include "systems/goldilocks_models/file_utils.h"
+
+using Eigen::Vector3d;
+using Eigen::VectorXd;
+using Eigen::MatrixXd;
+using Eigen::Matrix3Xd;
+using drake::VectorX;
+using drake::systems::trajectory_optimization::MultipleShooting;
+using drake::trajectories::PiecewisePolynomial;
+using drake::solvers::Binding;
+using drake::solvers::Constraint;
+using drake::solvers::VectorXDecisionVariable;
+using drake::solvers::MatrixXDecisionVariable;
+using drake::symbolic::Variable;
+using drake::symbolic::Expression;
+using std::vector;
+using std::shared_ptr;
+using std::cout;
+using std::endl;
+using std::string;
+using std::map;
+
+using drake::multibody::MultibodyPlant;
+using drake::geometry::SceneGraph;
+using drake::multibody::Body;
+using drake::multibody::Parser;
+using drake::systems::rendering::MultibodyPositionToGeometryPose;
+
+
+namespace dairlib {
+namespace goldilocks_models {
+
+using systems::trajectory_optimization::HybridDircon;
+using systems::trajectory_optimization::DirconDynamicConstraint;
+using systems::trajectory_optimization::DirconKinematicConstraint;
+using systems::trajectory_optimization::DirconOptions;
+using systems::trajectory_optimization::DirconKinConstraintType;
+using systems::SubvectorPassThrough;
+
+class GoldilcocksModelTrajOpt{
+
+
+  // https://github.com/RobotLocomotion/drake/blob/master/systems/trajectory_optimization/multiple_shooting.cc
+  // https://drake.mit.edu/doxygen_cxx/classdrake_1_1systems_1_1trajectory__optimization_1_1_multiple_shooting.html#a3d57e7972ccf310e19d3b73cac1c2a8c
+
+
+
+  // Inside construct:(
+                  // pass in the multipleShooting class
+                  // pass in the number of knots
+                  // pass in z constraint class
+                  // pass in zdot constraint class
+                  //)
+
+    // add new decision variable z
+    // In for loop 
+      // add constraint for z 
+      // (decision variables passed into the constraint is {x_i,z_i})
+  
+    // what about zdot?
+
+
+  // method1: solve()
+    // solve MultipleShooting and then return the solution 
+  // method2: 
+
+
+  // members:
+    // z_vars_
+    // placeholder_z_vars_
+
+
+
+
+
+};
+
+}  // namespace goldilocks_models
+}  // namespace dairlib
+
