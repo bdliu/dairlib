@@ -70,8 +70,15 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-class GoldilcocksModelTrajOpt{
+class GoldilcocksModelTrajOpt {
+ public:
+  GoldilcocksModelTrajOpt(
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt);
 
+
+  std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_;
+  
+ private:
 
 
 

@@ -34,7 +34,8 @@ namespace dairlib {
 void visualizeGait() {
   RigidBodyTree<double> tree;
   drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
+      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf",
+      drake::multibody::joints::kFixed, &tree);
 
   // int n = tree.get_num_positions();
   // int nu = tree.get_num_actuators();
@@ -43,24 +44,25 @@ void visualizeGait() {
   // Create a testing piecewise polynomial
   std::vector<double> T_breakpoint = {0, 2};
   std::vector<MatrixXd> Y(T_breakpoint.size(), MatrixXd::Zero(14, 1));
-  
+
   MatrixXd x0 = MatrixXd::Zero(14, 1);
-  x0 << 0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+  x0 << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
   MatrixXd x1 = MatrixXd::Zero(14, 1);
-  x1 << 1,0,0,0,0,0,0,0,0,0,0,0,0,0;
-  
+  x1 << 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
   Y[0] = x0;
   Y[1] = x1;
 
-  PiecewisePolynomial<double> pp_traj = PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
+  PiecewisePolynomial<double> pp_traj =
+      PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
 
   // visualizer
   drake::lcm::DrakeLcm lcm;
   drake::systems::DiagramBuilder<double> builder;
   auto state_source = builder.AddSystem<drake::systems::TrajectorySource>(
-        pp_traj);
+                        pp_traj);
   auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree,
-                                                                      &lcm);
+                   &lcm);
   publisher->set_publish_period(1.0 / 60.0);
   builder.Connect(state_source->get_output_port(),
                   publisher->get_input_port(0));

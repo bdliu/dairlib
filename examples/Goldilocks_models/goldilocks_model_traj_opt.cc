@@ -4,13 +4,17 @@
 namespace dairlib {
 namespace goldilocks_models {
 
+  GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt){
+    Dircon_traj_opt_ = std::move(Dircon_traj_opt);
+  }
+
 
 
 
 
   // https://github.com/RobotLocomotion/drake/blob/master/systems/trajectory_optimization/multiple_shooting.cc
   // https://drake.mit.edu/doxygen_cxx/classdrake_1_1systems_1_1trajectory__optimization_1_1_multiple_shooting.html#a3d57e7972ccf310e19d3b73cac1c2a8c
-
 
 
   // Inside construct:(
