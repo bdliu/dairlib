@@ -21,22 +21,30 @@ namespace goldilocks_models {
                   //)
 
     // add new decision variable z
-    // In for loop 
-      // add constraint for z 
+    // In for loop
+      // add constraint for z
       // (decision variables passed into the constraint is {x_i,z_i})
-  
-    // what about zdot?
+    // In for loop
+      // You will need to do direct collocation for zDot (cubic spline)
+      // 1. Get the spline from z0,z1,
+      //    zDot0(functino of z0),zDot1(function of z1)
+      // 2. The constraint is that at the middle point, the slope still match
 
 
-  // method1: solve()
-    // solve MultipleShooting and then return the solution 
-  // method2: 
+  // methods
+    // public:
+      // solve()
+        // solve MultipleShooting and then return the solution
+    // private:
+      // functions related to placeholder_z_vars_
 
 
   // members:
-    // z_vars_
-    // placeholder_z_vars_
-
+    // public:
+      // DIRCON_traj_opt_
+    // privite:
+      // z_vars_
+      // placeholder_z_vars_
 
 
 
