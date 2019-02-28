@@ -83,7 +83,6 @@ cc_library(
         "@drake//attic/multibody/parsers",
         "@drake//common",
         "@drake//math",
-        "@drake//lcm",
         "@drake//manipulation/util",
         "@drake//solvers",
         "@drake//systems/analysis:simulator",

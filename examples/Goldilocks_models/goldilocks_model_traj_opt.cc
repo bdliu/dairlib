@@ -5,8 +5,8 @@ namespace dairlib {
 namespace goldilocks_models {
 
   GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
-      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt){
-    Dircon_traj_opt_ = std::move(Dircon_traj_opt);
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in){
+    Dircon_traj_opt = std::move(Dircon_traj_opt_in);
   }
 
 
@@ -45,7 +45,7 @@ namespace goldilocks_models {
 
   // members:
     // public:
-      // DIRCON_traj_opt_
+      // DIRCON_traj_opt
     // privite:
       // z_vars_
       // placeholder_z_vars_

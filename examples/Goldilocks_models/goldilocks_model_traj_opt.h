@@ -9,8 +9,6 @@
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/trajectory_source.h"
 
-#include "drake/lcm/drake_lcm.h"
-
 #include "drake/multibody/parsing/parser.h"
 #include "drake/systems/rendering/multibody_position_to_geometry_pose.h"
 #include "drake/geometry/geometry_visualization.h"
@@ -47,7 +45,6 @@ using drake::solvers::MatrixXDecisionVariable;
 using drake::symbolic::Variable;
 using drake::symbolic::Expression;
 using std::vector;
-using std::shared_ptr;
 using std::cout;
 using std::endl;
 using std::string;
@@ -73,11 +70,10 @@ using systems::SubvectorPassThrough;
 class GoldilcocksModelTrajOpt {
  public:
   GoldilcocksModelTrajOpt(
-      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt);
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in);
 
+  std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
 
-  std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_;
-  
  private:
 
 

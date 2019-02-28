@@ -297,43 +297,31 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     trajopt->SetInitialGuessForAllVariables(z0);
   }
 
-
-
-
-
-
-
-  // Here is the place here you pass the DRICOn problem inside your class to add the constraints 
-
-  // Make the original DIRCON problem as public member, so ther you can still use it below.
-
+  // move the trajectory optmization problem into GoldilcocksModelTrajOpt
+  // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt));
-
-
-
-
-
-
+  // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
+  // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
-  auto result = gm_traj_opt.Dircon_traj_opt_->Solve();
+  auto result = gm_traj_opt.Dircon_traj_opt->Solve();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  // gm_traj_opt.Dircon_traj_opt_->PrintSolution();
+  // gm_traj_opt.Dircon_traj_opt->PrintSolution();
   std::cout << "Solve time:" << elapsed.count() << std::endl;
   std::cout << result << std::endl;
-  std::cout << "Cost:" << gm_traj_opt.Dircon_traj_opt_->GetOptimalCost() << std::endl;
+  std::cout << "Cost:" << gm_traj_opt.Dircon_traj_opt->GetOptimalCost() << std::endl;
 
   // store the solution of the decision variable
-  VectorXd z = gm_traj_opt.Dircon_traj_opt_->GetSolution(
-                 gm_traj_opt.Dircon_traj_opt_->decision_variables()); //solution of all decision variables
+  VectorXd z = gm_traj_opt.Dircon_traj_opt->GetSolution(
+                 gm_traj_opt.Dircon_traj_opt->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("z.csv"), z);
 
   // store the time, state, and input at knot points
-  // VectorXd time_at_knot_point = gm_traj_opt.Dircon_traj_opt_->GetSampleTimes();
-  // MatrixXd state_at_knot_point = gm_traj_opt.Dircon_traj_opt_->GetStateSamples();
-  // MatrixXd input_at_knot_point = gm_traj_opt.Dircon_traj_opt_->GetInputSamples();
+  // VectorXd time_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetSampleTimes();
+  // MatrixXd state_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetStateSamples();
+  // MatrixXd input_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetInputSamples();
   // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
   // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
   // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
@@ -346,7 +334,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
-    gm_traj_opt.Dircon_traj_opt_->ReconstructStateTrajectory();
+    gm_traj_opt.Dircon_traj_opt->ReconstructStateTrajectory();
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
 
