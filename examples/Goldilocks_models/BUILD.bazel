@@ -105,12 +105,12 @@ cc_library(
     deps = [
         "//examples/Goldilocks_models:goldilocks_model_traj_opt",
         "//systems/goldilocks_models",
+        "//common",
+        "//systems/primitives",
         "//systems/trajectory_optimization:dircon",
-        "@drake//attic/multibody:rigid_body_tree",
-        "@drake//attic/multibody:rigid_body_tree_construction",
         "@drake//attic/multibody/parsers",
-        "@drake//attic/multibody/rigid_body_plant:drake_visualizer",
         "@drake//common",
+        "@drake//math",
         "@drake//lcm",
         "@drake//manipulation/util",
         "@drake//solvers",
@@ -118,7 +118,9 @@ cc_library(
         "@drake//systems/framework",
         "@drake//systems/primitives",
         "@drake//systems/trajectory_optimization",
-        "@gflags",
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
     ],
 )
 

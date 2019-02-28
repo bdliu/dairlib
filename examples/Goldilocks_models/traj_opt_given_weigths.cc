@@ -1,22 +1,24 @@
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "examples/Goldilocks_models/goldilocks_model_traj_opt.h"
 
-#include <gflags/gflags.h>
-
 #include <memory>
 #include <chrono>
 
-#include "drake/multibody/rigid_body_tree_construction.h"
-#include "drake/multibody/joints/floating_base_types.h"
-#include "drake/multibody/parsers/urdf_parser.h"
-#include "drake/multibody/rigid_body_tree.h"
+#include <string>
+
 #include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/trajectory_source.h"
 
-#include "drake/multibody/rigid_body_plant/drake_visualizer.h"
 #include "drake/lcm/drake_lcm.h"
+
+#include "drake/multibody/parsing/parser.h"
+#include "drake/systems/rendering/multibody_position_to_geometry_pose.h"
+#include "drake/geometry/geometry_visualization.h"
+
+#include "common/find_resource.h"
+#include "systems/primitives/subvector_pass_through.h"
 
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/mathematical_program.h"
@@ -25,6 +27,10 @@
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
 #include "systems/trajectory_optimization/dircon_opt_constraints.h"
+#include "systems/trajectory_optimization/hybrid_dircon.h"
+
+#include "multibody/multibody_utils.h"
+#include "multibody/visualization_utils.h"
 
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -38,11 +44,24 @@ using drake::systems::trajectory_optimization::MultipleShooting;
 using drake::trajectories::PiecewisePolynomial;
 using drake::solvers::Binding;
 using drake::solvers::Constraint;
+using drake::solvers::VectorXDecisionVariable;
+using drake::solvers::MatrixXDecisionVariable;
+using drake::symbolic::Variable;
+using drake::symbolic::Expression;
 using std::vector;
 using std::shared_ptr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::map;
+
+using drake::multibody::MultibodyPlant;
+using drake::geometry::SceneGraph;
+using drake::multibody::Body;
+using drake::multibody::Parser;
+using drake::systems::rendering::MultibodyPositionToGeometryPose;
+
+// using Isometry3 = Eigen::Transform<Scalar, 3, Eigen::Isometry>
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -52,128 +71,118 @@ using systems::trajectory_optimization::DirconDynamicConstraint;
 using systems::trajectory_optimization::DirconKinematicConstraint;
 using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
+using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(double stride_length, double duration, int iter, 
+void trajOptGivenWeights(double stride_length, double duration, int iter,
                          string directory,
-                         string init_file, 
+                         string init_file,
                          string weights_file,
                          string output_prefix) {
+  drake::systems::DiagramBuilder<double> builder;
+  MultibodyPlant<double> plant;
+  SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
+  Parser parser(&plant, &scene_graph);
 
-  RigidBodyTree<double> tree;
-  drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf", drake::multibody::joints::kFixed, &tree);
-
-  // cout << endl << "****bodies****" << endl;
-  // for (int i = 0; i < tree.get_num_bodies(); i++)
-  //   cout << tree.getBodyOrFrameName(i) << endl;
-  // cout << endl << "****actuators****" << endl;
-  // for (int i = 0; i < tree.get_num_actuators(); i++)
-  //   cout << tree.actuators[i].name_ << endl;
-  // cout << endl << "****positions****" << endl;
-  // for (int i = 0; i < tree.get_num_positions(); i++)
-  //   cout << tree.get_position_name(i) << endl;
-  // cout << endl << "****velocities****" << endl;
-  // for (int i = 0; i < tree.get_num_velocities(); i++)
-  //   cout << tree.get_velocity_name(i) << endl;
-
-// world
-// base
-// base_x
-// base_xz
-// torso
-// torso_mass
-// left_upper_leg
-// left_upper_leg_mass
-// left_lower_leg
-// left_lower_leg_mass
-// right_upper_leg
-// right_upper_leg_mass
-// right_lower_leg
-// right_lower_leg_mass
-
-// left_hip_torque
-// right_hip_torque
-// left_knee_torque
-// right_knee_torque
-
-// planar_x
-// planar_z
-// planar_roty
-// left_hip_pin
-// left_knee_pin
-// right_hip_pin
-// right_knee_pin
-
-// planar_xdot
-// planar_zdot
-// planar_rotydot
-// left_hip_pindot
-// left_knee_pindot
-// right_hip_pindot
-// right_knee_pindot
+  std::string full_name =
+    FindResourceOrThrow("examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  parser.AddModelFromFile(full_name);
+  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+    -9.81 * Eigen::Vector3d::UnitZ());
+  plant.WeldFrames(
+    plant.world_frame(), plant.GetFrameByName("base"),
+    drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+  plant.Finalize();
 
 
-  int n_q = tree.get_num_positions();
-  int n_v = tree.get_num_velocities();
-  int n_x = n_q + n_v;
-  int n_u = tree.get_num_actuators();
-    // std::cout<<"n_x = "<<n_x<<"\n";
-    // std::cout<<"n_u = "<<n_u<<"\n";
+  auto context = plant.CreateDefaultContext();
+  auto plant_symb_smrt_ptr =
+    plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
+  auto context_symb_smrt_ptr = plant_symb_smrt_ptr->CreateDefaultContext();
+  context_symb_smrt_ptr->SetTimeStateAndParametersFrom(*context);
+  auto plant_symb_ptr = plant_symb_smrt_ptr.get();
 
 
-  int leftLegIdx = tree.FindBodyIndex("left_lower_leg");
-  int rightLegIdx = tree.FindBodyIndex("right_lower_leg");
+  map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
+  map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
+                                      plant);
+  map<string, int> actuators_map = multibody::makeNameToActuatorsMap(plant);
+  // for (auto const& element : positions_map)
+  //   cout << element.first << " = " << element.second << endl;
+  // std::cout << "\n";
+  // for (auto const& element : velocities_map)
+  //   cout << element.first << " = " << element.second << endl;
+  // std::cout << "\n";
+  // for (auto const& element : actuators_map)
+  //   cout << element.first << " = " << element.second << endl;
+  // std::cout << "\n";
+
+
+  int n_q = plant.num_positions();
+  int n_v = plant.num_velocities();
+  // int n_x = n_q + n_v;
+  // int n_u = plant.num_actuators();
+  // std::cout<<"n_x = "<<n_x<<"\n";
+  // std::cout<<"n_u = "<<n_u<<"\n";
+
+  const Body<double>& left_lower_leg = plant.GetBodyByName("left_lower_leg");
+  const Body<double>& right_lower_leg =
+    plant.GetBodyByName("right_lower_leg");
 
   Vector3d pt;
   pt << 0, 0, -.5;
   bool isXZ = true;
 
-  auto leftFootConstraint = DirconPositionData<double>(tree, leftLegIdx, pt,
-                                                       isXZ);
-  auto rightFootConstraint = DirconPositionData<double>(tree, rightLegIdx, pt,
-                                                        isXZ);
+  auto leftFootConstraint = DirconPositionData<double>(plant, left_lower_leg,
+                            pt, isXZ);
+  auto rightFootConstraint = DirconPositionData<double>(plant,
+                             right_lower_leg,
+                             pt, isXZ);
 
   Vector3d normal;
   normal << 0, 0, 1;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
-    // std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
+  // std::cout<<leftFootConstraint.getLength()<<"\n"; //2 dim. I guess the contact point constraint in the x and z direction
 
   std::vector<DirconKinematicData<double>*> leftConstraints;
   leftConstraints.push_back(&leftFootConstraint);
-  auto leftDataSet = DirconKinematicDataSet<double>(tree, &leftConstraints);
+  auto leftDataSet = DirconKinematicDataSet<double>(plant, &leftConstraints);
 
   std::vector<DirconKinematicData<double>*> rightConstraints;
   rightConstraints.push_back(&rightFootConstraint);
-  auto rightDataSet = DirconKinematicDataSet<double>(tree, &rightConstraints);
+  auto rightDataSet = DirconKinematicDataSet<double>(plant,
+                      &rightConstraints);
 
   auto leftOptions = DirconOptions(leftDataSet.countConstraints());
-  leftOptions.setConstraintRelative(0, true); //TODO: ask what is relative constraint here?
-    // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
+  leftOptions.setConstraintRelative(0,
+                                    true); //TODO: ask what is relative constraint here?
+  // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
 
   auto rightOptions = DirconOptions(rightDataSet.countConstraints());
   rightOptions.setConstraintRelative(0, true);
 
   // Stated in the MultipleShooting class:
-    // This class assumes that there are a fixed number (N) time steps/samples, 
-    // and that the trajectory is discretized into timesteps h (N-1 of these), 
-    // state x (N of these), and control input u (N of these). 
+  // This class assumes that there are a fixed number (N) time steps/samples,
+  // and that the trajectory is discretized into timesteps h (N-1 of these),
+  // state x (N of these), and control input u (N of these).
   std::vector<int> num_time_samples;
-  num_time_samples.push_back(20); // First mode (20 sample points) 
+  num_time_samples.push_back(20); // First mode (20 sample points)
   num_time_samples.push_back(1);  // Second mode (1 sample point)
   std::vector<double> min_dt;
-  min_dt.push_back(.01);   // bound for time difference between adjacent samples in the first mode // See HybridDircon constructor
-  min_dt.push_back(.01);   // bound for time difference between adjacent samples in the second mode
+  min_dt.push_back(
+    .01);   // bound for time difference between adjacent samples in the first mode // See HybridDircon constructor
+  min_dt.push_back(
+    .01);   // bound for time difference between adjacent samples in the second mode
   std::vector<double> max_dt;
   max_dt.push_back(.3);
   max_dt.push_back(.3);
 
   int N = 0;
-  for (uint i = 0; i < num_time_samples.size(); i++) 
+  for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1; //Overlaps between modes
-    // std::cout<<"N = "<<N<<"\n";
+  // std::cout<<"N = "<<N<<"\n";
 
   std::vector<DirconKinematicDataSet<double>*> dataset_list;
   dataset_list.push_back(&leftDataSet);
@@ -183,9 +192,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   options_list.push_back(leftOptions);
   options_list.push_back(rightOptions);
 
-  auto trajopt = std::make_shared<HybridDircon<double>>(tree, num_time_samples, min_dt,
-                                                        max_dt, dataset_list,
-                                                        options_list);
+  auto trajopt = std::make_shared<HybridDircon<double>>(plant,
+                 num_time_samples, min_dt, max_dt, dataset_list, options_list);
 
   // trajopt->AddDurationBounds(duration, duration); // You can comment this out to not put any constraint on the time
 
@@ -196,134 +204,98 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
                            0);
 
+
   // Periodicity constraints
-  // planar_x - 0
-  // planar_z - 1
-  // planar_rot - 2
-  // left_hip_pin - 3
-  // left_knee_pin - 4
-  // right_hip_pin - 5
-  // right_knee_pin - 6
   auto x0 = trajopt->initial_state();
   // auto xf = trajopt->final_state();
-  auto xf = trajopt->state_vars_by_mode(num_time_samples.size()-1,
-                                        num_time_samples[num_time_samples.size()-1]-1);
+  auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
+                                        num_time_samples[num_time_samples.size() - 1] - 1);
 
-  trajopt->AddLinearConstraint(x0(1) == xf(1));
-  trajopt->AddLinearConstraint(x0(2) == xf(2));
-  trajopt->AddLinearConstraint(x0(3) == xf(5));
-  trajopt->AddLinearConstraint(x0(4) == xf(6));
-  trajopt->AddLinearConstraint(x0(5) == xf(3));
-  trajopt->AddLinearConstraint(x0(6) == xf(4));
+  //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
+                                 positions_map.at("planar_z")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_roty")) == xf(
+                                 positions_map.at("planar_roty")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) == xf(
+                                 positions_map.at("right_hip_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("left_knee_pin")) == xf(
+                                 positions_map.at("right_knee_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("right_hip_pin")) == xf(
+                                 positions_map.at("left_hip_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("right_knee_pin")) == xf(
+                                 positions_map.at("left_knee_pin")));
 
-  trajopt->AddLinearConstraint(x0(7) == xf(7));
-  trajopt->AddLinearConstraint(x0(8) == xf(8));
-  trajopt->AddLinearConstraint(x0(9) == xf(9));
-  trajopt->AddLinearConstraint(x0(10) == xf(12));
-  trajopt->AddLinearConstraint(x0(11) == xf(13));
-  trajopt->AddLinearConstraint(x0(12) == xf(10));
-  trajopt->AddLinearConstraint(x0(13) == xf(11));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_xdot"))
+                           == xf(n_q + velocities_map.at("planar_xdot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_zdot"))
+                           == xf(n_q + velocities_map.at("planar_zdot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_rotydot"))
+                           == xf(n_q + velocities_map.at("planar_rotydot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_hip_pindot"))
+                           == xf(n_q + velocities_map.at("right_hip_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_knee_pindot"))
+                           == xf(n_q + velocities_map.at("right_knee_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_hip_pindot"))
+                           == xf(n_q + velocities_map.at("left_hip_pindot")));
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_knee_pindot"))
+                           == xf(n_q + velocities_map.at("left_knee_pindot")));
 
   // u periodic constraint
   auto u0 = trajopt->input(0);
-  auto uf = trajopt->input(N-1);
-  trajopt->AddLinearConstraint(u0(0) == uf(1));
-  trajopt->AddLinearConstraint(u0(1) == uf(0));
-  trajopt->AddLinearConstraint(u0(2) == uf(3));
-  trajopt->AddLinearConstraint(u0(3) == uf(2));
+  auto uf = trajopt->input(N - 1);
+  trajopt->AddLinearConstraint(u0(actuators_map.at("left_hip_torque")) == uf(
+                                 actuators_map.at("right_hip_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("right_hip_torque")) == uf(
+                                 actuators_map.at("left_hip_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("left_knee_torque")) == uf(
+                                 actuators_map.at("right_knee_torque")));
+  trajopt->AddLinearConstraint(u0(actuators_map.at("right_knee_torque")) == uf(
+                                 actuators_map.at("left_knee_torque")));
 
   // Knee joint limits
   auto x = trajopt->state();
-  trajopt->AddConstraintToAllKnotPoints(x(4) >= 5.0/180.0*M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(6) >= 5.0/180.0*M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(4) <= M_PI/2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(6) <= M_PI/2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) >=
+                                        5.0 / 180.0 * M_PI);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) >=
+                                        5.0 / 180.0 * M_PI);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) <=
+                                        M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) <=
+                                        M_PI / 2.0);
 
   // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(3) >= -M_PI/2);
-  trajopt->AddConstraintToAllKnotPoints(x(5) >= -M_PI/2);
-  trajopt->AddConstraintToAllKnotPoints(x(3) <= M_PI/2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(5) <= M_PI/2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) >=
+                                        -M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) >=
+                                        -M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) <=
+                                        M_PI / 2.0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) <=
+                                        M_PI / 2.0);
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(0) == 0);
-  trajopt->AddLinearConstraint(xf(0) == stride_length);
+  trajopt->AddLinearConstraint(x0(positions_map.at("planar_x")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("planar_x")) ==
+                               stride_length);
 
-  // make sure it's left stance 
-  trajopt->AddLinearConstraint(x0(3) <= x0(5));
+  // make sure it's left stance
+  // trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <= x0(positions_map.at("right_hip_pin")));
 
-
-
-
-
-
-  // // Constraints related to the reduced order model
-  // MatrixXd weights = MatrixXd::Zero(1,10);
-  // weights(0,0) = -0.1;
-  // weights(0,5) = 1; 
-  // // MatrixXd weights = readCSV(directory + weights_file);
-  // VectorX<drake::symbolic::Expression> features(10); //Hand pick features for now
-  // features << 1, x(2), x(3), x(4), cos(x(2)), cos(x(3)), cos(x(4)), sin(x(2)), sin(x(3)), sin(x(4));
-  // SymbolicManifold m_constraint(tree, features, weights);
-
-  // // std::vector<Binding<Constraint>> manifold_bindings;
-  // for (int i = 0; i < N; i++) {
-  //   auto m_i = trajopt->SubstitutePlaceholderVariables(m_constraint.getConstraintExpressions(), i);
-  //   trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size()));
-  //   // manifold_bindings.push_back(trajopt->AddConstraint(m_i, VectorXd::Zero(m_i.size()), VectorXd::Zero(m_i.size())));
-  // }
-
-
-
-
-
+  // add cost
   const double R = 10;  // Cost on input effort
   auto u = trajopt->input();
-  trajopt->AddRunningCost(u.transpose()*R*u);
-  MatrixXd Q = MatrixXd::Zero(2*n_q, 2*n_q);
-  for (int i=0; i < n_q; i++) {
-    Q(i+n_q, i+n_q) = 10;
+  trajopt->AddRunningCost(u.transpose()*R * u);
+  MatrixXd Q = MatrixXd::Zero(2 * n_q, 2 * n_q);
+  for (int i = 0; i < n_q; i++) {
+    Q(i + n_q, i + n_q) = 10;
   }
-  trajopt->AddRunningCost(x.transpose()*Q*x);
+  trajopt->AddRunningCost(x.transpose()*Q * x);
 
   // initial guess if the file exists
   if (!init_file.empty()) {
     MatrixXd z0 = readCSV(directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
   }
-  // if(true){
-    // // TODO: maybe should construct the pp from coefficient
-
-  //   VectorXd time_at_knot_point = readCSV(directory + "init_traj_time_at_knots.csv");
-  //   MatrixXd state_at_knot_point = readCSV(directory + "init_traj_state_at_knots.csv");
-  //   MatrixXd input_at_knot_point = readCSV(directory + "init_traj_input_at_knots.csv");
-  //     // std::cout<<time_at_knot_point.rows()<<", "<<time_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-  //     // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-  //     // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-  //     // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
-  //   int n_init_knots = time_at_knot_point.size();
-
-  //   std::vector<double> T_knotpoint(n_init_knots, 0);
-  //   std::vector<MatrixXd> Y_state(n_init_knots, MatrixXd::Zero(state_at_knot_point.rows(), 1));
-  //   std::vector<MatrixXd> Y_input(n_init_knots, MatrixXd::Zero(input_at_knot_point.rows(), 1));
-  //   for(int i=0;i<n_init_knots;i++){
-  //     T_knotpoint[i] = time_at_knot_point(i);
-  //     Y_state[i] = state_at_knot_point.col(i);
-  //     Y_input[i] = input_at_knot_point.col(i);
-  //     // std::cout<<"T_knotpoint = "<<T_knotpoint[i]<<"\n";
-  //     // std::cout<<"Y_input = "<<Y_input[i]<<"\n";
-  //   }
-
-  //   PiecewisePolynomial<double> traj_init_x = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_state);
-  //   PiecewisePolynomial<double> traj_init_u = PiecewisePolynomial<double>::Pchip(T_knotpoint, Y_input);
-
-  //   trajopt->SetInitialTrajectory(traj_init_u, traj_init_x);
-  // }
-
-
-
 
 
 
@@ -339,46 +311,46 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
-  std::cout<<"Solving DIRCON (based on MultipleShooting)\n";
+
+
+
+
+  std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto result = trajopt->Solve();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
-  std::cout << "Solve time:" << elapsed.count() <<std::endl;
+  std::cout << "Solve time:" << elapsed.count() << std::endl;
   std::cout << result << std::endl;
-  std::cout << "Cost:" << trajopt->GetOptimalCost() <<std::endl;
+  std::cout << "Cost:" << trajopt->GetOptimalCost() << std::endl;
 
-  // store the solution of the decision variable 
-  VectorXd y = trajopt->GetSolution(trajopt->decision_variables()); //solution of all decision variables 
-  writeCSV(directory + output_prefix + string("y.csv"), y);
+  // store the solution of the decision variable
+  VectorXd z = trajopt->GetSolution(
+                 trajopt->decision_variables()); //solution of all decision variables
+  writeCSV(directory + output_prefix + string("z.csv"), z);
 
   // store the time, state, and input at knot points
   // VectorXd time_at_knot_point = trajopt->GetSampleTimes();
   // MatrixXd state_at_knot_point = trajopt->GetStateSamples();
   // MatrixXd input_at_knot_point = trajopt->GetInputSamples();
-  // writeCSV(directory + string("init_traj_time_at_knots.csv"), time_at_knot_point);
-  // writeCSV(directory + string("init_traj_state_at_knots.csv"), state_at_knot_point);
-  // writeCSV(directory + string("init_traj_input_at_knots.csv"), input_at_knot_point);
-    // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-    // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-    // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-    // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-    // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
+  // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
+  // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
+  // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
+  // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
+  // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
+  // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
+  // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
+  // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
 
 
   // visualizer
-  drake::lcm::DrakeLcm lcm;
-  drake::systems::DiagramBuilder<double> builder;
-  const PiecewisePolynomial<double> pp_xtraj = trajopt->ReconstructStateTrajectory();
-  auto state_source = builder.AddSystem<drake::systems::TrajectorySource>(pp_xtraj);
-  auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree, &lcm);
-  publisher->set_publish_period(1.0 / 60.0);
-  builder.Connect(state_source->get_output_port(),
-                  publisher->get_input_port(0));
+  const PiecewisePolynomial<double> pp_xtraj =
+    trajopt->ReconstructStateTrajectory();
+  multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
+                                         pp_xtraj);
 
   auto diagram = builder.Build();
-
 
   while (true) {
     drake::systems::Simulator<double> simulator(*diagram);
