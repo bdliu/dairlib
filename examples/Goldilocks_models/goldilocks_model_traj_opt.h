@@ -70,11 +70,13 @@ using systems::SubvectorPassThrough;
 class GoldilcocksModelTrajOpt {
  public:
   GoldilcocksModelTrajOpt(
-      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in);
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
+      int N);
 
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
 
  private:
+  int num_knots_;
 
 
 

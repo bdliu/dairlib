@@ -279,7 +279,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
                                stride_length);
 
   // make sure it's left stance
-  // trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <= x0(positions_map.at("right_hip_pin")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
+  //                                  x0(positions_map.at("right_hip_pin")));
 
   // add cost
   const double R = 10;  // Cost on input effort
@@ -297,11 +298,13 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     trajopt->SetInitialGuessForAllVariables(z0);
   }
 
+
   // move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
-  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt));
+  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), N);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
+
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();

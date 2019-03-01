@@ -5,12 +5,11 @@ namespace dairlib {
 namespace goldilocks_models {
 
   GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
-      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in){
+      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
+      int N){
     Dircon_traj_opt = std::move(Dircon_traj_opt_in);
+    num_knots_ = N;
   }
-
-
-
 
 
   // https://github.com/RobotLocomotion/drake/blob/master/systems/trajectory_optimization/multiple_shooting.cc
