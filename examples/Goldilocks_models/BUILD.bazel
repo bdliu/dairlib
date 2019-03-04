@@ -200,6 +200,15 @@ cc_library(
 
 
 
+cc_binary(
+    name = "kinematics_expression_test",
+    srcs = ["kinematics_expression_test.cc"],
+    deps = [
+        ":kinematics_expression",
+    ],
+)
+
+
 cc_library(
     name = "dummy_constraint",
     srcs = [
