@@ -7,17 +7,19 @@ using Eigen::Dynamic;
 namespace dairlib {
 namespace goldilocks_models {
 
-template <typename T>
 class KinematicsExpression {
 
  public:
   explicit KinematicsExpression(int n_z);
 
+  template <typename T>
   Matrix<T, Dynamic, 1> & getExpression(Matrix<T, Dynamic, 1> & theta,
                                         Matrix<T, Dynamic, 1> & x);
 
+  template <typename T>
   Matrix<T, Dynamic, 1> & getFeature(Matrix<T, Dynamic, 1> & x);
 
+  template <typename T>
   int getDimFeature(Matrix<T, Dynamic, 1>& x);
 
  private:

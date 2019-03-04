@@ -6,14 +6,13 @@ namespace dairlib {
 namespace goldilocks_models {
 
 
-template <typename T>
-KinematicsExpression<T>::KinematicsExpression(int n_z) {
+KinematicsExpression::KinematicsExpression(int n_z){
   n_feature_ = 1;
   n_z_ = n_z;
 }
 
 template <typename T>
-Matrix<T, Dynamic, 1> & KinematicsExpression<T>::getExpression(
+Matrix<T, Dynamic, 1> & KinematicsExpression::getExpression(
   Matrix<T, Dynamic, 1> & theta, Matrix<T, Dynamic, 1>& x) {
 
   // implement theta*getFeature(x)
@@ -21,7 +20,7 @@ Matrix<T, Dynamic, 1> & KinematicsExpression<T>::getExpression(
 }
 
 template <typename T>
-Matrix<T, Dynamic, 1> & KinematicsExpression<T>::getFeature(
+Matrix<T, Dynamic, 1> & KinematicsExpression::getFeature(
   Matrix<T, Dynamic, 1> & x) {
   // TODO(yminchen): Do I need a reference here?
   Matrix<T, Dynamic, 1> output(n_feature_);
@@ -32,7 +31,7 @@ Matrix<T, Dynamic, 1> & KinematicsExpression<T>::getFeature(
 }
 
 template <typename T>
-int KinematicsExpression<T>::getDimFeature(Matrix<T, Dynamic, 1> & x) {
+int KinematicsExpression::getDimFeature(Matrix<T, Dynamic, 1> & x) {
   return getFeature(x).size();
 }
 
