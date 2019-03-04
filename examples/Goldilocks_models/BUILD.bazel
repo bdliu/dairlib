@@ -149,6 +149,58 @@ cc_binary(
 
 
 cc_library(
+    name = "kinematics_constraint",
+    srcs = [
+        "kinematics_constraint.cc",
+    ],
+    hdrs = [
+        "kinematics_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "//multibody:utils",
+    ],
+)
+
+
+
+cc_library(
+    name = "dynamics_constraint",
+    srcs = [
+        "dynamics_constraint.cc",
+    ],
+    hdrs = [
+        "dynamics_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "//multibody:utils",
+    ],
+)
+
+
+
+
+cc_library(
+    name = "kinematics_expression",
+    srcs = [
+        "kinematics_expression.cc",
+    ],
+    hdrs = [
+        "kinematics_expression.h"
+    ],
+    deps = [
+        "@drake//common",
+    ],
+)
+
+
+
+cc_library(
     name = "dummy_constraint",
     srcs = [
         "dummy_constraint.cc",

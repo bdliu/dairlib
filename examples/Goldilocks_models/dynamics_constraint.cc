@@ -1,11 +1,11 @@
-#include "examples/Goldilocks_models/dummy_constraint.h"
+#include "examples/Goldilocks_models/dynamics_constraint.h"
 
 
 namespace dairlib {
 namespace goldilocks_models {
 
 
-DummyConstraint::DummyConstraint(const
+DynamicsConstraint::DynamicsConstraint(const
                                  MultibodyPlant<double>& plant,
                                  const std::string& description):
   Constraint(4,
@@ -17,7 +17,7 @@ DummyConstraint::DummyConstraint(const
 }
 
 
-void DummyConstraint::DoEval(const
+void DynamicsConstraint::DoEval(const
                              Eigen::Ref<const Eigen::VectorXd>& q,
                              Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
@@ -25,7 +25,7 @@ void DummyConstraint::DoEval(const
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void DummyConstraint::DoEval(const
+void DynamicsConstraint::DoEval(const
                              Eigen::Ref<const AutoDiffVecXd>& q,
                              AutoDiffVecXd* y) const {
 
@@ -33,7 +33,7 @@ void DummyConstraint::DoEval(const
 
 }
 
-void DummyConstraint::DoEval(const
+void DynamicsConstraint::DoEval(const
                              Eigen::Ref<const VectorX<Variable>>& x,
                              VectorX<Expression>*y) const {
   throw std::logic_error(

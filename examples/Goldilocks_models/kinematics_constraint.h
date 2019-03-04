@@ -47,10 +47,9 @@ using drake::multibody::MultibodyPlant;
 namespace dairlib {
 namespace goldilocks_models {
 
-
-class DummyConstraint : public Constraint {
+class KinematicsConstraint : public Constraint {
  public:
-  DummyConstraint(const MultibodyPlant<double>& plant,
+  KinematicsConstraint(const MultibodyPlant<double>& plant,
                            const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;

@@ -48,9 +48,9 @@ namespace dairlib {
 namespace goldilocks_models {
 
 
-class DummyConstraint : public Constraint {
+class DynamicsConstraint : public Constraint {
  public:
-  DummyConstraint(const MultibodyPlant<double>& plant,
+  DynamicsConstraint(const MultibodyPlant<double>& plant,
                            const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
@@ -64,6 +64,5 @@ class DummyConstraint : public Constraint {
  private:
   const MultibodyPlant<double>& plant_;
 };
-
 }  // namespace goldilocks_models
 }  // namespace dairlib
