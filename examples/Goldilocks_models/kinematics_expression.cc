@@ -20,7 +20,7 @@ Matrix<T, Dynamic, 1> & KinematicsExpression::getExpression(
 }
 
 template <typename T>
-Matrix<T, Dynamic, 1> & KinematicsExpression::getFeature(
+Matrix<T, Dynamic, 1> KinematicsExpression::getFeature(
   Matrix<T, Dynamic, 1> & x) {
   // TODO(yminchen): Do I need a reference here?
   Matrix<T, Dynamic, 1> output(n_feature_);
@@ -29,6 +29,24 @@ Matrix<T, Dynamic, 1> & KinematicsExpression::getFeature(
   output << x(0);
   return output;
 }
+
+
+
+
+
+// VectorXd KinematicsExpression::getFeature(
+//   VectorXd & x) {
+//   // TODO(yminchen): Do I need a reference here?
+//   VectorXd output(n_feature_);
+
+//   // Implement your choice of features below
+//   output << x(0);
+//   return output;
+// }
+
+
+
+
 
 template <typename T>
 int KinematicsExpression::getDimFeature(Matrix<T, Dynamic, 1> & x) {

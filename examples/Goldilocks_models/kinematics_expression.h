@@ -1,8 +1,13 @@
 #include <Eigen/Dense>
+#include <iostream>
 
+using std::cout;
+using std::endl;
+using Eigen::VectorXd;
 
 using Eigen::Matrix;
 using Eigen::Dynamic;
+
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -17,7 +22,13 @@ class KinematicsExpression {
                                         Matrix<T, Dynamic, 1> & x);
 
   template <typename T>
-  Matrix<T, Dynamic, 1> & getFeature(Matrix<T, Dynamic, 1> & x);
+  Matrix<T, Dynamic, 1> getFeature(Matrix<T, Dynamic, 1> & x);
+
+
+
+  // VectorXd getFeature(VectorXd & x);
+
+
 
   template <typename T>
   int getDimFeature(Matrix<T, Dynamic, 1>& x);
