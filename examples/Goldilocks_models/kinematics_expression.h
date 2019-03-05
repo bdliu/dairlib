@@ -1,12 +1,19 @@
-#include <Eigen/Dense>
 #include <iostream>
+#include <Eigen/Dense>
+#include "drake/math/autodiff_gradient.h"
+#include "drake/common/eigen_types.h"
+
+using Eigen::Matrix;
+using Eigen::Dynamic;
 
 using std::cout;
 using std::endl;
 using Eigen::VectorXd;
 
-using Eigen::Matrix;
-using Eigen::Dynamic;
+using drake::AutoDiffXd;
+using drake::MatrixX;
+using drake::VectorX;
+
 
 
 namespace dairlib {
@@ -18,11 +25,11 @@ class KinematicsExpression {
   explicit KinematicsExpression(int n_z);
 
   template <typename T>
-  Matrix<T, Dynamic, 1> & getExpression(Matrix<T, Dynamic, 1> & theta,
-                                        Matrix<T, Dynamic, 1> & x);
+  MatrixX<T> & getExpression(MatrixX<T> & theta,
+                                        MatrixX<T> & x);
 
   template <typename T>
-  Matrix<T, Dynamic, 1> getFeature(Matrix<T, Dynamic, 1> & x);
+  T getFeature(T & x);
 
 
 
@@ -31,7 +38,7 @@ class KinematicsExpression {
 
 
   template <typename T>
-  int getDimFeature(Matrix<T, Dynamic, 1>& x);
+  int getDimFeature(MatrixX<T>& x);
 
  private:
   int n_feature_;
