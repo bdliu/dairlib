@@ -5,6 +5,7 @@ __pycache__/
 /bazel-*
 *.ipynb_checkpoints
 *.DS_Store*
+attic/multibody/solver_log/
 
 examples/Goldilocks_models/data/
 snopt.out
