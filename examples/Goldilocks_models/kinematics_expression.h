@@ -1,4 +1,5 @@
 #include <iostream>
+#include "math.h"
 #include <Eigen/Dense>
 #include "drake/math/autodiff_gradient.h"
 #include "drake/common/eigen_types.h"
@@ -10,10 +11,10 @@ using std::cout;
 using std::endl;
 using Eigen::VectorXd;
 
-using drake::AutoDiffXd;
 using drake::MatrixX;
 using drake::VectorX;
-
+using drake::AutoDiffXd;
+using drake::math::DiscardGradient;
 
 
 namespace dairlib {
@@ -25,11 +26,11 @@ class KinematicsExpression {
 
   int getDimFeature();
 
-  template <typename T>
-  T getExpression(T & theta, T & x);
+  template <typename U, typename V>
+  VectorX<AutoDiffXd> getExpression(U theta, V x);
 
   template <typename T>
-  T getFeature(T & x);
+  T getFeature(T x);
 
  private:
   int n_feature;
