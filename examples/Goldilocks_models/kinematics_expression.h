@@ -20,31 +20,21 @@ namespace dairlib {
 namespace goldilocks_models {
 
 class KinematicsExpression {
-
  public:
   explicit KinematicsExpression(int n_z);
 
+  int getDimFeature();
+
   template <typename T>
-  MatrixX<T> & getExpression(MatrixX<T> & theta,
-                                        MatrixX<T> & x);
+  T getExpression(T & theta, T & x);
 
   template <typename T>
   T getFeature(T & x);
 
-
-
-  // VectorXd getFeature(VectorXd & x);
-
-
-
-  template <typename T>
-  int getDimFeature(MatrixX<T>& x);
-
  private:
-  int n_feature_;
+  int n_feature;
   int n_x_;
   int n_z_;
-
 };
 
 }  // namespace goldilocks_models
