@@ -22,7 +22,7 @@ namespace goldilocks_models {
 
 class KinematicsExpression {
  public:
-  explicit KinematicsExpression(int n_z);
+  explicit KinematicsExpression(int n_z, int n_feature);
 
   int getDimFeature();
 
@@ -33,7 +33,7 @@ class KinematicsExpression {
   T getFeature(T x);
 
  private:
-  int n_feature;
+  int n_feature_;
   int n_x_;
   int n_z_;
 };

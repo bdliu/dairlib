@@ -20,7 +20,8 @@ using drake::math::initializeAutoDiff;
 int main() {
   int n_z = 3;
   int n_x = 2;
-  dairlib::goldilocks_models::KinematicsExpression expr(n_z);
+  int n_feature = 5;
+  dairlib::goldilocks_models::KinematicsExpression expr(n_z, n_feature);
 
   VectorXd x(n_x);
   // Matrix<double, Dynamic, 1> x(2);
@@ -35,18 +36,26 @@ int main() {
   cout << "feature_autoDiff = \n" << feature_autoDiff << "\n\n";
 
   ////// getDimFeature() //////
-  int n_feature = expr.getDimFeature();
-  // cout << "n_feature = \n" << n_feature << "\n\n";
-  int n_feature_autoDiff = expr.getDimFeature();
-  // cout << "n_feature_autoDiff = \n" << n_feature_autoDiff << "\n\n";
+  // int num_feature = expr.getDimFeature();
+  // cout << "num_feature = \n" << num_feature << "\n\n";
+  // int num_feature_autoDiff = expr.getDimFeature();
+  // cout << "num_feature_autoDiff = \n" << n_feature_autoDiff << "\n\n";
 
   ///// getExpression() //////
   VectorXd theta = VectorXd::Zero(n_z * n_feature);
   theta << 1, 1, 0, 0, 0,
-        0, 0, 1, 0, 0,
-        0, 0, 0, 1, 1;
+           0, 0, 1, 0, 0,
+           0, 0, 0, 1, 1;
   DRAKE_ASSERT(n_z * n_feature == theta.size());
-  // y << x(0) + x(1)*x(1)*x(1),
+  // Features implemented in KinematicsExpression should be:
+  // feature << x(0),
+  //            x(1)*x(1)*x(1),
+  //            x(0) * x(1),
+  //            cos(x(0)),
+  //            sqrt(x(1));
+
+  // expression =
+  //      x(0) + x(1)*x(1)*x(1),
   //      x(0) * x(1),
   //      cos(x(0)) + sqrt(x(1));
 
