@@ -162,6 +162,7 @@ cc_library(
         "@drake//manipulation/util",
         "//multibody:utils",
         "@drake//math:gradient",
+	":kinematics_expression",
     ],
 )
 

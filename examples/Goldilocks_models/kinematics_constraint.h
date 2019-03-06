@@ -8,6 +8,8 @@
 #include "drake/solvers/snopt_solver.h"
 #include "multibody/multibody_utils.h"
 
+#include "examples/Goldilocks_models/kinematics_expression.h"
+
 using std::map;
 using std::string;
 using std::vector;
@@ -49,8 +51,9 @@ namespace goldilocks_models {
 
 class KinematicsConstraint : public Constraint {
  public:
-  KinematicsConstraint(const MultibodyPlant<double>& plant,
-                           const std::string& description = "");
+  KinematicsConstraint(int n_z, int n_feature, int n_theta,
+                       const MultibodyPlant<double>& plant,
+                       const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
@@ -62,6 +65,10 @@ class KinematicsConstraint : public Constraint {
 
  private:
   const MultibodyPlant<double>& plant_;
+  int n_constraint_;
+  int n_feature_;
+  KinematicsExpression expression_object_;
+
 };
 
 }  // namespace goldilocks_models

@@ -4,6 +4,8 @@
 #include "drake/math/autodiff_gradient.h"
 #include "drake/common/eigen_types.h"
 
+#include "drake/common/drake_assert.h"
+
 using Eigen::Matrix;
 using Eigen::Dynamic;
 
@@ -23,14 +25,15 @@ namespace goldilocks_models {
 class KinematicsExpression {
  public:
   explicit KinematicsExpression(int n_z, int n_feature);
+  KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
 
   template <typename U, typename V>
-  VectorX<AutoDiffXd> getExpression(U theta, V x);
+  VectorX<AutoDiffXd> getExpression(const U & theta, const V & x) const;
 
   template <typename T>
-  T getFeature(T x);
+  T getFeature(const T & x) const;
 
  private:
   int n_feature_;

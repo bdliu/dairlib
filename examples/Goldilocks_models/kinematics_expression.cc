@@ -14,7 +14,10 @@ int KinematicsExpression::getDimFeature() {
 }
 
 template <typename U, typename V>
-VectorX<AutoDiffXd> KinematicsExpression::getExpression(U theta, V x) {
+VectorX<AutoDiffXd> KinematicsExpression::getExpression(const U & theta, const V & x) const{
+  // DRAKE_ASSERT(n_z_ * n_feature_ == theta.size());  // check theta size
+  // DRAKE_ASSERT(n_feature_ == getFeature(x).size());  // check feature size
+
   VectorX<AutoDiffXd> expression(n_z_);
   for (int i = 0; i < n_z_ ; i++)
     expression(i) =
@@ -24,7 +27,7 @@ VectorX<AutoDiffXd> KinematicsExpression::getExpression(U theta, V x) {
 }
 
 template <typename T>
-T KinematicsExpression::getFeature(T x) {
+T KinematicsExpression::getFeature(const T & x) const{
   T feature(n_feature_);
 
   // Implement your choice of features below
@@ -46,18 +49,18 @@ T KinematicsExpression::getFeature(T x) {
 // TODO(yminchen): is there a way to implement getExpression() that returns
 // VectorX<double>?
 template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
-  VectorX<double> theta, VectorX<double> x);
+  const VectorX<double> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
-  VectorX<double> theta, VectorX<AutoDiffXd> x);
+  const VectorX<double> &, const VectorX<AutoDiffXd> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
-  VectorX<AutoDiffXd> theta, VectorX<double> x);
+  const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
-  VectorX<AutoDiffXd> theta, VectorX<AutoDiffXd> x);
+  const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
 
 template VectorX<double> KinematicsExpression::getFeature(
-  VectorX<double>);
+  const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression::getFeature(
-  VectorX<AutoDiffXd>);
+  const VectorX<AutoDiffXd> &) const;
 
 }  // namespace goldilocks_models
 }  // namespace dairlib
