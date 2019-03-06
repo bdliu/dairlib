@@ -92,6 +92,7 @@ cc_library(
         "@drake//multibody/parsing",
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
+	":kinematics_constraint",
     ],
 )
 

@@ -9,6 +9,16 @@ namespace goldilocks_models {
       int N){
     Dircon_traj_opt = std::move(Dircon_traj_opt_in);
     num_knots_ = N;
+
+    for(int i=0; i<N ; i++){
+
+      
+    }
+
+
+
+
+
   }
 
 

@@ -54,10 +54,10 @@ class KinematicsConstraint : public Constraint {
   KinematicsConstraint(int n_z, int n_feature, int n_theta,
                        const MultibodyPlant<double>& plant,
                        const std::string& description = "");
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
+  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& z_theta_x,
               Eigen::VectorXd* y) const override;
 
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& q,
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& z_theta_x,
               drake::AutoDiffVecXd* y) const override;
 
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,

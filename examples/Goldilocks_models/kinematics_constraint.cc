@@ -27,19 +27,20 @@ KinematicsConstraint::KinematicsConstraint(
 }
 
 void KinematicsConstraint::DoEval(const
-                             Eigen::Ref<const Eigen::VectorXd>& q,
+                             Eigen::Ref<const Eigen::VectorXd>& z_theta_x,
                              Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
-  Eval(initializeAutoDiff(q), &y_t);
+  Eval(initializeAutoDiff(z_theta_x), &y_t);
   *y = autoDiffToValueMatrix(y_t);
 }
 
 void KinematicsConstraint::DoEval(const
-                             Eigen::Ref<const AutoDiffVecXd>& q,
+                             Eigen::Ref<const AutoDiffVecXd>& z_theta_x,
                              AutoDiffVecXd* y) const {
-  const AutoDiffVecXd z = q.head(n_constraint_);
-  const AutoDiffVecXd theta = q.segment(n_constraint_, n_feature_);
-  const AutoDiffVecXd x = q.tail(plant_.num_positions() + plant_.num_velocities());
+  const AutoDiffVecXd z = z_theta_x.head(n_constraint_);
+  const AutoDiffVecXd theta = z_theta_x.segment(n_constraint_, n_feature_);
+  const AutoDiffVecXd x = z_theta_x.tail(
+      plant_.num_positions() + plant_.num_velocities());
 
   *y = z - expression_object_.getExpression(theta, x);
 }
