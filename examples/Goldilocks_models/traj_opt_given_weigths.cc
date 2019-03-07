@@ -301,7 +301,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   // move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
-  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), plant, N);
+  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), plant, num_time_samples);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 
@@ -315,6 +315,17 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   std::cout << "Solve time:" << elapsed.count() << std::endl;
   std::cout << result << std::endl;
   std::cout << "Cost:" << gm_traj_opt.Dircon_traj_opt->GetOptimalCost() << std::endl;
+
+
+
+  // Testing: print out the timesteps
+  for(int i = 0; i<N-1 ; i++){
+    auto h_i = gm_traj_opt.Dircon_traj_opt->timestep(i);
+    VectorXd h_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_i);
+    cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
+  }
+
+
 
   // store the solution of the decision variable
   VectorXd z = gm_traj_opt.Dircon_traj_opt->GetSolution(

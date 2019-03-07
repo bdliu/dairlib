@@ -15,36 +15,38 @@ int DynamicsExpression::getDimFeature() {
 
 template <typename U, typename V>
 VectorX<AutoDiffXd> DynamicsExpression::getExpression(
-    const U & theta, const V & x) const {
+    const U & theta, const V & z) const {
   // DRAKE_DEMAND(n_zDot_ * n_featureDot_ == theta.size());  // check theta size
-  // DRAKE_DEMAND(n_featureDot_ == getFeature(x).size());  // check feature size
+  // DRAKE_DEMAND(n_featureDot_ == getFeature(z).size());  // check feature size
 
-  VectorX<AutoDiffXd> expression(n_zDot_/2);
+  VectorX<AutoDiffXd> expression(n_zDot_);
+
+  expression.segment(0,n_zDot_/2) = z.segment(n_zDot_/2,n_zDot_/2);
   for (int i = 0; i < n_zDot_/2 ; i++)
-    expression(i) =
-      theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(x));
+    expression(n_zDot_/2 + i) =
+      theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
 
   return expression;
 }
 
 template <typename T>
-T DynamicsExpression::getFeature(const T & x) const {
+T DynamicsExpression::getFeature(const T & z) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_featureDot_
   // TODO(yminchen): find a way to avoid hard coding the constraints here
 
-  // Version 1: for kinematics_expression_test
-  // T feature(5);
-  // feature << x(0),
-  //            x(1)*x(1)*x(1),
-  //            x(0) * x(1),
-  //            cos(x(0)),
-  //            sqrt(x(1));
+  // Version 1: for dynamics_expression_test
+  T feature(5);
+  feature << z(0),
+             z(1)*z(1)*z(1),
+             z(0) * z(1),
+             cos(z(0)),
+             sqrt(z(1));
 
   // Version 2: testing
-  T feature(1);
-  feature << x(0);
+  // T feature(1);
+  // feature << 0;
 
   return feature;
 }

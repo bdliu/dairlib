@@ -226,6 +226,15 @@ cc_binary(
 )
 
 
+cc_binary(
+    name = "dynamics_expression_test",
+    srcs = ["dynamics_expression_test.cc"],
+    deps = [
+        ":dynamics_expression",
+    ],
+)
+
+
 cc_library(
     name = "dummy_constraint",
     srcs = [

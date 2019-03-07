@@ -58,7 +58,6 @@ int main() {
   MatrixXd dzdSTH  = autoDiffToGradientMatrix(z);
   cout << "dzdSTH = \n" << dzdSTH << "\n\n";
 
-
   return 0;
 }
 

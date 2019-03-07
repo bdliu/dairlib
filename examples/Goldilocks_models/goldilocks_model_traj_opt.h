@@ -75,7 +75,7 @@ class GoldilcocksModelTrajOpt {
   GoldilcocksModelTrajOpt(
       std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
       const MultibodyPlant<double>& plant,
-      int N);
+      const std::vector<int>& num_time_samples);
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
       int index, int n_z) const;

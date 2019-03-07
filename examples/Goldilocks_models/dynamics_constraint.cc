@@ -14,7 +14,7 @@ DynamicsConstraint::DynamicsConstraint(
              VectorXd::Zero(n_zDot),
              description),
   plant_(plant),
-  n_constraint_(n_zDot),
+  n_zDot_(n_zDot),
   n_featureZDot_(n_featureDot),
   n_thetaZDot_(n_thetaDot),
   expression_object_(DynamicsExpression(n_zDot, n_featureDot)) {
@@ -39,14 +39,24 @@ void DynamicsConstraint::DoEval(const
 void DynamicsConstraint::DoEval(const
                              Eigen::Ref<const AutoDiffVecXd>& q,
                              AutoDiffVecXd* y) const {
-
-
   // TODO: Need to update this
+  const AutoDiffVecXd z_i = q.head(n_zDot_);
+  const AutoDiffVecXd z_iplus1 = q.segment(n_zDot_, n_zDot_);
+  const AutoDiffVecXd thetaZDot = q.segment(2*n_zDot_, n_thetaZDot_);
+  const AutoDiffVecXd timestep_i = q.tail(1);
+  // Collocation point
+  AutoDiffVecXd z_collocation = (z_i+z_iplus1)/2;
 
+  // Let the dynamics be dzdt = h(z;thetaZDot) = h(z).
+  AutoDiffVecXd h_of_z_i = expression_object_.getExpression(thetaZDot,
+      z_i);
+  AutoDiffVecXd h_of_z_iplus1 = expression_object_.getExpression(thetaZDot,
+      z_iplus1);
+  AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(thetaZDot,
+      z_collocation);
 
-
-  *y = initializeAutoDiff(VectorXd::Zero(4));
-
+  *y = (z_iplus1 - z_i)
+        - timestep_i*(h_of_z_i + 4*h_of_colloc_pt +h_of_z_iplus1)/6;
 }
 
 void DynamicsConstraint::DoEval(const

@@ -66,7 +66,7 @@ class DynamicsConstraint : public Constraint {
 
  private:
   const MultibodyPlant<double>& plant_;
-  int n_constraint_;
+  int n_zDot_;
   int n_featureZDot_;
   int n_thetaZDot_;
   DynamicsExpression expression_object_;

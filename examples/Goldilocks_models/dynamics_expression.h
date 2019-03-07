@@ -30,10 +30,10 @@ class DynamicsExpression {
   int getDimFeature();
 
   template <typename U, typename V>
-  VectorX<AutoDiffXd> getExpression(const U & theta, const V & x) const;
+  VectorX<AutoDiffXd> getExpression(const U & theta, const V & z) const;
 
   template <typename T>
-  T getFeature(const T & x) const;
+  T getFeature(const T & z) const;
 
  private:
   int n_featureDot_;
