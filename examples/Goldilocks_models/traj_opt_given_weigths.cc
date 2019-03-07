@@ -301,7 +301,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   // move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
-  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), N);
+  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), plant, N);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 

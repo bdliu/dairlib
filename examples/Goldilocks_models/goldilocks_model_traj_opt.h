@@ -73,12 +73,22 @@ class GoldilcocksModelTrajOpt {
  public:
   GoldilcocksModelTrajOpt(
       std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
+      const MultibodyPlant<double>& plant,
       int N);
+
+  void solve();
+
+  Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
+      int index) const;
 
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
 
  private:
   int num_knots_;
+  int n_z_;
+  VectorXDecisionVariable theta_vars_;
+  VectorXDecisionVariable z_vars_;
+  VectorXDecisionVariable placeholder_z_vars_;
 
 
 
