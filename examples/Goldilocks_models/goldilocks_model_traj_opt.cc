@@ -4,16 +4,6 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-// namespace {
-// VectorXDecisionVariable MakeNamedVariables(const std::string& prefix,
-//     int num) {
-//   VectorXDecisionVariable vars(num);
-//   for (int i = 0; i < num; i++)
-//     vars(i) = Variable(prefix + std::to_string(i));
-//   return vars;
-// }
-// }  // end of unnamed namespace
-
 // Constructor
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
@@ -29,11 +19,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
                      // since we are hard coding it now.
   int n_theta = n_z * n_feature;
 
-  // Create model parameter theta as decision variable
+  // Create decision variables
   theta_vars_ = Dircon_traj_opt->NewContinuousVariables(n_theta, "theta");
-  // Create state z as decision variable
   z_vars_ = Dircon_traj_opt->NewContinuousVariables(n_z * N, "z");
-  // placeholder_z_vars_ = MakeNamedVariables("z", n_z);
 
   // Create kinematics constraint (pointer)
   cout << "before making kinmetics constraint \n";

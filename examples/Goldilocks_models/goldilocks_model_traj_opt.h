@@ -87,7 +87,6 @@ class GoldilcocksModelTrajOpt {
   int num_knots_;
   VectorXDecisionVariable theta_vars_;
   VectorXDecisionVariable z_vars_;
-  // VectorXDecisionVariable placeholder_z_vars_;
 
 
 
