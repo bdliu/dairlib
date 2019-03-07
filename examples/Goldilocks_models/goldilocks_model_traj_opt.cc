@@ -4,15 +4,15 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-namespace {
-VectorXDecisionVariable MakeNamedVariables(const std::string& prefix,
-    int num) {
-  VectorXDecisionVariable vars(num);
-  for (int i = 0; i < num; i++)
-    vars(i) = Variable(prefix + std::to_string(i));
-  return vars;
-}
-}  // end of unnamed namespace
+// namespace {
+// VectorXDecisionVariable MakeNamedVariables(const std::string& prefix,
+//     int num) {
+//   VectorXDecisionVariable vars(num);
+//   for (int i = 0; i < num; i++)
+//     vars(i) = Variable(prefix + std::to_string(i));
+//   return vars;
+// }
+// }  // end of unnamed namespace
 
 // Constructor
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
@@ -25,7 +25,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // parameters
   int n_z = 4;
-  int n_feature = 1;//5
+  int n_feature = 1; // This should match with the dimension of the feature,
+                     // since we are hard coding it now.
   int n_theta = n_z * n_feature;
 
   // Create model parameter theta as decision variable
