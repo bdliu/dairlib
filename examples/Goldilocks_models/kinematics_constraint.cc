@@ -20,11 +20,11 @@ KinematicsConstraint::KinematicsConstraint(
   expression_object_(KinematicsExpression(n_z, n_feature)) {
 
   // Check the theta size
-  DRAKE_ASSERT(n_z * n_feature == n_theta);
+  DRAKE_DEMAND(n_z * n_feature == n_theta);
 
   // Check the feature size implemented in the model expression
-  DRAKE_ASSERT(n_feature == expression_object_.getFeature(
-      VectorXd::Zero(plant.num_positions() + plant.num_velocities())).size());
+  VectorXd x_temp = VectorXd::Zero(plant.num_positions() + plant.num_velocities());
+  DRAKE_DEMAND(n_feature == expression_object_.getFeature(x_temp).size());
 }
 
 void KinematicsConstraint::DoEval(const

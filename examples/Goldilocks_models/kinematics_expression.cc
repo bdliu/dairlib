@@ -16,8 +16,8 @@ int KinematicsExpression::getDimFeature() {
 template <typename U, typename V>
 VectorX<AutoDiffXd> KinematicsExpression::getExpression(
     const U & theta, const V & x) const {
-  // DRAKE_ASSERT(n_z_ * n_feature_ == theta.size());  // check theta size
-  // DRAKE_ASSERT(n_feature_ == getFeature(x).size());  // check feature size
+  // DRAKE_DEMAND(n_z_ * n_feature_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_feature_ == getFeature(x).size());  // check feature size
 
   VectorX<AutoDiffXd> expression(n_z_);
   for (int i = 0; i < n_z_ ; i++)
@@ -29,7 +29,7 @@ VectorX<AutoDiffXd> KinematicsExpression::getExpression(
 
 template <typename T>
 T KinematicsExpression::getFeature(const T & x) const {
-  T feature(n_feature_);
+  T feature(5);
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_

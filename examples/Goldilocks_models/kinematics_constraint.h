@@ -8,6 +8,7 @@
 #include "drake/solvers/snopt_solver.h"
 #include "multibody/multibody_utils.h"
 
+#include "drake/common/drake_assert.h"
 #include "examples/Goldilocks_models/kinematics_expression.h"
 
 using std::map;

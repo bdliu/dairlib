@@ -25,7 +25,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // parameters
   int n_z = 4;
-  int n_feature = 5;
+  int n_feature = 5;//5
   int n_theta = n_z * n_feature;
 
   // Create model parameter theta as decision variable
@@ -35,6 +35,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // placeholder_z_vars_ = MakeNamedVariables("z", n_z);
 
   // Create kinematics constraint (pointer)
+  cout << "before making kinmetics constraint \n";
   auto kinematics_constraint = make_shared<KinematicsConstraint>(
                                  n_z, n_feature, n_theta, plant);
 

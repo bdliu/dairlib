@@ -27,7 +27,7 @@ int main() {
   // Matrix<double, Dynamic, 1> x(2);
   x << M_PI / 2, 3;
   AutoDiffVecXd x_autoDiff = initializeAutoDiff(x);
-  DRAKE_ASSERT(n_x == x.size());
+  DRAKE_DEMAND(n_x == x.size());
 
   ////// getFeature() //////
   VectorXd feature = expr.getFeature(x);
@@ -46,7 +46,7 @@ int main() {
   theta << 1, 1, 0, 0, 0,
            0, 0, 1, 0, 0,
            0, 0, 0, 1, 1;
-  DRAKE_ASSERT(n_z * n_feature == theta.size());
+  DRAKE_DEMAND(n_z * n_feature == theta.size());
   // Features implemented in KinematicsExpression should be:
   // feature << x(0),
   //            x(1)*x(1)*x(1),
