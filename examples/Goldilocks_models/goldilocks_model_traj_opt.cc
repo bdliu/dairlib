@@ -24,36 +24,35 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // parameters
-  int n_z_ = 4;
+  int n_z = 4;
   int n_feature = 5;
-  int n_theta = n_z_ * n_feature;
+  int n_theta = n_z * n_feature;
 
   // Create model parameter theta as decision variable
   theta_vars_ = Dircon_traj_opt->NewContinuousVariables(n_theta, "theta");
   // Create state z as decision variable
-  z_vars_ = Dircon_traj_opt->NewContinuousVariables(n_z_ * N, "z");
-  placeholder_z_vars_ = MakeNamedVariables("z", n_z_);
+  z_vars_ = Dircon_traj_opt->NewContinuousVariables(n_z * N, "z");
+  // placeholder_z_vars_ = MakeNamedVariables("z", n_z);
 
   // Create kinematics constraint (pointer)
   auto kinematics_constraint = make_shared<KinematicsConstraint>(
-                                 n_z_, n_feature, n_theta, plant);
+                                 n_z, n_feature, n_theta, plant);
 
   // Add kinematics constraint for all knots
   for (int i = 0; i < N ; i++) {
-    auto z_at_knot_i = reduced_model_state(i);
+    auto z_at_knot_i = reduced_model_state(i, n_z);
     auto x_at_knot_i = Dircon_traj_opt->state(i);
     Dircon_traj_opt->AddConstraint(kinematics_constraint,
-      {z_at_knot_i, theta_vars_, x_at_knot_i});
-  cout << "here\n";
+    {z_at_knot_i, theta_vars_, x_at_knot_i});
   }
 
 }  // end of constructor
 
 
 Eigen::VectorBlock<const VectorXDecisionVariable>
-GoldilcocksModelTrajOpt::reduced_model_state(int index) const {
+GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_z) const {
   DRAKE_DEMAND(index >= 0 && index < num_knots_);
-  return z_vars_.segment(index * n_z_, n_z_);
+  return z_vars_.segment(index * n_z, n_z);
 }
 
 void GoldilcocksModelTrajOpt::solve() {};

@@ -67,6 +67,7 @@ class KinematicsConstraint : public Constraint {
   const MultibodyPlant<double>& plant_;
   int n_constraint_;
   int n_feature_;
+  int n_theta_;
   KinematicsExpression expression_object_;
 
 };

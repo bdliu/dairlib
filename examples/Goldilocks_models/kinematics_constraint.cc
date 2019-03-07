@@ -16,6 +16,7 @@ KinematicsConstraint::KinematicsConstraint(
   plant_(plant),
   n_constraint_(n_z),
   n_feature_(n_feature),
+  n_theta_(n_theta),
   expression_object_(KinematicsExpression(n_z, n_feature)) {
 
   // Check the theta size
@@ -38,7 +39,7 @@ void KinematicsConstraint::DoEval(const
                              Eigen::Ref<const AutoDiffVecXd>& z_theta_x,
                              AutoDiffVecXd* y) const {
   const AutoDiffVecXd z = z_theta_x.head(n_constraint_);
-  const AutoDiffVecXd theta = z_theta_x.segment(n_constraint_, n_feature_);
+  const AutoDiffVecXd theta = z_theta_x.segment(n_constraint_, n_theta_);
   const AutoDiffVecXd x = z_theta_x.tail(
       plant_.num_positions() + plant_.num_velocities());
 
