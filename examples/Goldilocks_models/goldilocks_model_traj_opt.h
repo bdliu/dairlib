@@ -32,6 +32,7 @@
 #include "systems/goldilocks_models/file_utils.h"
 
 #include "examples/Goldilocks_models/kinematics_constraint.h"
+#include "examples/Goldilocks_models/dynamics_constraint.h"
 
 using Eigen::Vector3d;
 using Eigen::VectorXd;
@@ -83,8 +84,9 @@ class GoldilcocksModelTrajOpt {
 
  private:
   int num_knots_;
-  VectorXDecisionVariable theta_vars_;
   VectorXDecisionVariable z_vars_;
+  VectorXDecisionVariable thetaZ_vars_;
+  VectorXDecisionVariable thetaZDot_vars_;
 };
 
 }  // namespace goldilocks_models

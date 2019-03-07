@@ -15,25 +15,40 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // parameters
   int n_z = 4;
-  int n_feature = 1; // This should match with the dimension of the feature,
-                     // since we are hard coding it now.
-  int n_theta = n_z * n_feature;
+  int n_zDot = n_z; // Assume that are the same (no quaternion)
+  int n_featureZ = 1; // This should match with the dimension of the feature,
+                      // since we are hard coding it now. (same below)
+  int n_featureZDot = 1;
+  int n_thetaZ = n_z * n_featureZ;
+  int n_thetaZDot = (n_zDot/2) * n_featureZDot;
+      // Assuming position and velocity has the same dimension
+      // for the reduced order model.
 
   // Create decision variables
-  theta_vars_ = Dircon_traj_opt->NewContinuousVariables(n_theta, "theta");
   z_vars_ = Dircon_traj_opt->NewContinuousVariables(n_z * N, "z");
+  thetaZ_vars_ = Dircon_traj_opt->NewContinuousVariables(n_thetaZ, "thetaZ");
+  thetaZDot_vars_ = Dircon_traj_opt->NewContinuousVariables(
+      n_thetaZDot, "thetaZDot");
 
   // Create kinematics constraint (pointer)
-  cout << "before making kinmetics constraint \n";
   auto kinematics_constraint = make_shared<KinematicsConstraint>(
-                                 n_z, n_feature, n_theta, plant);
+                                 n_z, n_featureZ, n_thetaZ, plant);
+  auto dynamics_constraint = make_shared<DynamicsConstraint>(
+                                 n_zDot, n_featureZDot, n_thetaZDot, plant);
 
   // Add kinematics constraint for all knots
+  // TODO(yminchen): check if kinematics constraint is implemented correctly
   for (int i = 0; i < N ; i++) {
     auto z_at_knot_i = reduced_model_state(i, n_z);
     auto x_at_knot_i = Dircon_traj_opt->state(i);
     Dircon_traj_opt->AddConstraint(kinematics_constraint,
-    {z_at_knot_i, theta_vars_, x_at_knot_i});
+    {z_at_knot_i, thetaZ_vars_, x_at_knot_i});
+  }
+
+  // Add dynamics constraint for all segments (between knots)
+  // TODO(yminchen): check if dynamics constraint is implemented correctly
+  for (int i = 0; i < N-1 ; i++) {
+    // {z_at_knot_i, z_at_knot_iplus1, thetaZDot_vars_, x_at_knot_i}
   }
 
 }  // end of constructor

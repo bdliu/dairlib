@@ -8,6 +8,9 @@
 #include "drake/solvers/snopt_solver.h"
 #include "multibody/multibody_utils.h"
 
+#include "drake/common/drake_assert.h"
+#include "examples/Goldilocks_models/dynamics_expression.h"
+
 using std::map;
 using std::string;
 using std::vector;
@@ -47,11 +50,11 @@ using drake::multibody::MultibodyPlant;
 namespace dairlib {
 namespace goldilocks_models {
 
-
 class DynamicsConstraint : public Constraint {
  public:
-  DynamicsConstraint(const MultibodyPlant<double>& plant,
-                           const std::string& description = "");
+  DynamicsConstraint(int n_zDot, int n_featureDot, int n_thetaDot,
+                     const MultibodyPlant<double>& plant,
+                     const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
@@ -63,6 +66,10 @@ class DynamicsConstraint : public Constraint {
 
  private:
   const MultibodyPlant<double>& plant_;
+  int n_constraint_;
+  int n_featureZDot_;
+  int n_thetaZDot_;
+  DynamicsExpression expression_object_;
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib

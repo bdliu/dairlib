@@ -93,6 +93,7 @@ cc_library(
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
 	":kinematics_constraint",
+	":dynamics_constraint",
     ],
 )
 
@@ -183,11 +184,9 @@ cc_library(
         "@drake//manipulation/util",
         "//multibody:utils",
         "@drake//math:gradient",
+	":dynamics_expression",
     ],
 )
-
-
-
 
 cc_library(
     name = "kinematics_expression",
@@ -203,6 +202,19 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "dynamics_expression",
+    srcs = [
+        "dynamics_expression.cc",
+    ],
+    hdrs = [
+        "dynamics_expression.h"
+    ],
+    deps = [
+        "@drake//common",
+        "@drake//math:gradient",
+    ],
+)
 
 
 cc_binary(
