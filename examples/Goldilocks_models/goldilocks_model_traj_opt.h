@@ -76,8 +76,6 @@ class GoldilcocksModelTrajOpt {
       const MultibodyPlant<double>& plant,
       int N);
 
-  void solve();
-
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
       int index, int n_z) const;
 
@@ -87,11 +85,6 @@ class GoldilcocksModelTrajOpt {
   int num_knots_;
   VectorXDecisionVariable theta_vars_;
   VectorXDecisionVariable z_vars_;
-
-
-
-
-
 };
 
 }  // namespace goldilocks_models

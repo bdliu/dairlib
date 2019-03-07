@@ -38,18 +38,15 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
 }  // end of constructor
 
-
 Eigen::VectorBlock<const VectorXDecisionVariable>
 GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_z) const {
   DRAKE_DEMAND(index >= 0 && index < num_knots_);
   return z_vars_.segment(index * n_z, n_z);
 }
 
-void GoldilcocksModelTrajOpt::solve() {};
 
 // https://github.com/RobotLocomotion/drake/blob/master/systems/trajectory_optimization/multiple_shooting.cc
 // https://drake.mit.edu/doxygen_cxx/classdrake_1_1systems_1_1trajectory__optimization_1_1_multiple_shooting.html#a3d57e7972ccf310e19d3b73cac1c2a8c
-
 
 // Inside construct:(
 // pass in the multipleShooting class
@@ -67,26 +64,6 @@ void GoldilcocksModelTrajOpt::solve() {};
 // 1. Get the spline from z0,z1,
 //    zDot0(functino of z0),zDot1(function of z1)
 // 2. The constraint is that at the middle point, the slope still match
-
-
-// methods
-// public:
-// solve()
-// solve MultipleShooting and then return the solution
-// private:
-// functions related to placeholder_z_vars_
-
-
-// members:
-// public:
-// DIRCON_traj_opt
-// privite:
-// z_vars_
-// placeholder_z_vars_
-
-
-
-
 
 
 
