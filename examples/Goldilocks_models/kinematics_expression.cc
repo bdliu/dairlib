@@ -29,18 +29,22 @@ VectorX<AutoDiffXd> KinematicsExpression::getExpression(
 
 template <typename T>
 T KinematicsExpression::getFeature(const T & x) const {
-  T feature(5);
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_
   // TODO(yminchen): find a way to avoid hard coding the constraints here
 
   // Version 1: for kinematics_expression_test
-  feature << x(0),
-             x(1)*x(1)*x(1),
-             x(0) * x(1),
-             cos(x(0)),
-             sqrt(x(1));
+  // T feature(5);
+  // feature << x(0),
+  //            x(1)*x(1)*x(1),
+  //            x(0) * x(1),
+  //            cos(x(0)),
+  //            sqrt(x(1));
+
+  // Version 2: testing
+  T feature(1);
+  feature << x(0);
 
   return feature;
 }

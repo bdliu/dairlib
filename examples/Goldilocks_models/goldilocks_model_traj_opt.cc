@@ -25,7 +25,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // parameters
   int n_z = 4;
-  int n_feature = 5;//5
+  int n_feature = 1;//5
   int n_theta = n_z * n_feature;
 
   // Create model parameter theta as decision variable
