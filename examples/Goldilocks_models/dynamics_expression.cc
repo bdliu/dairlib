@@ -37,16 +37,16 @@ T DynamicsExpression::getFeature(const T & z) const {
   // TODO(yminchen): find a way to avoid hard coding the constraints here
 
   // Version 1: for dynamics_expression_test
-  T feature(5);
-  feature << z(0),
-             z(1)*z(1)*z(1),
-             z(0) * z(1),
-             cos(z(0)),
-             sqrt(z(1));
+  // T feature(5);
+  // feature << z(0),
+  //            z(1)*z(1)*z(1),
+  //            z(0) * z(1),
+  //            cos(z(0)),
+  //            sqrt(z(1));
 
   // Version 2: testing
-  // T feature(1);
-  // feature << 0;
+  T feature(1);
+  feature << 0;
 
   return feature;
 }

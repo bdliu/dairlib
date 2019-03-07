@@ -44,6 +44,7 @@ void DynamicsConstraint::DoEval(const
   const AutoDiffVecXd z_iplus1 = q.segment(n_zDot_, n_zDot_);
   const AutoDiffVecXd thetaZDot = q.segment(2*n_zDot_, n_thetaZDot_);
   const AutoDiffVecXd timestep_i = q.tail(1);
+
   // Collocation point
   AutoDiffVecXd z_collocation = (z_i+z_iplus1)/2;
 
@@ -56,7 +57,7 @@ void DynamicsConstraint::DoEval(const
       z_collocation);
 
   *y = (z_iplus1 - z_i)
-        - timestep_i*(h_of_z_i + 4*h_of_colloc_pt +h_of_z_iplus1)/6;
+       - timestep_i(0)*(h_of_z_i + 4*h_of_colloc_pt +h_of_z_iplus1)/6;
 }
 
 void DynamicsConstraint::DoEval(const
