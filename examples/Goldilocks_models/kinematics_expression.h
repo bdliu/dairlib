@@ -4,6 +4,8 @@
 #include "drake/math/autodiff_gradient.h"
 #include "drake/common/eigen_types.h"
 
+#include "multibody/multibody_utils.h"
+
 #include "drake/common/drake_assert.h"
 
 using Eigen::Matrix;
@@ -18,6 +20,7 @@ using drake::VectorX;
 using drake::AutoDiffXd;
 using drake::math::DiscardGradient;
 
+using drake::multibody::MultibodyPlant;
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -25,6 +28,8 @@ namespace goldilocks_models {
 class KinematicsExpression {
  public:
   explicit KinematicsExpression(int n_z, int n_feature);
+  explicit KinematicsExpression(int n_z, int n_feature,
+      MultibodyPlant<double> * plant);
   KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -36,6 +41,7 @@ class KinematicsExpression {
   T getFeature(const T & x) const;
 
  private:
+  MultibodyPlant<double> * plant_;
   int n_feature_;
   int n_x_;
   int n_z_;

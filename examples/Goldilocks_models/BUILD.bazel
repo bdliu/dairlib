@@ -164,7 +164,7 @@ cc_library(
         "@drake//manipulation/util",
         "//multibody:utils",
         "@drake//math:gradient",
-	":kinematics_expression",
+	    ":kinematics_expression",
     ],
 )
 
@@ -199,6 +199,7 @@ cc_library(
     deps = [
         "@drake//common",
         "@drake//math:gradient",
+        "//multibody:utils",
     ],
 )
 

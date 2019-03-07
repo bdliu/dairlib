@@ -39,7 +39,6 @@ void DynamicsConstraint::DoEval(const
 void DynamicsConstraint::DoEval(const
                              Eigen::Ref<const AutoDiffVecXd>& q,
                              AutoDiffVecXd* y) const {
-  // TODO: Need to update this
   const AutoDiffVecXd z_i = q.head(n_zDot_);
   const AutoDiffVecXd z_iplus1 = q.segment(n_zDot_, n_zDot_);
   const AutoDiffVecXd thetaZDot = q.segment(2*n_zDot_, n_thetaZDot_);

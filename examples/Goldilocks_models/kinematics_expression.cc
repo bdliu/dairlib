@@ -8,6 +8,12 @@ KinematicsExpression::KinematicsExpression(int n_z, int n_feature) {
   n_feature_ = n_feature;
   n_z_ = n_z;
 }
+KinematicsExpression::KinematicsExpression(int n_z, int n_feature,
+    MultibodyPlant<double> * plant) {
+  n_feature_ = n_feature;
+  n_z_ = n_z;
+  plant_ = plant;
+}
 
 int KinematicsExpression::getDimFeature() {
   return n_feature_;
@@ -32,7 +38,7 @@ T KinematicsExpression::getFeature(const T & x) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_
-  // TODO(yminchen): find a way to avoid hard coding the constraints here
+  // TODO(yminchen): find a way to avoid hard coding the features here
 
   // Version 1: for kinematics_expression_test
   // T feature(5);

@@ -34,7 +34,7 @@ T DynamicsExpression::getFeature(const T & z) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_featureDot_
-  // TODO(yminchen): find a way to avoid hard coding the constraints here
+  // TODO(yminchen): find a way to avoid hard coding the features here
 
   // Version 1: for dynamics_expression_test
   // T feature(5);
