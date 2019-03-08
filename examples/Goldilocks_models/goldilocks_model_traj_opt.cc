@@ -23,7 +23,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // parameters
   int n_z = 4;
   int n_zDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 1; // This should match with the dimension of the feature,
+  int n_featureZ = 2; // This should match with the dimension of the feature,
                       // since we are hard coding it now. (same below)
   int n_featureZDot = 1;
   int n_thetaZ = n_z * n_featureZ;
@@ -63,6 +63,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
         // -2 because we do not add constraint for the last segment because of
         // discrete dynamics involved
         // TODO(yminchen): can I fix this?
+
       // cout << "    j = " << j << endl;
 
       auto z_at_knot_i = reduced_model_state(N_accum+j, n_z);
@@ -75,6 +76,19 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     N_accum += num_time_samples[i];
     N_accum -= 1;  // due to overlaps between modes
   }
+
+
+
+
+  // Testing
+  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(0) == 1);
+  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(1) == 0);
+  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(4) == 0);
+  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(5) == 1);
+
+
+
+
 }  // end of constructor
 
 
@@ -84,6 +98,12 @@ GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_z) const {
   return z_vars_.segment(index * n_z, n_z);
 }
 
+VectorXDecisionVariable GoldilcocksModelTrajOpt::get_thetaZ() const{
+  return thetaZ_vars_;
+}
+VectorXDecisionVariable GoldilcocksModelTrajOpt::get_thetaZDot() const{
+  return thetaZDot_vars_;
+}
 
 // https://github.com/RobotLocomotion/drake/blob/master/systems/trajectory_optimization/multiple_shooting.cc
 // https://drake.mit.edu/doxygen_cxx/classdrake_1_1systems_1_1trajectory__optimization_1_1_multiple_shooting.html#a3d57e7972ccf310e19d3b73cac1c2a8c

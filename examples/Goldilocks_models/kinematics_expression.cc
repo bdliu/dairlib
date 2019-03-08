@@ -55,10 +55,13 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   //            sqrt(x(1));
 
   //////////// Version 2: testing //////////////////////////////////////////////
-  VectorX<U> feature(1);
-  feature << x(0);
+  // VectorX<U> feature(1);
+  // feature << x(1);
+  //////////// Version 3: testing //////////////////////////////////////////////
+  VectorX<U> feature(2);
+  feature << x(1), x(1+x.size()/2);
 
-  //////////// Version 3: SLIP /////////////////////////////////////////////////
+  //////////// Version 4: SLIP /////////////////////////////////////////////////
   /*// If you use plant functions, then it's required that T = U?
   // Get CoM position and stance foot position in autoDiff
   auto context = plant_->CreateDefaultContext();

@@ -79,6 +79,9 @@ class GoldilcocksModelTrajOpt {
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
       int index, int n_z) const;
+  VectorXDecisionVariable get_thetaZ() const;
+  VectorXDecisionVariable get_thetaZDot() const;
+
 
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
 

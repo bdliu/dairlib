@@ -314,12 +314,39 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
+
+
+
+
   // Testing: print out the timesteps
+  // for(int i = 0; i<N-1 ; i++){
+  //   auto h_i = gm_traj_opt.Dircon_traj_opt->timestep(i);
+  //   VectorXd h_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_i);
+  //   cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
+  // }
+  auto h_0 = gm_traj_opt.Dircon_traj_opt->timestep(0);
+  VectorXd h_0_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_0);
+  cout << "timestep = " << h_0_sol << endl;
+
+  cout << endl;
+  // Testing: print out the vertical pos
   for(int i = 0; i<N-1 ; i++){
-    auto h_i = gm_traj_opt.Dircon_traj_opt->timestep(i);
-    VectorXd h_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_i);
-    cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
+    auto x_i = gm_traj_opt.Dircon_traj_opt->state(i);
+    VectorXd x_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(x_i);
+    cout << "x_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
+
+  cout << endl;
+  // Testing: print out theta
+  auto thetaZ_var = gm_traj_opt.get_thetaZ();
+  auto thetaZDot_var = gm_traj_opt.get_thetaZDot();
+  VectorXd thetaZ_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(thetaZ_var);
+  VectorXd thetaZDot_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(thetaZDot_var);
+  cout << "thetaZ_sol = " << thetaZ_sol.transpose() << endl;
+  cout << "thetaZDot_sol = " << thetaZDot_sol.transpose() << endl;
+
+
+
 
 
 
