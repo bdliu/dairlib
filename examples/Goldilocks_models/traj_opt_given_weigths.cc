@@ -350,6 +350,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
+
+
   // store the solution of the decision variable
   VectorXd z = gm_traj_opt.Dircon_traj_opt->GetSolution(
                  gm_traj_opt.Dircon_traj_opt->decision_variables()); //solution of all decision variables

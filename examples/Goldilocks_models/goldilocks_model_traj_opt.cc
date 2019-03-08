@@ -54,7 +54,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // Add dynamics constraint for all segments (between knots) except the last
   // segment of each mode
-  // TODO(yminchen): check if dynamics constraint is implemented correctly
+  // // Dynamics constraint waw tested with fix height acceleration.
+  // // Set z = [y;dy] and set dz = [dy;0];
   int N_accum = 0;
   for (int i = 0; i < num_time_samples.size() ; i++) {
     // cout << "i = " << i << endl;
@@ -79,12 +80,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
 
 
-
-  // Testing
-  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(0) == 1);
-  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(1) == 0);
-  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(4) == 0);
-  Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(5) == 1);
+  // // Testing
+  // Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(0) == 1);
+  // Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(1) == 0);
+  // Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(4) == 0);
+  // Dircon_traj_opt->AddLinearConstraint(thetaZ_vars_(5) == 1);
 
 
 
