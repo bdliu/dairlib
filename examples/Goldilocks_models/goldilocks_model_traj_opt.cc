@@ -7,7 +7,7 @@ namespace goldilocks_models {
 // Constructor
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
-  const MultibodyPlant<double>& plant,
+  const MultibodyPlant<double> * plant,
   const std::vector<int> & num_time_samples) {
 
   // Get total sample ponits

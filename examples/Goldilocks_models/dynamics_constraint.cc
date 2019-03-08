@@ -6,7 +6,7 @@ namespace goldilocks_models {
 
 DynamicsConstraint::DynamicsConstraint(
                                  int n_zDot, int n_featureDot, int n_thetaDot,
-                                 const MultibodyPlant<double>& plant,
+                                 const MultibodyPlant<double> * plant,
                                  const std::string& description):
   Constraint(n_zDot,
              2*n_zDot + n_thetaDot + 1,

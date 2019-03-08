@@ -94,12 +94,36 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   plant.Finalize();
 
 
-  auto context = plant.CreateDefaultContext();
-  auto plant_symb_smrt_ptr =
-    plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
-  auto context_symb_smrt_ptr = plant_symb_smrt_ptr->CreateDefaultContext();
-  context_symb_smrt_ptr->SetTimeStateAndParametersFrom(*context);
-  auto plant_symb_ptr = plant_symb_smrt_ptr.get();
+  // auto context = plant.CreateDefaultContext();
+  // auto plant_symb_smrt_ptr =
+  //   plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
+  // auto context_symb_smrt_ptr = plant_symb_smrt_ptr->CreateDefaultContext();
+  // context_symb_smrt_ptr->SetTimeStateAndParametersFrom(*context);
+  // auto plant_symb_ptr = plant_symb_smrt_ptr.get();
+
+
+
+
+
+  // auto context = plant.CreateDefaultContext();
+  // auto plant_autoDiff_smrt_ptr =
+  //   plant.ToAutoDiffXd(); // return std::unique_ptr<System<AutoDiffXd>>
+  // auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
+  // context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
+  // auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
+
+
+  // MultibodyPlant<AutoDiffXd> plant_autoDiff;
+  // Parser parser_autoDiff(&plant_autoDiff);
+  // parser_autoDiff.AddModelFromFile(full_name);
+  // plant_autoDiff.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  //   -9.81 * Eigen::Vector3d::UnitZ());
+  // plant_autoDiff.WeldFrames(
+  //   plant_autoDiff.world_frame(), plant_autoDiff.GetFrameByName("base"),
+  //   drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+  // plant_autoDiff.Finalize();
+
+
 
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
@@ -279,8 +303,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
                                stride_length);
 
   // make sure it's left stance
-  // trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
-  //                                  x0(positions_map.at("right_hip_pin")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
+                                   x0(positions_map.at("right_hip_pin")));
 
   // add cost
   const double R = 10;  // Cost on input effort
@@ -301,7 +325,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   // move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
-  GoldilcocksModelTrajOpt gm_traj_opt(std::move(trajopt), plant, num_time_samples);
+  GoldilcocksModelTrajOpt gm_traj_opt(
+      std::move(trajopt), &plant, num_time_samples);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 

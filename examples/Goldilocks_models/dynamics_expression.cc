@@ -21,10 +21,10 @@ VectorX<AutoDiffXd> DynamicsExpression::getExpression(
 
   VectorX<AutoDiffXd> expression(n_zDot_);
 
-  expression.segment(0,n_zDot_/2) = z.segment(n_zDot_/2,n_zDot_/2);
-  for (int i = 0; i < n_zDot_/2 ; i++)
-    expression(n_zDot_/2 + i) =
-      theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
+  expression.segment(0, n_zDot_ / 2) = z.segment(n_zDot_ / 2, n_zDot_ / 2);
+  for (int i = 0; i < n_zDot_ / 2 ; i++)
+    expression(n_zDot_ / 2 + i) =
+        theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
 
   return expression;
 }

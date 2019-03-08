@@ -9,7 +9,7 @@ KinematicsExpression::KinematicsExpression(int n_z, int n_feature) {
   n_z_ = n_z;
 }
 KinematicsExpression::KinematicsExpression(int n_z, int n_feature,
-    MultibodyPlant<double> * plant) {
+    const MultibodyPlant<double> * plant) {
   n_feature_ = n_feature;
   n_z_ = n_z;
   plant_ = plant;
@@ -40,7 +40,7 @@ T KinematicsExpression::getFeature(const T & x) const {
   // Be careful that the dimension should match with n_feature_
   // TODO(yminchen): find a way to avoid hard coding the features here
 
-  // Version 1: for kinematics_expression_test
+  //////////// Version 1: for kinematics_expression_test ///////////////////////
   // T feature(5);
   // feature << x(0),
   //            x(1)*x(1)*x(1),
@@ -48,9 +48,20 @@ T KinematicsExpression::getFeature(const T & x) const {
   //            cos(x(0)),
   //            sqrt(x(1));
 
-  // Version 2: testing
+  //////////// Version 2: testing //////////////////////////////////////////////
   T feature(1);
   feature << x(0);
+
+  //////////// Version 3: SLIP /////////////////////////////////////////////////
+  // Get CoM position and stance foot position in autoDiff
+  // auto context = plant_->CreateDefaultContext();
+  // plant_->SetPositionsAndVelocities(context.get(), x);
+
+  // cout << "num_model_instances() = " << plant_->num_model_instances() << endl;
+  // cout << "x = " << x << endl;
+
+  // const Body< T > &   GetBodyByName (const std::string &name)
+  // const std::string &   GetModelInstanceName (ModelInstanceIndex model_instance) const
 
   return feature;
 }

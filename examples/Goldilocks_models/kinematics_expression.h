@@ -29,7 +29,7 @@ class KinematicsExpression {
  public:
   explicit KinematicsExpression(int n_z, int n_feature);
   explicit KinematicsExpression(int n_z, int n_feature,
-      MultibodyPlant<double> * plant);
+      const MultibodyPlant<double> * plant);
   KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -41,7 +41,7 @@ class KinematicsExpression {
   T getFeature(const T & x) const;
 
  private:
-  MultibodyPlant<double> * plant_;
+  const MultibodyPlant<double> * plant_;
   int n_feature_;
   int n_x_;
   int n_z_;
