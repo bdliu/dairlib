@@ -6,7 +6,7 @@ namespace goldilocks_models {
 
 KinematicsConstraint::KinematicsConstraint(
                                  int n_z, int n_feature, int n_theta,
-                                 const MultibodyPlant<double> * plant,
+                                 const MultibodyPlant<AutoDiffXd> * plant,
                                  const std::string& description):
   Constraint(n_z,
              n_z + n_theta + plant->num_positions() + plant->num_velocities(),

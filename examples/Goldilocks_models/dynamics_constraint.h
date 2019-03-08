@@ -53,7 +53,7 @@ namespace goldilocks_models {
 class DynamicsConstraint : public Constraint {
  public:
   DynamicsConstraint(int n_zDot, int n_featureDot, int n_thetaDot,
-                     const MultibodyPlant<double> * plant,
+                     const MultibodyPlant<AutoDiffXd> * plant,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
@@ -65,7 +65,7 @@ class DynamicsConstraint : public Constraint {
               VectorX<Expression>*y) const override;
 
  private:
-  const MultibodyPlant<double> * plant_;
+  const MultibodyPlant<AutoDiffXd> * plant_;
   int n_zDot_;
   int n_featureZDot_;
   int n_thetaZDot_;
