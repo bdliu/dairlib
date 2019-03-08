@@ -60,8 +60,8 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
 
   //////////// Version 3: SLIP /////////////////////////////////////////////////
   // Get CoM position and stance foot position in autoDiff
-  // auto context = plant_->CreateDefaultContext();
-  // plant_->SetPositionsAndVelocities(context.get(), x);
+  auto context = plant_->CreateDefaultContext();
+  plant_->SetPositionsAndVelocities(context.get(), x);
 
   // cout << "num_model_instances() = " << plant_->num_model_instances() << endl;
   // cout << "x = " << x << endl;
@@ -95,8 +95,6 @@ template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
 // method getFeature
 template VectorX<double> KinematicsExpression<double>::getFeature(
   const VectorX<double> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression<double>::getFeature(
-  const VectorX<AutoDiffXd> &) const;
 
 template VectorX<double> KinematicsExpression<AutoDiffXd>::getFeature(
   const VectorX<double> &) const;
