@@ -25,23 +25,24 @@ using drake::multibody::MultibodyPlant;
 namespace dairlib {
 namespace goldilocks_models {
 
+template <typename T>
 class KinematicsExpression {
  public:
   explicit KinematicsExpression(int n_z, int n_feature);
   explicit KinematicsExpression(int n_z, int n_feature,
-      const MultibodyPlant<double> * plant);
+      const MultibodyPlant<T> * plant);
   KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
 
   template <typename U, typename V>
-  VectorX<AutoDiffXd> getExpression(const U & theta, const V & x) const;
+  VectorX<T> getExpression(const U & theta, const V & x) const;
 
-  template <typename T>
-  T getFeature(const T & x) const;
+  template <typename U>
+  VectorX<U> getFeature(const VectorX<U> & x) const;
 
  private:
-  const MultibodyPlant<double> * plant_;
+  const MultibodyPlant<T> * plant_;
   int n_feature_;
   int n_x_;
   int n_z_;

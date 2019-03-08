@@ -69,7 +69,7 @@ class KinematicsConstraint : public Constraint {
   int n_constraint_;
   int n_feature_;
   int n_theta_;
-  KinematicsExpression expression_object_;
+  KinematicsExpression<AutoDiffXd> expression_object_;
 
 };
 

@@ -4,28 +4,33 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-KinematicsExpression::KinematicsExpression(int n_z, int n_feature) {
+template <typename T>
+KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature) {
   n_feature_ = n_feature;
   n_z_ = n_z;
 }
-KinematicsExpression::KinematicsExpression(int n_z, int n_feature,
-    const MultibodyPlant<double> * plant) {
+
+template <typename T>
+KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature,
+    const MultibodyPlant<T> * plant) {
   n_feature_ = n_feature;
   n_z_ = n_z;
   plant_ = plant;
 }
 
-int KinematicsExpression::getDimFeature() {
+template <typename T>
+int KinematicsExpression<T>::getDimFeature() {
   return n_feature_;
 }
 
+template <typename T>
 template <typename U, typename V>
-VectorX<AutoDiffXd> KinematicsExpression::getExpression(
+VectorX<T> KinematicsExpression<T>::getExpression(
     const U & theta, const V & x) const {
   // DRAKE_DEMAND(n_z_ * n_feature_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_feature_ == getFeature(x).size());  // check feature size
 
-  VectorX<AutoDiffXd> expression(n_z_);
+  VectorX<T> expression(n_z_);
   for (int i = 0; i < n_z_ ; i++)
     expression(i) =
       theta.segment(i * n_feature_, n_feature_).dot(getFeature(x));
@@ -34,14 +39,15 @@ VectorX<AutoDiffXd> KinematicsExpression::getExpression(
 }
 
 template <typename T>
-T KinematicsExpression::getFeature(const T & x) const {
+template <typename U>
+VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_
   // TODO(yminchen): find a way to avoid hard coding the features here
 
   //////////// Version 1: for kinematics_expression_test ///////////////////////
-  // T feature(5);
+  // VectorX<U> feature(5);
   // feature << x(0),
   //            x(1)*x(1)*x(1),
   //            x(0) * x(1),
@@ -49,7 +55,7 @@ T KinematicsExpression::getFeature(const T & x) const {
   //            sqrt(x(1));
 
   //////////// Version 2: testing //////////////////////////////////////////////
-  T feature(1);
+  VectorX<U> feature(1);
   feature << x(0);
 
   //////////// Version 3: SLIP /////////////////////////////////////////////////
@@ -68,20 +74,33 @@ T KinematicsExpression::getFeature(const T & x) const {
 
 
 // Instantiation
-// TODO(yminchen): is there a way to implement getExpression() that returns
-// VectorX<double>?
-template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
+
+// class KinematicsExpression
+template class KinematicsExpression<double>;
+template class KinematicsExpression<AutoDiffXd>;
+
+// method getExpression
+template VectorX<double> KinematicsExpression<double>::getExpression(
   const VectorX<double> &, const VectorX<double> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
+
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
+  const VectorX<double> &, const VectorX<double> &) const;
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<double> &, const VectorX<AutoDiffXd> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression::getExpression(
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
 
-template VectorX<double> KinematicsExpression::getFeature(
+// method getFeature
+template VectorX<double> KinematicsExpression<double>::getFeature(
   const VectorX<double> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression::getFeature(
+template VectorX<AutoDiffXd> KinematicsExpression<double>::getFeature(
+  const VectorX<AutoDiffXd> &) const;
+
+template VectorX<double> KinematicsExpression<AutoDiffXd>::getFeature(
+  const VectorX<double> &) const;
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getFeature(
   const VectorX<AutoDiffXd> &) const;
 
 }  // namespace goldilocks_models

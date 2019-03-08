@@ -203,6 +203,7 @@ cc_library(
     ],
 )
 
+
 cc_library(
     name = "dynamics_expression",
     srcs = [
@@ -223,6 +224,10 @@ cc_binary(
     srcs = ["kinematics_expression_test.cc"],
     deps = [
         ":kinematics_expression",
+        "//common",
+        "@drake//multibody/parsing",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",
+        "@drake//systems/framework:system",
     ],
 )
 
@@ -235,35 +240,6 @@ cc_binary(
     ],
 )
 
-
-
-cc_library(
-    name = "kinematics_expression_template_class",
-    srcs = [
-        "kinematics_expression_template_class.cc",
-    ],
-    hdrs = [
-        "kinematics_expression_template_class.h"
-    ],
-    deps = [
-        "@drake//common",
-        "@drake//math:gradient",
-        "//multibody:utils",
-    ],
-)
-
-
-cc_binary(
-    name = "kinematics_expression_template_class_test",
-    srcs = ["kinematics_expression_template_class_test.cc"],
-    deps = [
-        ":kinematics_expression_template_class",
-        "//common",
-        "@drake//multibody/parsing",
-        "@drake//systems/rendering:multibody_position_to_geometry_pose",
-        "@drake//systems/framework:system",
-    ],
-)
 
 
 

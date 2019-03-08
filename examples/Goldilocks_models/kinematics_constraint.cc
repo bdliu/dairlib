@@ -17,7 +17,7 @@ KinematicsConstraint::KinematicsConstraint(
   n_constraint_(n_z),
   n_feature_(n_feature),
   n_theta_(n_theta),
-  expression_object_(KinematicsExpression(n_z, n_feature, plant)) {
+  expression_object_(KinematicsExpression<AutoDiffXd>(n_z, n_feature)) {
 
   // Check the theta size
   DRAKE_DEMAND(n_z * n_feature == n_theta);

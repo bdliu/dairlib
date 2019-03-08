@@ -93,24 +93,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
   plant.Finalize();
 
-
+  // Create autoDiff version of the plant
   // auto context = plant.CreateDefaultContext();
-  // auto plant_symb_smrt_ptr =
-  //   plant.ToSymbolic(); // return std::unique_ptr<System<Expression>>
-  // auto context_symb_smrt_ptr = plant_symb_smrt_ptr->CreateDefaultContext();
-  // context_symb_smrt_ptr->SetTimeStateAndParametersFrom(*context);
-  // auto plant_symb_ptr = plant_symb_smrt_ptr.get();
-
-
-
-  // auto context = plant.CreateDefaultContext();
-  // auto plant_autoDiff_smrt_ptr =
-  //   plant.ToAutoDiffXd(); // return std::unique_ptr<System<AutoDiffXd>>
+  // auto plant_autoDiff_smrt_ptr = drake::systems::System<double>::ToAutoDiffXd(plant);
   // auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
   // context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
   // auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
-
-
 
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
