@@ -94,11 +94,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   plant.Finalize();
 
   // Create autoDiff version of the plant
-  auto context = plant.CreateDefaultContext();
-  auto plant_autoDiff_smrt_ptr = drake::systems::System<double>::ToAutoDiffXd(plant);
-  auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
-  context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
-  auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
+  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
@@ -301,7 +297,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-      std::move(trajopt), plant_autoDiff_ptr, num_time_samples);
+      std::move(trajopt), &plant_autoDiff, num_time_samples);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 

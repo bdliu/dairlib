@@ -47,11 +47,7 @@ int main() {
     drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
   plant.Finalize();
 
-  auto context = plant.CreateDefaultContext();
-  auto plant_autoDiff_smrt_ptr = drake::systems::System<double>::ToAutoDiffXd(plant);
-  auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
-  context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
-  auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
+  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
   //////////////////////////////////////////////////////////////////////////////
 
@@ -59,9 +55,9 @@ int main() {
   int n_x = 2;
   int n_feature = 5;
   dairlib::goldilocks_models::KinematicsExpression<double> expr_double(
-    n_z, n_feature);//, &plant);
+    n_z, n_feature, &plant);
   dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(
-    n_z, n_feature);//, plant_autoDiff_ptr);
+    n_z, n_feature, &plant_autoDiff);
 
   VectorXd x(n_x);
   // Matrix<double, Dynamic, 1> x(2);
