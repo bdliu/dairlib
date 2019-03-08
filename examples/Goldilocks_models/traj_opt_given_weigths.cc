@@ -103,25 +103,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
-
-
   // auto context = plant.CreateDefaultContext();
   // auto plant_autoDiff_smrt_ptr =
   //   plant.ToAutoDiffXd(); // return std::unique_ptr<System<AutoDiffXd>>
   // auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
   // context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
   // auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
-
-
-  // MultibodyPlant<AutoDiffXd> plant_autoDiff;
-  // Parser parser_autoDiff(&plant_autoDiff);
-  // parser_autoDiff.AddModelFromFile(full_name);
-  // plant_autoDiff.AddForceElement<drake::multibody::UniformGravityFieldElement>(
-  //   -9.81 * Eigen::Vector3d::UnitZ());
-  // plant_autoDiff.WeldFrames(
-  //   plant_autoDiff.world_frame(), plant_autoDiff.GetFrameByName("base"),
-  //   drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
-  // plant_autoDiff.Finalize();
 
 
 
