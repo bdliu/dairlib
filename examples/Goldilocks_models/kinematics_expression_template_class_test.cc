@@ -47,22 +47,21 @@ int main() {
     drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
   plant.Finalize();
 
-
   auto context = plant.CreateDefaultContext();
-  // auto plant_autoDiff_smrt_ptr =
-  //   plant.ToAutoDiffXd(); // return std::unique_ptr<System<AutoDiffXd>>
   auto plant_autoDiff_smrt_ptr = drake::systems::System<double>::ToAutoDiffXd(plant);
   auto context_autoDiff_smrt_ptr = plant_autoDiff_smrt_ptr->CreateDefaultContext();
   context_autoDiff_smrt_ptr->SetTimeStateAndParametersFrom(*context);
   auto plant_autoDiff_ptr = plant_autoDiff_smrt_ptr.get();
-
 
   //////////////////////////////////////////////////////////////////////////////
 
   int n_z = 3;
   int n_x = 2;
   int n_feature = 5;
-  dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(n_z, n_feature, plant_autoDiff_ptr);
+  dairlib::goldilocks_models::KinematicsExpression<double> expr_double(
+    n_z, n_feature, &plant);
+  dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(
+    n_z, n_feature, plant_autoDiff_ptr);
 
   VectorXd x(n_x);
   // Matrix<double, Dynamic, 1> x(2);
@@ -100,10 +99,10 @@ int main() {
   //      x(0) * x(1),
   //      cos(x(0)) + sqrt(x(1));
 
-  // We don't have getExpression() that returns VectorX<double>, so we use
-  // DiscardGradient here.
+  VectorX<double> expression_double = expr_double.getExpression(theta, x);
+  cout << "double expression (double class) = \n" << expression_double << "\n\n";
   VectorX<double> expression = DiscardGradient(expr.getExpression(theta, x));
-  cout << "expression = \n" << expression << "\n\n";
+  cout << "double expression (AutoDiffXd class) = \n" << expression << "\n\n";
 
   AutoDiffVecXd theta_autoDiff =  initializeAutoDiff(theta);
   // auto expression_autoDiff = expr.getExpression(theta_autoDiff,x_autoDiff);

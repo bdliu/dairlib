@@ -35,7 +35,7 @@ class KinematicsExpression {
   int getDimFeature();
 
   template <typename U, typename V>
-  VectorX<AutoDiffXd> getExpression(const U & theta, const V & x) const;
+  VectorX<T> getExpression(const U & theta, const V & x) const;
 
   template <typename U>
   VectorX<U> getFeature(const VectorX<U> & x) const;
