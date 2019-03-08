@@ -17,7 +17,8 @@ KinematicsConstraint::KinematicsConstraint(
   n_constraint_(n_z),
   n_feature_(n_feature),
   n_theta_(n_theta),
-  expression_object_(KinematicsExpression<AutoDiffXd>(n_z, n_feature)) {
+  expression_double_(KinematicsExpression<double>(n_z, n_feature)),
+  expression_autoDiff_(KinematicsExpression<AutoDiffXd>(n_z, n_feature)) {
 
   // Check the theta size
   DRAKE_DEMAND(n_z * n_feature == n_theta);
@@ -25,7 +26,7 @@ KinematicsConstraint::KinematicsConstraint(
   // Check the feature size implemented in the model expression
   VectorXd x_temp = VectorXd::Zero(
       plant->num_positions() + plant->num_velocities());
-  DRAKE_DEMAND(n_feature == expression_object_.getFeature(x_temp).size());
+  DRAKE_DEMAND(n_feature == expression_double_.getFeature(x_temp).size());
 }
 
 void KinematicsConstraint::DoEval(const
@@ -44,7 +45,7 @@ void KinematicsConstraint::DoEval(const
   const AutoDiffVecXd x = z_theta_x.tail(
       plant_->num_positions() + plant_->num_velocities());
 
-  *y = z - expression_object_.getExpression(theta, x);
+  *y = z - expression_autoDiff_.getExpression(theta, x);
 }
 
 void KinematicsConstraint::DoEval(const

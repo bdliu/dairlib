@@ -47,19 +47,19 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   // TODO(yminchen): find a way to avoid hard coding the features here
 
   //////////// Version 1: for kinematics_expression_test ///////////////////////
-  VectorX<U> feature(5);
-  feature << x(0),
-             x(1)*x(1)*x(1),
-             x(0) * x(1),
-             cos(x(0)),
-             sqrt(x(1));
+  // VectorX<U> feature(5);
+  // feature << x(0),
+  //            x(1)*x(1)*x(1),
+  //            x(0) * x(1),
+  //            cos(x(0)),
+  //            sqrt(x(1));
 
   //////////// Version 2: testing //////////////////////////////////////////////
-  // VectorX<U> feature(1);
-  // feature << x(0);
+  VectorX<U> feature(1);
+  feature << x(0);
 
   //////////// Version 3: SLIP /////////////////////////////////////////////////
-  // If you use plant functions, then it's required that T = U
+  /*// If you use plant functions, then it's required that T = U?
   // Get CoM position and stance foot position in autoDiff
   auto context = plant_->CreateDefaultContext();
   plant_->SetPositionsAndVelocities(context.get(), x);
@@ -83,8 +83,8 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
                                         *context, right_upper_leg);
   const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
                                         *context, right_lower_leg);
+  */
 
-  // const std::string &   GetModelInstanceName (ModelInstanceIndex model_instance) const
 
   return feature;
 }
