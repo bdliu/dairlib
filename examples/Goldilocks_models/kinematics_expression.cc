@@ -26,7 +26,7 @@ int KinematicsExpression<T>::getDimFeature() {
 template <typename T>
 template <typename U, typename V>
 VectorX<T> KinematicsExpression<T>::getExpression(
-    const U & theta, const V & x) const {
+  const U & theta, const V & x) const {
   // DRAKE_DEMAND(n_z_ * n_feature_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_feature_ == getFeature(x).size());  // check feature size
 
@@ -59,14 +59,31 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   // feature << x(0);
 
   //////////// Version 3: SLIP /////////////////////////////////////////////////
+  // If you use plant functions, then it's required that T = U
   // Get CoM position and stance foot position in autoDiff
   auto context = plant_->CreateDefaultContext();
   plant_->SetPositionsAndVelocities(context.get(), x);
 
-  // cout << "num_model_instances() = " << plant_->num_model_instances() << endl;
-  // cout << "x = " << x << endl;
-
   // const Body< T > &   GetBodyByName (const std::string &name)
+  const auto & torso = plant_->GetBodyByName("torso_mass");
+  const auto & left_upper_leg = plant_->GetBodyByName("left_upper_leg_mass");
+  const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
+  const auto & right_upper_leg = plant_->GetBodyByName("right_upper_leg_mass");
+  const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
+
+  // const Isometry3< T > &  EvalBodyPoseInWorld (
+  //  const systems::Context< T > &context, const Body< T > &body_B)
+  const auto & torso_pose = plant_->EvalBodyPoseInWorld(
+                              *context, torso);
+  const auto & left_upper_leg_pose = plant_->EvalBodyPoseInWorld(
+                                       *context, left_upper_leg);
+  const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
+                                       *context, left_lower_leg);
+  const auto & right_upper_leg_pose = plant_->EvalBodyPoseInWorld(
+                                        *context, right_upper_leg);
+  const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
+                                        *context, right_lower_leg);
+
   // const std::string &   GetModelInstanceName (ModelInstanceIndex model_instance) const
 
   return feature;
@@ -83,12 +100,12 @@ template class KinematicsExpression<AutoDiffXd>;
 template VectorX<double> KinematicsExpression<double>::getExpression(
   const VectorX<double> &, const VectorX<double> &) const;
 
-template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
-  const VectorX<double> &, const VectorX<double> &) const;
+// template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
+//   const VectorX<double> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<double> &, const VectorX<AutoDiffXd> &) const;
-template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
-  const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
+// template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
+//   const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
 
@@ -96,8 +113,8 @@ template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
 template VectorX<double> KinematicsExpression<double>::getFeature(
   const VectorX<double> &) const;
 
-template VectorX<double> KinematicsExpression<AutoDiffXd>::getFeature(
-  const VectorX<double> &) const;
+// template VectorX<double> KinematicsExpression<AutoDiffXd>::getFeature(
+//   const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getFeature(
   const VectorX<AutoDiffXd> &) const;
 
