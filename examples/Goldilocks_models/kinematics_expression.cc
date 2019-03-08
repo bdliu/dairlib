@@ -8,6 +8,7 @@ template <typename T>
 KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature) {
   n_feature_ = n_feature;
   n_z_ = n_z;
+  DRAKE_DEMAND(n_z > 1);
 }
 
 template <typename T>
@@ -16,6 +17,7 @@ KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature,
   n_feature_ = n_feature;
   n_z_ = n_z;
   plant_ = plant;
+  DRAKE_DEMAND(n_z > 1);
 }
 
 template <typename T>
@@ -58,36 +60,70 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   // VectorX<U> feature(1);
   // feature << x(1);
   //////////// Version 3: testing //////////////////////////////////////////////
-  VectorX<U> feature(2);
-  feature << x(1), x(1+x.size()/2);
+  // VectorX<U> feature(2);
+  // feature << x(1), x(1+x.size()/2);
+
+  //////////// Version 4: testing /////////////////////////////////////////////////
+  // If you use plant functions, then it's required that T = U?
+  auto context = plant_->CreateDefaultContext();
+  plant_->SetPositionsAndVelocities(context.get(), x);
+
+  const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
+  const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
+                                        *context, right_lower_leg);
+
+  Vector3d disp(0, 0, -0.5);
+  const VectorX<U> right_lower_leg_Pos = right_lower_leg_pose.translation();
+  const MatrixX<U> right_lower_leg_Rotmat = right_lower_leg_pose.linear();
+  VectorX<U> feature = right_lower_leg_Pos + right_lower_leg_Rotmat * disp;
+  cout << "right_lower_leg_Pos = " << right_lower_leg_Pos.transpose() << endl;
+  cout << "right_lower_leg_Rotmat = \n" << right_lower_leg_Rotmat << endl;
+
+  Vector3d right_lower_toe_Pos = DiscardGradient(right_lower_leg_Pos + right_lower_leg_Rotmat * disp);
+  cout << "right_lower_toe_Pos = " << right_lower_toe_Pos.transpose() << endl;
+
+
+
+
+  const auto & torso = plant_->GetBodyByName("torso_mass");
+
+  const auto & torso_pose = plant_->EvalBodyPoseInWorld(
+                              *context, torso);
+  cout << "torso_Pos = " << torso_pose.translation().transpose() << endl;
+
+
 
   //////////// Version 4: SLIP /////////////////////////////////////////////////
-  /*// If you use plant functions, then it's required that T = U?
+/*  // If you use plant functions, then it's required that T = U?
   // Get CoM position and stance foot position in autoDiff
   auto context = plant_->CreateDefaultContext();
   plant_->SetPositionsAndVelocities(context.get(), x);
 
   // const Body< T > &   GetBodyByName (const std::string &name)
-  const auto & torso = plant_->GetBodyByName("torso_mass");
-  const auto & left_upper_leg = plant_->GetBodyByName("left_upper_leg_mass");
-  const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
-  const auto & right_upper_leg = plant_->GetBodyByName("right_upper_leg_mass");
+  // const auto & torso = plant_->GetBodyByName("torso_mass");
+  // const auto & left_upper_leg = plant_->GetBodyByName("left_upper_leg_mass");
+  // const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
+  // const auto & right_upper_leg = plant_->GetBodyByName("right_upper_leg_mass");
   const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
 
   // const Isometry3< T > &  EvalBodyPoseInWorld (
   //  const systems::Context< T > &context, const Body< T > &body_B)
-  const auto & torso_pose = plant_->EvalBodyPoseInWorld(
-                              *context, torso);
-  const auto & left_upper_leg_pose = plant_->EvalBodyPoseInWorld(
-                                       *context, left_upper_leg);
-  const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                       *context, left_lower_leg);
-  const auto & right_upper_leg_pose = plant_->EvalBodyPoseInWorld(
-                                        *context, right_upper_leg);
+  // const auto & torso_pose = plant_->EvalBodyPoseInWorld(
+  //                             *context, torso);
+  // const auto & left_upper_leg_pose = plant_->EvalBodyPoseInWorld(
+  //                                      *context, left_upper_leg);
+  // const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
+  //                                      *context, left_lower_leg);
+  // const auto & right_upper_leg_pose = plant_->EvalBodyPoseInWorld(
+  //                                       *context, right_upper_leg);
   const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
                                         *context, right_lower_leg);
-  */
 
+  Vector3d disp(0, 0, -0.25);
+  const VectorX<U> right_lower_leg_Pos = right_lower_leg_pose.translation();
+  const MatrixX<U> right_lower_leg_Rotmat = right_lower_leg_pose.linear();
+  Vector3d right_lower_toe_Pos = DiscardGradient(right_lower_leg_Pos + right_lower_leg_Rotmat * disp);
+  cout << "right_lower_toe_Pos = " << right_lower_toe_Pos.transpose() << endl;*/
 
   return feature;
 }

@@ -23,7 +23,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // parameters
   int n_z = 4;
   int n_zDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 2; // This should match with the dimension of the feature,
+  int n_featureZ = 1; // This should match with the dimension of the feature,
                       // since we are hard coding it now. (same below)
   int n_featureZDot = 1;
   int n_thetaZ = n_z * n_featureZ;

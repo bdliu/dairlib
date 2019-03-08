@@ -13,7 +13,9 @@ using Eigen::Dynamic;
 
 using std::cout;
 using std::endl;
+using Eigen::Vector3d;
 using Eigen::VectorXd;
+using Eigen::MatrixXd;
 
 using drake::MatrixX;
 using drake::VectorX;
