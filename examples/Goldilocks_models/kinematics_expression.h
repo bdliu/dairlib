@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include <vector>
 #include "math.h"
 #include <Eigen/Dense>
 #include "drake/math/autodiff_gradient.h"
@@ -48,6 +50,11 @@ class KinematicsExpression {
   int n_feature_;
   int n_x_;
   int n_z_;
+  const std::vector<std::string> leg_link_names_{
+    "left_upper_leg_mass", "left_lower_leg_mass",
+    "right_upper_leg_mass", "right_lower_leg_mass"};
+  Vector3d mass_disp_;
+  Vector3d foot_disp_;
 };
 
 }  // namespace goldilocks_models

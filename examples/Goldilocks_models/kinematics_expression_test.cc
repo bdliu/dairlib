@@ -113,18 +113,18 @@ int main() {
 
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
-
   int n_z = 2; // Doesn't matter here
   int n_x = plant_autoDiff.num_positions() + plant_autoDiff.num_velocities() ;
-  int n_feature = 2;
+  int n_feature = 3; // Doesn't matter here either actually
   dairlib::goldilocks_models::KinematicsExpression<double> expr_double(
     n_z, n_feature, &plant);
   dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(
     n_z, n_feature, &plant_autoDiff);
 
-  VectorXd x = VectorXd::Zero(n_x);
   // Matrix<double, Dynamic, 1> x(n_x);
-  // cout << "x = " << x << endl;
+  VectorXd x = VectorXd::Zero(n_x);
+  // x(3) = -M_PI/4;
+  // x(5) =  M_PI/4;
   AutoDiffVecXd x_autoDiff = initializeAutoDiff(x);
   DRAKE_DEMAND(n_x == x.size());
 
@@ -134,6 +134,7 @@ int main() {
   // Checking autoDiff
   MatrixXd jacobian  = autoDiffToGradientMatrix(feature_autoDiff);
   cout << "jacobian = \n" << jacobian << "\n\n";
+
 
 
   return 0;
