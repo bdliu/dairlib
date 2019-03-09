@@ -289,12 +289,12 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
   // initial guess if the file exists
   if (!init_file.empty()) {
-    MatrixXd z0 = readCSV(directory + init_file);
-    trajopt->SetInitialGuessForAllVariables(z0);
+    MatrixXd w0 = readCSV(directory + init_file);
+    trajopt->SetInitialGuessForAllVariables(w0);
   }
 
 
-  // move the trajectory optmization problem into GoldilcocksModelTrajOpt
+  // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
       std::move(trajopt), &plant_autoDiff, num_time_samples);
@@ -349,13 +349,29 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
-
-
-
   // store the solution of the decision variable
-  VectorXd z = gm_traj_opt.Dircon_traj_opt->GetSolution(
+  VectorXd w_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(
                  gm_traj_opt.Dircon_traj_opt->decision_variables()); //solution of all decision variables
-  writeCSV(directory + output_prefix + string("z.csv"), z);
+  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
+
+  // Assume theta is fixed. Get the linear approximation of the cosntraints and
+  // second order approximation of the cost.
+  MatrixXd A,H;
+  VectorXd y,lb,ub,b;
+  systems::trajectory_optimization::linearizeConstraints(
+    gm_traj_opt.Dircon_traj_opt.get(), w_sol, y, A, lb, ub);
+  double costval = systems::trajectory_optimization::secondOrderCost(
+    gm_traj_opt.Dircon_traj_opt.get(), w_sol, H, b);
+
+  writeCSV(directory + output_prefix + string("A.csv"), A);
+  writeCSV(directory + output_prefix + string("y.csv"), y);
+  writeCSV(directory + output_prefix + string("lb.csv"), lb);
+  writeCSV(directory + output_prefix + string("ub.csv"), ub);
+  writeCSV(directory + output_prefix + string("H.csv"), H);
+  writeCSV(directory + output_prefix + string("b.csv"), b);
+
+  cout << "Finished creating files.\n";
+
 
   // store the time, state, and input at knot points
   // VectorXd time_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetSampleTimes();
