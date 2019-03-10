@@ -52,13 +52,13 @@ namespace goldilocks_models {
 
 class KinematicsConstraint : public Constraint {
  public:
-  KinematicsConstraint(int n_z, int n_feature, int n_theta,
+  KinematicsConstraint(int n_z, int n_feature, VectorXd & thetaZ,
                        const MultibodyPlant<AutoDiffXd> * plant,
                        const std::string& description = "");
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& z_theta_x,
+  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& z_x,
               Eigen::VectorXd* y) const override;
 
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& z_theta_x,
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& z_x,
               drake::AutoDiffVecXd* y) const override;
 
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
@@ -71,7 +71,7 @@ class KinematicsConstraint : public Constraint {
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_constraint_;
   int n_feature_;
-  int n_theta_;
+  VectorXd thetaZ_;
 
 };
 

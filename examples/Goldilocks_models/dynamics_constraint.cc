@@ -5,22 +5,23 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DynamicsConstraint::DynamicsConstraint(
-                                 int n_zDot, int n_featureDot, int n_thetaDot,
+                                 int n_zDot, int n_featureDot,
+                                 VectorXd & thetaZDot,
                                  const MultibodyPlant<AutoDiffXd> * plant,
                                  const std::string& description):
   Constraint(n_zDot,
-             2*n_zDot + n_thetaDot + 1,
+             2*n_zDot + 1,
              VectorXd::Zero(n_zDot),
              VectorXd::Zero(n_zDot),
              description),
   plant_(plant),
   n_zDot_(n_zDot),
   n_featureZDot_(n_featureDot),
-  n_thetaZDot_(n_thetaDot),
+  thetaZDot_(thetaZDot),
   expression_object_(DynamicsExpression(n_zDot, n_featureDot)) {
 
   // Check the theta size
-  DRAKE_DEMAND((n_zDot/2) * n_featureDot == n_thetaDot);
+  DRAKE_DEMAND((n_zDot/2) * n_featureDot == thetaZDot.size());
 
   // Check the feature size implemented in the model expression
   VectorXd z_temp = VectorXd::Zero(n_zDot);
@@ -41,18 +42,17 @@ void DynamicsConstraint::DoEval(const
                              AutoDiffVecXd* y) const {
   const AutoDiffVecXd z_i = q.head(n_zDot_);
   const AutoDiffVecXd z_iplus1 = q.segment(n_zDot_, n_zDot_);
-  const AutoDiffVecXd thetaZDot = q.segment(2*n_zDot_, n_thetaZDot_);
   const AutoDiffVecXd timestep_i = q.tail(1);
 
   // Collocation point
   AutoDiffVecXd z_collocation = (z_i+z_iplus1)/2;
 
   // Let the dynamics be dzdt = h(z;thetaZDot) = h(z).
-  AutoDiffVecXd h_of_z_i = expression_object_.getExpression(thetaZDot,
+  AutoDiffVecXd h_of_z_i = expression_object_.getExpression(thetaZDot_,
       z_i);
-  AutoDiffVecXd h_of_z_iplus1 = expression_object_.getExpression(thetaZDot,
+  AutoDiffVecXd h_of_z_iplus1 = expression_object_.getExpression(thetaZDot_,
       z_iplus1);
-  AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(thetaZDot,
+  AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(thetaZDot_,
       z_collocation);
 
   *y = (z_iplus1 - z_i)

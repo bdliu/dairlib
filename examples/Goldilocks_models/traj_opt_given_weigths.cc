@@ -73,10 +73,11 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(double stride_length, double duration, int iter,
+void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
+                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
+                         double stride_length, double duration, int iter,
                          string directory,
                          string init_file,
-                         string weights_file,
                          string output_prefix) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
@@ -297,6 +298,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
+      n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
       std::move(trajopt), &plant_autoDiff, num_time_samples);
   // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
@@ -337,14 +339,6 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     cout << "x_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
 
-  cout << endl;
-  // Testing: print out theta
-  auto thetaZ_var = gm_traj_opt.get_thetaZ();
-  auto thetaZDot_var = gm_traj_opt.get_thetaZDot();
-  VectorXd thetaZ_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(thetaZ_var);
-  VectorXd thetaZDot_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(thetaZDot_var);
-  cout << "thetaZ_sol = " << thetaZ_sol.transpose() << endl;
-  cout << "thetaZDot_sol = " << thetaZDot_sol.transpose() << endl;
 
 
 
@@ -365,7 +359,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     gm_traj_opt.Dircon_traj_opt.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
-  MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ_var.size()+thetaZDot_var.size());
+  MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ.size() + thetaZDot.size());
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -380,10 +374,10 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
     cout << "loop " << i << ": kin_features = " << kin_features.transpose() << endl;
 
     // Fill in B matrix
-    for (int k = 0; k < gm_traj_opt.n_z; k++) {
+    for (int k = 0; k < n_z; k++) {
       for (int j = 0; j < kin_features.size(); j++) {
-        B(ind(0) + i*gm_traj_opt.n_z + k, k*kin_features.size() + j) = -1 * kin_features(j);
-        // cout << "ind(0) + i*gm_traj_opt.n_z + k = " << ind(0) + i*gm_traj_opt.n_z + k << endl;
+        B(ind(0) + i*n_z + k, k*kin_features.size() + j) = -1 * kin_features(j);
+        // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
       }
     }
   }
@@ -395,8 +389,8 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   int N_accum = 0;
   for (int i = 0; i < num_time_samples.size() ; i++) {
     for (int j = 0; j < num_time_samples[i]-2 ; j++) {
-      auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, gm_traj_opt.n_z);
-      auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, gm_traj_opt.n_z);
+      auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, n_z);
+      auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, n_z);
       auto h_btwn_knot_k_kplus1 = gm_traj_opt.Dircon_traj_opt->timestep(N_accum+j);
       VectorXd z_k_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_k);
       VectorXd z_kplus1_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_kplus1);

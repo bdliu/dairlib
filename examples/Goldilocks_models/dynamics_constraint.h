@@ -52,7 +52,7 @@ namespace goldilocks_models {
 
 class DynamicsConstraint : public Constraint {
  public:
-  DynamicsConstraint(int n_zDot, int n_featureDot, int n_thetaDot,
+  DynamicsConstraint(int n_zDot, int n_featureDot, VectorXd & thetaZDot,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
@@ -68,7 +68,7 @@ class DynamicsConstraint : public Constraint {
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_zDot_;
   int n_featureZDot_;
-  int n_thetaZDot_;
+  VectorXd thetaZDot_;
   DynamicsExpression expression_object_;
 };
 }  // namespace goldilocks_models
