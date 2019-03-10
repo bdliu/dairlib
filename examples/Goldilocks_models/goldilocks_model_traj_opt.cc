@@ -48,8 +48,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   for (int i = 0; i < N ; i++) {
     auto z_at_knot_i = reduced_model_state(i, n_z);
     auto x_at_knot_i = Dircon_traj_opt->state(i);
-    Dircon_traj_opt->AddConstraint(kinematics_constraint,
-    {z_at_knot_i, thetaZ_vars_, x_at_knot_i});
+    kinematics_constraint_bindings.push_back(Dircon_traj_opt->AddConstraint(
+      kinematics_constraint,{z_at_knot_i, thetaZ_vars_, x_at_knot_i}));
   }
 
   // Add dynamics constraint for all segments (between knots) except the last
@@ -70,8 +70,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
       auto z_at_knot_i = reduced_model_state(N_accum+j, n_z);
       auto z_at_knot_iplus1 = reduced_model_state(N_accum+j+1, n_z);
       auto h_btwn_knot_i_iplus1 = Dircon_traj_opt->timestep(N_accum+j);
-      Dircon_traj_opt->AddConstraint(dynamics_constraint,
-      {z_at_knot_i, z_at_knot_iplus1, thetaZDot_vars_, h_btwn_knot_i_iplus1});
+      dynamics_constraint_bindings.push_back(Dircon_traj_opt->AddConstraint(
+        dynamics_constraint, {z_at_knot_i, z_at_knot_iplus1, thetaZDot_vars_,
+          h_btwn_knot_i_iplus1}));
     }
 
     N_accum += num_time_samples[i];

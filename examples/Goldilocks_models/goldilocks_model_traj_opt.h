@@ -85,6 +85,9 @@ class GoldilcocksModelTrajOpt {
 
   std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
 
+  std::vector<Binding<Constraint>> kinematics_constraint_bindings;
+  std::vector<Binding<Constraint>> dynamics_constraint_bindings;
+
  private:
   int num_knots_;
   VectorXDecisionVariable z_vars_;

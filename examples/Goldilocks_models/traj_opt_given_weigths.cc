@@ -363,6 +363,36 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   double costval = systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.Dircon_traj_opt.get(), w_sol, H, b);
 
+
+
+  // //get feature vectors
+  // MatrixXd B = MatrixXd::Zero(A.rows(), weights.rows() * m_constraint.n_features());
+  // for (int i = 0; i < N; i++) {
+  //   VectorXd xi = trajopt->GetSolution(trajopt->state(i));
+  //   // VectorXd features = m_constraint->CalcFeatures<double>(xi);
+
+  //   // Get the value first
+  //   VectorXd features(m_constraint.n_features());
+  //   for (int j = 0; j < m_constraint.n_features(); j++) {
+  //     auto m_ij = trajopt->SubstitutePlaceholderVariables(m_constraint.getFeature(j), i);
+  //     features(j) = drake::ExtractDoubleOrThrow(trajopt->SubstituteSolution(m_ij));
+  //   }
+
+  //   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
+  //     trajopt.get(), manifold_bindings[i]);
+
+  //   for (int k = 0; k < ind.size(); k++) {
+  //     for (int j = 0; j < features.size(); j++) {
+  //       B(ind(k), k*features.size() + j) = features(j);
+  //     }
+  //   }
+  // }
+  // writeCSV(directory + output_prefix + string("B.csv"), B);
+
+
+
+
+
   writeCSV(directory + output_prefix + string("A.csv"), A);
   writeCSV(directory + output_prefix + string("y.csv"), y);
   writeCSV(directory + output_prefix + string("lb.csv"), lb);
