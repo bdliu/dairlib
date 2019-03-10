@@ -307,13 +307,13 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
-  auto result = gm_traj_opt.Dircon_traj_opt->Solve();
+  auto result = gm_traj_opt.dricon->Solve();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  // gm_traj_opt.Dircon_traj_opt->PrintSolution();
+  // gm_traj_opt.dricon->PrintSolution();
   std::cout << "Solve time:" << elapsed.count() << std::endl;
   std::cout << result << std::endl;
-  std::cout << "Cost:" << gm_traj_opt.Dircon_traj_opt->GetOptimalCost() << std::endl;
+  std::cout << "Cost:" << gm_traj_opt.dricon->GetOptimalCost() << std::endl;
 
 
 
@@ -323,19 +323,19 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // Testing: print out the timesteps
   // for(int i = 0; i<N-1 ; i++){
-  //   auto h_i = gm_traj_opt.Dircon_traj_opt->timestep(i);
-  //   VectorXd h_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_i);
+  //   auto h_i = gm_traj_opt.dricon->timestep(i);
+  //   VectorXd h_i_sol = gm_traj_opt.dricon->GetSolution(h_i);
   //   cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
   // }
-  auto h_0 = gm_traj_opt.Dircon_traj_opt->timestep(0);
-  VectorXd h_0_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(h_0);
+  auto h_0 = gm_traj_opt.dricon->timestep(0);
+  VectorXd h_0_sol = gm_traj_opt.dricon->GetSolution(h_0);
   cout << "timestep = " << h_0_sol << endl;
 
   cout << endl;
   // Testing: print out the vertical pos
   for(int i = 0; i<N-1 ; i++){
-    auto x_i = gm_traj_opt.Dircon_traj_opt->state(i);
-    VectorXd x_i_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(x_i);
+    auto x_i = gm_traj_opt.dricon->state(i);
+    VectorXd x_i_sol = gm_traj_opt.dricon->GetSolution(x_i);
     cout << "x_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
 
@@ -345,8 +345,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   // Get the solution of the decision variable
-  VectorXd w_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(
-                 gm_traj_opt.Dircon_traj_opt->decision_variables()); //solution of all decision variables
+  VectorXd w_sol = gm_traj_opt.dricon->GetSolution(
+                 gm_traj_opt.dricon->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("w.csv"), w_sol);
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
@@ -354,21 +354,21 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   MatrixXd A,H;
   VectorXd y,lb,ub,b;
   systems::trajectory_optimization::linearizeConstraints(
-    gm_traj_opt.Dircon_traj_opt.get(), w_sol, y, A, lb, ub);
+    gm_traj_opt.dricon.get(), w_sol, y, A, lb, ub);
   double costval = systems::trajectory_optimization::secondOrderCost(
-    gm_traj_opt.Dircon_traj_opt.get(), w_sol, H, b);
+    gm_traj_opt.dricon.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
   MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ.size() + thetaZDot.size());
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-    gm_traj_opt.Dircon_traj_opt.get(),
+    gm_traj_opt.dricon.get(),
     gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
     // Get the value first
-    VectorXd xi = gm_traj_opt.Dircon_traj_opt->GetSolution(
-        gm_traj_opt.Dircon_traj_opt->state(i));
+    VectorXd xi = gm_traj_opt.dricon->GetSolution(
+        gm_traj_opt.dricon->state(i));
     VectorXd kin_features =
         gm_traj_opt.kinematics_constraint->expression_double.getFeature(xi);
     cout << "loop " << i << ": kin_features = " << kin_features.transpose() << endl;
@@ -384,17 +384,17 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   /////////////////////////// Dynamics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   ind = systems::trajectory_optimization::getConstraintRows(
-    gm_traj_opt.Dircon_traj_opt.get(),
+    gm_traj_opt.dricon.get(),
     gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
   for (int i = 0; i < num_time_samples.size() ; i++) {
     for (int j = 0; j < num_time_samples[i]-2 ; j++) {
       auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, n_z);
       auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, n_z);
-      auto h_btwn_knot_k_kplus1 = gm_traj_opt.Dircon_traj_opt->timestep(N_accum+j);
-      VectorXd z_k_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_k);
-      VectorXd z_kplus1_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_kplus1);
-      VectorXd h = gm_traj_opt.Dircon_traj_opt->GetSolution(h_btwn_knot_k_kplus1);
+      auto h_btwn_knot_k_kplus1 = gm_traj_opt.dricon->timestep(N_accum+j);
+      VectorXd z_k_sol = gm_traj_opt.dricon->GetSolution(z_k);
+      VectorXd z_kplus1_sol = gm_traj_opt.dricon->GetSolution(z_kplus1);
+      VectorXd h = gm_traj_opt.dricon->GetSolution(h_btwn_knot_k_kplus1);
 
 
     }
@@ -420,9 +420,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   // store the time, state, and input at knot points
-  // VectorXd time_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetSampleTimes();
-  // MatrixXd state_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetStateSamples();
-  // MatrixXd input_at_knot_point = gm_traj_opt.Dircon_traj_opt->GetInputSamples();
+  // VectorXd time_at_knot_point = gm_traj_opt.dricon->GetSampleTimes();
+  // MatrixXd state_at_knot_point = gm_traj_opt.dricon->GetStateSamples();
+  // MatrixXd input_at_knot_point = gm_traj_opt.dricon->GetInputSamples();
   // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
   // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
   // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
@@ -435,7 +435,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
-    gm_traj_opt.Dircon_traj_opt->ReconstructStateTrajectory();
+    gm_traj_opt.dricon->ReconstructStateTrajectory();
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
 

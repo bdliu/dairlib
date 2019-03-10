@@ -8,7 +8,7 @@ namespace goldilocks_models {
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   VectorXd & thetaZ, VectorXd & thetaZDot,
-  std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
+  std::unique_ptr<HybridDircon<double>> dircon_in,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::vector<int> & num_time_samples):
   n_z_(n_z),
@@ -23,11 +23,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   N -= num_time_samples.size() - 1; //Overlaps between modes
 
   // Members assignment
-  Dircon_traj_opt = std::move(Dircon_traj_opt_in);
+  dircon = std::move(dircon_in);
   num_knots_ = N;
 
   // Create decision variables
-  z_vars_ = Dircon_traj_opt->NewContinuousVariables(n_z * N, "z");
+  z_vars_ = dircon->NewContinuousVariables(n_z * N, "z");
 
   // Create kinematics/dynamics constraint (pointer)
   kinematics_constraint = make_shared<KinematicsConstraint>(
@@ -39,8 +39,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // TODO(yminchen): check if kinematics constraint is implemented correctly
   for (int i = 0; i < N ; i++) {
     auto z_at_knot_i = reduced_model_state(i, n_z);
-    auto x_at_knot_i = Dircon_traj_opt->state(i);
-    kinematics_constraint_bindings.push_back(Dircon_traj_opt->AddConstraint(
+    auto x_at_knot_i = dircon->state(i);
+    kinematics_constraint_bindings.push_back(dircon->AddConstraint(
       kinematics_constraint,{z_at_knot_i, x_at_knot_i}));
   }
 
@@ -61,8 +61,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
       auto z_at_knot_k = reduced_model_state(N_accum+j, n_z);
       auto z_at_knot_kplus1 = reduced_model_state(N_accum+j+1, n_z);
-      auto h_btwn_knot_k_iplus1 = Dircon_traj_opt->timestep(N_accum+j);
-      dynamics_constraint_bindings.push_back(Dircon_traj_opt->AddConstraint(
+      auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
+      dynamics_constraint_bindings.push_back(dircon->AddConstraint(
         dynamics_constraint, {z_at_knot_k, z_at_knot_kplus1,
           h_btwn_knot_k_iplus1}));
     }

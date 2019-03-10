@@ -75,7 +75,7 @@ class GoldilcocksModelTrajOpt {
   GoldilcocksModelTrajOpt(
       int n_z_, int n_zDot_, int n_featureZ_, int n_featureZDot_,
       VectorXd & thetaZ_, VectorXd & thetaZDot_,
-      std::unique_ptr<HybridDircon<double>> Dircon_traj_opt_in,
+      std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,
       const std::vector<int>& num_time_samples);
 
@@ -83,7 +83,7 @@ class GoldilcocksModelTrajOpt {
       int index, int n_z) const;
 
 
-  std::unique_ptr<HybridDircon<double>> Dircon_traj_opt;
+  std::unique_ptr<HybridDircon<double>> dircon;
 
   std::shared_ptr<KinematicsConstraint>  kinematics_constraint;
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint;
