@@ -21,11 +21,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // parameters
-  int n_z = 4;
-  int n_zDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 1; // This should match with the dimension of the feature,
+  n_z = 4;
+  n_zDot = n_z; // Assume that are the same (no quaternion)
+  n_featureZ = 1; // This should match with the dimension of the feature,
                       // since we are hard coding it now. (same below)
-  int n_featureZDot = 1;
+  n_featureZDot = 1;
   int n_thetaZ = n_z * n_featureZ;
   int n_thetaZDot = (n_zDot/2) * n_featureZDot;
       // Assuming position and velocity has the same dimension
@@ -38,9 +38,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
       n_thetaZDot, "thetaZDot");
 
   // Create kinematics/dynamics constraint (pointer)
-  auto kinematics_constraint = make_shared<KinematicsConstraint>(
+  kinematics_constraint = make_shared<KinematicsConstraint>(
                                  n_z, n_featureZ, n_thetaZ, plant);
-  auto dynamics_constraint = make_shared<DynamicsConstraint>(
+  dynamics_constraint = make_shared<DynamicsConstraint>(
                                  n_zDot, n_featureZDot, n_thetaZDot, plant);
 
   // Add kinematics constraint for all knots
@@ -67,12 +67,12 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
       // cout << "    j = " << j << endl;
 
-      auto z_at_knot_i = reduced_model_state(N_accum+j, n_z);
-      auto z_at_knot_iplus1 = reduced_model_state(N_accum+j+1, n_z);
-      auto h_btwn_knot_i_iplus1 = Dircon_traj_opt->timestep(N_accum+j);
+      auto z_at_knot_k = reduced_model_state(N_accum+j, n_z);
+      auto z_at_knot_kplus1 = reduced_model_state(N_accum+j+1, n_z);
+      auto h_btwn_knot_k_iplus1 = Dircon_traj_opt->timestep(N_accum+j);
       dynamics_constraint_bindings.push_back(Dircon_traj_opt->AddConstraint(
-        dynamics_constraint, {z_at_knot_i, z_at_knot_iplus1, thetaZDot_vars_,
-          h_btwn_knot_i_iplus1}));
+        dynamics_constraint, {z_at_knot_k, z_at_knot_kplus1, thetaZDot_vars_,
+          h_btwn_knot_k_iplus1}));
     }
 
     N_accum += num_time_samples[i];

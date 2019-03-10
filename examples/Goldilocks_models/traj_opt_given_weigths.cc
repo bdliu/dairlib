@@ -302,6 +302,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
 
 
+
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto result = gm_traj_opt.Dircon_traj_opt->Solve();
@@ -349,7 +350,7 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
 
 
 
-  // store the solution of the decision variable
+  // Get the solution of the decision variable
   VectorXd w_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(
                  gm_traj_opt.Dircon_traj_opt->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("w.csv"), w_sol);
@@ -363,31 +364,50 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   double costval = systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.Dircon_traj_opt.get(), w_sol, H, b);
 
+  // Get matrix B (~get feature vectors)
+  MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ_var.size()+thetaZDot_var.size());
+  ///////////////////////// Kinematics Constraints /////////////////////////////
+  for (int i = 0; i < N; i++) {
+    // Get the value first
+    VectorXd xi = gm_traj_opt.Dircon_traj_opt->GetSolution(
+        gm_traj_opt.Dircon_traj_opt->state(i));
+    VectorXd kin_features =
+        gm_traj_opt.kinematics_constraint->expression_double.getFeature(xi);
+    cout << "loop " << i << ": kin_features = " << kin_features.transpose() << endl;
+
+    // Get the row index of B matrix
+    VectorXd ind = systems::trajectory_optimization::getConstraintRows(
+      gm_traj_opt.Dircon_traj_opt.get(),
+      gm_traj_opt.kinematics_constraint_bindings[i]);
+
+    cout << "ind = " << ind.transpose();
+
+    // Fill in B matrix
+    for (int k = 0; k < ind.size(); k++) {
+      for (int j = 0; j < kin_features.size(); j++) {
+        B(ind(k), k*kin_features.size() + j) = -1 * kin_features(j);
+      }
+    }
+  }
+  /////////////////////////// Dynamics Constraints /////////////////////////////
+  int N_accum = 0;
+  for (int i = 0; i < num_time_samples.size() ; i++) {
+    for (int j = 0; j < num_time_samples[i]-2 ; j++) {
+      auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, gm_traj_opt.n_z);
+      auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, gm_traj_opt.n_z);
+      auto h_btwn_knot_k_kplus1 = gm_traj_opt.Dircon_traj_opt->timestep(N_accum+j);
+      VectorXd z_k_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_k);
+      VectorXd z_kplus1_sol = gm_traj_opt.Dircon_traj_opt->GetSolution(z_kplus1);
+      VectorXd h = gm_traj_opt.Dircon_traj_opt->GetSolution(h_btwn_knot_k_kplus1);
 
 
-  // //get feature vectors
-  // MatrixXd B = MatrixXd::Zero(A.rows(), weights.rows() * m_constraint.n_features());
-  // for (int i = 0; i < N; i++) {
-  //   VectorXd xi = trajopt->GetSolution(trajopt->state(i));
-  //   // VectorXd features = m_constraint->CalcFeatures<double>(xi);
+    }
 
-  //   // Get the value first
-  //   VectorXd features(m_constraint.n_features());
-  //   for (int j = 0; j < m_constraint.n_features(); j++) {
-  //     auto m_ij = trajopt->SubstitutePlaceholderVariables(m_constraint.getFeature(j), i);
-  //     features(j) = drake::ExtractDoubleOrThrow(trajopt->SubstituteSolution(m_ij));
-  //   }
+    N_accum += num_time_samples[i];
+    N_accum -= 1;  // due to overlaps between modes
+  }
 
-  //   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-  //     trajopt.get(), manifold_bindings[i]);
-
-  //   for (int k = 0; k < ind.size(); k++) {
-  //     for (int j = 0; j < features.size(); j++) {
-  //       B(ind(k), k*features.size() + j) = features(j);
-  //     }
-  //   }
-  // }
-  // writeCSV(directory + output_prefix + string("B.csv"), B);
+  writeCSV(directory + output_prefix + string("B.csv"), B);
 
 
 

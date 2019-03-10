@@ -142,53 +142,82 @@ VectorXd NVec(int start, int length) {
 
 template <typename Derived>
 std::pair<int,int> getConstraintStart(const MathematicalProgram* prog, const std::vector<Binding<Derived>>& constraints,
-  Binding<Constraint>& c) {
+  Binding<Constraint>& c, const bool is_genatic) {
   int start = -1;
   int n = 0;
   for (auto const& binding : constraints) {
-    if (c.evaluator() == binding.evaluator() && c.variables() == binding.variables())
+    std::cout<< "      c.evaluator() = " << c.evaluator() << std::endl;
+    std::cout<< "binding.evaluator() = " << binding.evaluator() << std::endl;
+    std::cout<< "      c.variables() = " << c.variables().transpose() << std::endl;
+    std::cout<< "binding.variables() = " << binding.variables().transpose() << std::endl;
+    if (c.evaluator() == binding.evaluator()){
+      // bool compare = (c.variables() == binding.variables()); // not sure why I cannot compare this
+      // std::cout << "c.variables() == binding.variables() = " << compare << std::endl;
+      // std::cout<< "finished comparing variables\n";
+    }
+    if (c.evaluator() == binding.evaluator() && c.variables() == binding.variables()){
       start = n;
+      std::cout << "inside the if statement\n";
+      std::cout<< "      c.evaluator() = " << c.evaluator() << std::endl;
+      std::cout<< "binding.evaluator() = " << binding.evaluator() << std::endl;
+      std::cout<< "      c.variables() = " << c.variables().transpose() << std::endl;
+      std::cout<< "binding.variables() = " << binding.variables().transpose() << std::endl;
+      if(is_genatic)
+        break;
+    }
     n += binding.evaluator()->num_constraints();
+    std::cout<< "n = " << n << std::endl;
   }
+  std::cout<< "Finished for loop\n";
+  std::cout<< "start = " << start << std::endl;
+  std::cout<< "n = " << n << std::endl;
   return std::pair<int,int> (start,n);
 }
 
 VectorXd getConstraintRows(const MathematicalProgram* prog, Binding<Constraint>& c) {
   int n = 0;
-  auto index = getConstraintStart(prog, prog->bounding_box_constraints(),c);
+  auto index = getConstraintStart(prog, prog->bounding_box_constraints(),c,false);
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();
     return NVec(n + index.first, num_constraints);
   }
   n += index.second;
 
-  index = getConstraintStart(prog, prog->linear_constraints(),c);
+  index = getConstraintStart(prog, prog->linear_constraints(),c,false);
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();
     return NVec(n + index.first, num_constraints);
   }
   n += index.second;
 
-  index = getConstraintStart(prog, prog->linear_equality_constraints(),c);
+  index = getConstraintStart(prog, prog->linear_equality_constraints(),c,false);
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();
     return NVec(n + index.first, num_constraints);
   }
   n += index.second;
 
-  index = getConstraintStart(prog, prog->lorentz_cone_constraints(),c);
+  index = getConstraintStart(prog, prog->lorentz_cone_constraints(),c,false);
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();
     return NVec(n + index.first, num_constraints);
   }
   n += index.second;
+  std::cout << "here. n= "<<n<<"\n";
 
-  index = getConstraintStart(prog, prog->generic_constraints(),c);
+  std::cout << "==================== start from here =========================\n";
+
+
+  index = getConstraintStart(prog, prog->generic_constraints(),c,true);
+  std::cout << "index.first = " << index.first << std::endl;
+
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();
+    std::cout << "num_constraints = " << num_constraints << std::endl;
     return NVec(n + index.first, num_constraints);
   }
   n += index.second;
+  std::cout << "here. n= "<<n<<"\n";
 
   return VectorXd(0);
 }

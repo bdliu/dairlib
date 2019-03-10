@@ -64,13 +64,14 @@ class KinematicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
+  KinematicsExpression<double> expression_double;
+  KinematicsExpression<AutoDiffXd> expression_autoDiff_;
+
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_constraint_;
   int n_feature_;
   int n_theta_;
-  KinematicsExpression<double> expression_double_;
-  KinematicsExpression<AutoDiffXd> expression_autoDiff_;
 
 };
 
