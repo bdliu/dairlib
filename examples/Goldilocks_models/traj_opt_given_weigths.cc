@@ -367,6 +367,10 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
   // Get matrix B (~get feature vectors)
   MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ_var.size()+thetaZDot_var.size());
   ///////////////////////// Kinematics Constraints /////////////////////////////
+  // Get the row index of B matrix where kinematics constraint starts
+  VectorXd ind = systems::trajectory_optimization::getConstraintRows(
+    gm_traj_opt.Dircon_traj_opt.get(),
+    gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
     // Get the value first
     VectorXd xi = gm_traj_opt.Dircon_traj_opt->GetSolution(
@@ -375,21 +379,19 @@ void trajOptGivenWeights(double stride_length, double duration, int iter,
         gm_traj_opt.kinematics_constraint->expression_double.getFeature(xi);
     cout << "loop " << i << ": kin_features = " << kin_features.transpose() << endl;
 
-    // Get the row index of B matrix
-    VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-      gm_traj_opt.Dircon_traj_opt.get(),
-      gm_traj_opt.kinematics_constraint_bindings[i]);
-
-    cout << "ind = " << ind.transpose();
-
     // Fill in B matrix
-    for (int k = 0; k < ind.size(); k++) {
+    for (int k = 0; k < gm_traj_opt.n_z; k++) {
       for (int j = 0; j < kin_features.size(); j++) {
-        B(ind(k), k*kin_features.size() + j) = -1 * kin_features(j);
+        B(ind(0) + i*gm_traj_opt.n_z + k, k*kin_features.size() + j) = -1 * kin_features(j);
+        // cout << "ind(0) + i*gm_traj_opt.n_z + k = " << ind(0) + i*gm_traj_opt.n_z + k << endl;
       }
     }
   }
   /////////////////////////// Dynamics Constraints /////////////////////////////
+  // Get the row index of B matrix where kinematics constraint starts
+  ind = systems::trajectory_optimization::getConstraintRows(
+    gm_traj_opt.Dircon_traj_opt.get(),
+    gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
   for (int i = 0; i < num_time_samples.size() ; i++) {
     for (int j = 0; j < num_time_samples[i]-2 ; j++) {
