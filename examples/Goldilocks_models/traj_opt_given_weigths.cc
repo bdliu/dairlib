@@ -378,7 +378,6 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
     gm_traj_opt.dircon.get(),
     gm_traj_opt.kinematics_constraint_bindings[0]);
-  cout << "ind = " << ind << endl;
   for (int i = 0; i < N; i++) {
     // Get the gradient value first
     VectorXd xi = gm_traj_opt.dircon->GetSolution(
@@ -390,7 +389,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     for (int k = 0; k < n_z; k++) {
       for (int j = 0; j < kin_gradient.size(); j++) {
         // B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
-        cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
+        // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
       }
     }
   }
@@ -399,7 +398,6 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   ind = systems::trajectory_optimization::getConstraintRows(
     gm_traj_opt.dircon.get(),
     gm_traj_opt.dynamics_constraint_bindings[0]);
-  cout << "ind = " << ind << endl;
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
   for (int l = 0; l < num_time_samples.size() ; l++) {
@@ -423,7 +421,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
         for (int j = 0; j < dyn_gradient.size(); j++) {
           // B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
           //   dyn_gradient(j);
-          cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
+          // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
         }
       }
       p++;
@@ -434,16 +432,6 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   }
   writeCSV(directory + output_prefix + string("B.csv"), B);
   cout << "Finished creating files.\n";
-
-
-
-  cout << "A.rows() = " << A.rows() << endl;
-  cout << "B.rows() = " << B.rows() << endl;
-
-
-
-
-
 
 
 
