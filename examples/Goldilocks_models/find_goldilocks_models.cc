@@ -26,7 +26,7 @@ void findGoldilocksModels() {
   int max_inner_iter = 500;
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 1;
+  int max_outer_iter = 3;
   double epsilon = 1e-3;
 
   // Reduced order model parameters
@@ -60,19 +60,44 @@ void findGoldilocksModels() {
   vector<VectorXd> w_sol_vec;
   vector<VectorXd> theta_vec;
 
-  // Trajectory optimization with fixed model paramters
-  trajOptGivenWeights(n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
-                      stride_length, duration, max_inner_iter,
-                      directory, init_file, output_prefix,
-                      w_sol_vec, A_vec, H_vec,
-                      y_vec, lb_vec, ub_vec, b_vec, B_vec);
-  VectorXd theta(n_thetaZ + n_thetaZDot);
-  theta << thetaZ, thetaZDot;
-  theta_vec.push_back(theta);
-
-  // Construct the outer loop optimization based on the solution w
+  // Start the gradient descent
   for (int iter = 1; iter <= max_outer_iter; iter++) {
+    cout << "*********** Iteration "<< iter <<" *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
+
+    // Clear the matrices for outer loop
+    A_vec.clear();
+    B_vec.clear();
+    H_vec.clear();
+    A_active_vec.clear();
+    B_active_vec.clear();
+    lb_vec.clear();
+    ub_vec.clear();
+    y_vec.clear();
+    b_vec.clear();
+    w_sol_vec.clear();
+    theta_vec.clear();
+
+    // Run trajectory optimization for different tasks first
+    for (int batch = 0; batch < current_batch; batch++) {
+
+      /// some setup for each batch
+
+
+      // Trajectory optimization with fixed model paramters
+      trajOptGivenWeights(n_z, n_zDot, n_featureZ, n_featureZDot,
+                          thetaZ, thetaZDot,
+                          stride_length, duration, max_inner_iter,
+                          directory, init_file, output_prefix,
+                          w_sol_vec, A_vec, H_vec,
+                          y_vec, lb_vec, ub_vec, b_vec, B_vec);
+      VectorXd theta(n_thetaZ + n_thetaZDot);
+      theta << thetaZ, thetaZDot;
+      theta_vec.push_back(theta);
+
+    }
+
+    // Then do outer loop optimization given the solution w
 
     // Construct vector/matrices for the optmization
     vector<double> nw_vec;  // size of decision var of traj opt for all tasks
@@ -138,48 +163,20 @@ void findGoldilocksModels() {
     // Reference for solving a sparse linear system
     // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html
     // https://eigen.tuxfamily.org/dox/group__LeastSquares.html
-    
 
-    H_vec[0] = H_vec[0] + epsilon*MatrixXd::Ones(H_vec[0].cols(),H_vec[0].cols());
+    // Regularization (since H is singular and we cannot inverse it)
+    for (int batch = 0; batch < current_batch; batch++)
+      H_vec[batch] += epsilon*MatrixXd::Identity(nw_vec[batch],nw_vec[batch]);
+
 
     // Testing
-    Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-    int n_sv = svd.singularValues().size();
-    cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+    // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+    // int n_sv = svd.singularValues().size();
+    // cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
 
 
 
 
-    std::cout << "***********Next iteration*************" << std::endl;
-
-    // Clear the matrices for outer loop
-    A_vec.clear();
-    B_vec.clear();
-    H_vec.clear();
-    A_active_vec.clear();
-    B_active_vec.clear();
-    lb_vec.clear();
-    ub_vec.clear();
-    y_vec.clear();
-    b_vec.clear();
-    w_sol_vec.clear();
-    theta_vec.clear();
-
-    for (int batch = 0; batch < n_batch; batch++) {
-
-      /// some setup for each batch
-
-      trajOptGivenWeights(n_z, n_zDot, n_featureZ, n_featureZDot,
-                          thetaZ, thetaZDot,
-                          stride_length, duration, max_inner_iter,
-                          directory, init_file, output_prefix,
-                          w_sol_vec, A_vec, H_vec,
-                          y_vec, lb_vec, ub_vec, b_vec, B_vec);
-      VectorXd theta(n_thetaZ + n_thetaZDot);
-      theta << thetaZ, thetaZDot;
-      theta_vec.push_back(theta);
-
-    }
   }
 
 
