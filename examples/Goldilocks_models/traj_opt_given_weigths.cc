@@ -79,11 +79,14 @@ using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
 void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
-                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
-                         double stride_length, double duration, int max_iter,
-                         string directory,
-                         string init_file,
-                         string output_prefix) {
+                      Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
+                      double stride_length, double duration, int max_iter,
+                      string directory,
+                      string init_file, std::string output_prefix,
+                      VectorXd & w_sol,
+                      MatrixXd & A, MatrixXd & H,
+                      VectorXd & y, VectorXd & lb, VectorXd & ub, VectorXd & b,
+                      MatrixXd & B) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -299,16 +302,11 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     trajopt->SetInitialGuessForAllVariables(w0);
   }
 
-
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
       n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
       std::move(trajopt), &plant_autoDiff, num_time_samples);
-  // Btw, trajopt.Solve() is being deprecated. Will probably have to make the
-  // trajopt a shared_pointer, so you can use it in the new API solve(trajopt)?
-
-
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -356,29 +354,20 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   // Get the solution of all the decision variable
-  VectorXd w_sol = result.GetSolution(
+  w_sol = result.GetSolution(
                  gm_traj_opt.dircon->decision_variables());
-  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
-  MatrixXd A,H;
-  VectorXd y,lb,ub,b;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
   double costval = systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.dircon.get(), w_sol, H, b);
-  writeCSV(directory + output_prefix + string("A.csv"), A);
-  writeCSV(directory + output_prefix + string("y.csv"), y);
-  writeCSV(directory + output_prefix + string("lb.csv"), lb);
-  writeCSV(directory + output_prefix + string("ub.csv"), ub);
-  writeCSV(directory + output_prefix + string("H.csv"), H);
-  writeCSV(directory + output_prefix + string("b.csv"), b);
 
   // Get matrix B (~get feature vectors)
   int n_thetaZ = thetaZ.size();
   int n_thetaZDot = thetaZDot.size();
-  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
+  B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -406,7 +395,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
-  for (int l = 0; l < num_time_samples.size() ; l++) {
+  for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
     for (int m = 0; m < num_time_samples[l]-2 ; m++) {
       int i = N_accum + m;
       // Get the gradient value first
@@ -432,43 +421,40 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       }
       p++;
     }
-
     N_accum += num_time_samples[l];
     N_accum -= 1;  // due to overlaps between modes
   }
+
+  // Store the vectors and matrices
+  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
+  writeCSV(directory + output_prefix + string("A.csv"), A);
+  writeCSV(directory + output_prefix + string("y.csv"), y);
+  writeCSV(directory + output_prefix + string("lb.csv"), lb);
+  writeCSV(directory + output_prefix + string("ub.csv"), ub);
+  writeCSV(directory + output_prefix + string("H.csv"), H);
+  writeCSV(directory + output_prefix + string("b.csv"), b);
   writeCSV(directory + output_prefix + string("B.csv"), B);
-  cout << "Finished creating files.\n";
 
+  // Store the time, state, and input at knot points
+  VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
+  MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
+  MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
+  writeCSV(directory + output_prefix + string("time_at_knots.csv"), time_at_knots);
+  writeCSV(directory + output_prefix + string("state_at_knots.csv"), state_at_knots);
+  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);
 
-
-  // store the time, state, and input at knot points
-  // VectorXd time_at_knot_point = gm_traj_opt.dircon->GetSampleTimes();
-  // MatrixXd state_at_knot_point = gm_traj_opt.dircon->GetStateSamples();
-  // MatrixXd input_at_knot_point = gm_traj_opt.dircon->GetInputSamples();
-  // writeCSV(directory + string("simple_traj_time_at_knots.csv"), time_at_knot_point);
-  // writeCSV(directory + string("simple_traj_state_at_knots.csv"), state_at_knot_point);
-  // writeCSV(directory + string("simple_traj_input_at_knots.csv"), input_at_knot_point);
-  // std::cout<<"time_at_knot_point = \n"<<time_at_knot_point<<"\n";
-  // std::cout<<state_at_knot_point.rows()<<", "<<state_at_knot_point.cols()<<"\n";
-  // std::cout<<"state_at_knot_point = \n"<<state_at_knot_point<<"\n";
-  // std::cout<<input_at_knot_point.rows()<<", "<<input_at_knot_point.cols()<<"\n";
-  // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
-
-
-
-  // visualizer
+  /*// visualizer
   const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
   auto diagram = builder.Build();
-
   while (true) {
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }
+  }*/
 
   return ;
 }
