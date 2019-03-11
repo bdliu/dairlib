@@ -362,9 +362,17 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
   double costval = systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.dircon.get(), w_sol, H, b);
+  writeCSV(directory + output_prefix + string("A.csv"), A);
+  writeCSV(directory + output_prefix + string("y.csv"), y);
+  writeCSV(directory + output_prefix + string("lb.csv"), lb);
+  writeCSV(directory + output_prefix + string("ub.csv"), ub);
+  writeCSV(directory + output_prefix + string("H.csv"), H);
+  writeCSV(directory + output_prefix + string("b.csv"), b);
 
   // Get matrix B (~get feature vectors)
-  MatrixXd B = MatrixXd::Zero(A.rows(), thetaZ.size() + thetaZDot.size());
+  int n_thetaZ = thetaZ.size();
+  int n_thetaZDot = thetaZDot.size();
+  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -391,42 +399,38 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.dircon.get(),
     gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
-  for (int i = 0; i < num_time_samples.size() ; i++) {
-    for (int j = 0; j < num_time_samples[i]-2 ; j++) {
+  int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
+  for (int l = 0; l < num_time_samples.size() ; l++) {
+    for (int m = 0; m < num_time_samples[l]-2 ; m++) {
+      int i = N_accum + m;
       // Get the gradient value first
-      auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, n_z);
-      auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, n_z);
-      auto h_btwn_knot_k_kplus1 = gm_traj_opt.dircon->timestep(N_accum+j);
-      VectorXd z_k_sol = gm_traj_opt.dircon->GetSolution(z_k);
-      VectorXd z_kplus1_sol = gm_traj_opt.dircon->GetSolution(z_kplus1);
-      VectorXd h = gm_traj_opt.dircon->GetSolution(h_btwn_knot_k_kplus1);
+      auto z_i = gm_traj_opt.reduced_model_state(i, n_z);
+      auto z_iplus1 = gm_traj_opt.reduced_model_state(i + 1, n_z);
+      auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+      VectorXd z_i_sol = gm_traj_opt.dircon->GetSolution(z_i);
+      VectorXd z_iplus1_sol = gm_traj_opt.dircon->GetSolution(z_iplus1);
+      VectorXd h = gm_traj_opt.dircon->GetSolution(h_btwn_knot_i_iplus1);
 
       VectorXd dyn_gradient =
           gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
-            z_k_sol, z_kplus1_sol, h);
-      // cout<< "("<< i<< ", "<< j<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
+            z_i_sol, z_iplus1_sol, h);
+      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-
+      for (int k = 0; k < n_zDot; k++) {
+        for (int j = 0; j < dyn_gradient.size(); j++) {
+          B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
+            dyn_gradient(j);
+          // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
+        }
+      }
+      p++;
     }
 
-    N_accum += num_time_samples[i];
+    N_accum += num_time_samples[l];
     N_accum -= 1;  // due to overlaps between modes
   }
-
   writeCSV(directory + output_prefix + string("B.csv"), B);
-
-
-
-
-
-  writeCSV(directory + output_prefix + string("A.csv"), A);
-  writeCSV(directory + output_prefix + string("y.csv"), y);
-  writeCSV(directory + output_prefix + string("lb.csv"), lb);
-  writeCSV(directory + output_prefix + string("ub.csv"), ub);
-  writeCSV(directory + output_prefix + string("H.csv"), H);
-  writeCSV(directory + output_prefix + string("b.csv"), b);
-
   cout << "Finished creating files.\n";
 
 
