@@ -145,13 +145,21 @@ std::pair<int,int> getConstraintStart(const MathematicalProgram* prog, const std
   Binding<Constraint>& c) {
   int start = -1;
   int n = 0;
+  bool is_visit = false;
+  int i = 0;
   for (auto const& binding : constraints) {
+    i++;
     if (c.evaluator() == binding.evaluator()){
     // if (c.evaluator() == binding.evaluator() && c.variables() == binding.variables()){
-      start = n;
+      if(!is_visit) {
+        start = n;
+        is_visit = true;
+      }
+      std::cout << "inside the if statement, n= "<< n <<std::endl;
     }
     n += binding.evaluator()->num_constraints();
   }
+  std::cout << "there are total "<< i <<"# of bindings and "<< n <<"# of rows in this type of constraint"<<std::endl;
   return std::pair<int,int> (start,n);
 }
 
@@ -185,7 +193,9 @@ VectorXd getConstraintRows(const MathematicalProgram* prog, Binding<Constraint>&
   }
   n += index.second;
 
+  std::cout << "==========================start\n";
   index = getConstraintStart(prog, prog->generic_constraints(),c);
+  std::cout << "==========================end\n";
 
   if (index.first != -1) {
     int num_constraints = c.evaluator()->num_constraints();

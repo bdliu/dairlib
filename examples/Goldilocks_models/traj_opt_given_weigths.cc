@@ -114,7 +114,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   int n_q = plant.num_positions();
-  int n_v = plant.num_velocities();
+  // int n_v = plant.num_velocities();
   // int n_x = n_q + n_v;
   // int n_u = plant.num_actuators();
   // std::cout<<"n_x = "<<n_x<<"\n";
@@ -333,13 +333,13 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   cout << endl;
   // Testing: print out the vertical pos
-  for(int i = 0; i<N-1 ; i++){
+  for(int i = 0; i<N ; i++){
     auto x_i = gm_traj_opt.dircon->state(i);
     VectorXd x_i_sol = gm_traj_opt.dircon->GetSolution(x_i);
     cout << "x1_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
 
-  for(int i = 0; i<N-1 ; i++){
+  for(int i = 0; i<N ; i++){
       auto z_k = gm_traj_opt.reduced_model_state(i, n_z);
       VectorXd z_k_sol = gm_traj_opt.dircon->GetSolution(z_k);
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
@@ -378,6 +378,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
     gm_traj_opt.dircon.get(),
     gm_traj_opt.kinematics_constraint_bindings[0]);
+  cout << "ind = " << ind << endl;
   for (int i = 0; i < N; i++) {
     // Get the gradient value first
     VectorXd xi = gm_traj_opt.dircon->GetSolution(
@@ -388,8 +389,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     // Fill in B matrix
     for (int k = 0; k < n_z; k++) {
       for (int j = 0; j < kin_gradient.size(); j++) {
-        B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
-        // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
+        // B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
+        cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
       }
     }
   }
@@ -398,6 +399,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   ind = systems::trajectory_optimization::getConstraintRows(
     gm_traj_opt.dircon.get(),
     gm_traj_opt.dynamics_constraint_bindings[0]);
+  cout << "ind = " << ind << endl;
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
   for (int l = 0; l < num_time_samples.size() ; l++) {
@@ -419,9 +421,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       // Fill in B matrix
       for (int k = 0; k < n_zDot; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
-            dyn_gradient(j);
-          // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
+          // B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
+          //   dyn_gradient(j);
+          cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
         }
       }
       p++;
@@ -432,6 +434,17 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   }
   writeCSV(directory + output_prefix + string("B.csv"), B);
   cout << "Finished creating files.\n";
+
+
+
+  cout << "A.rows() = " << A.rows() << endl;
+  cout << "B.rows() = " << B.rows() << endl;
+
+
+
+
+
+
 
 
   // store the time, state, and input at knot points
@@ -448,6 +461,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
 
 
+  cout << "here\n";
+
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory();
@@ -456,6 +471,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   auto diagram = builder.Build();
 
+  cout << "here\n";
   while (true) {
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(.1);
@@ -463,6 +479,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     simulator.StepTo(pp_xtraj.end_time());
   }
 
+  cout << "here\n";
   return ;
 }
 
