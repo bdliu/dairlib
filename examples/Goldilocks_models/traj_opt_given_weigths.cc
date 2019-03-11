@@ -355,9 +355,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
-  // Get the solution of the decision variable
+  // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
-                 gm_traj_opt.dircon->decision_variables()); //solution of all decision variables
+                 gm_traj_opt.dircon->decision_variables());
   writeCSV(directory + output_prefix + string("w.csv"), w_sol);
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
@@ -394,7 +394,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     // Fill in B matrix
     for (int k = 0; k < n_z; k++) {
       for (int j = 0; j < kin_gradient.size(); j++) {
-        // B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
+        B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
         // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
       }
     }
@@ -425,8 +425,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       // Fill in B matrix
       for (int k = 0; k < n_zDot; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
-          // B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
-          //   dyn_gradient(j);
+          B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
+            dyn_gradient(j);
           // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
         }
       }
