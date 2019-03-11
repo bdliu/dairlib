@@ -78,6 +78,7 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
     theta_unit(i) = 1;
     gradient(i) = getDynamicsConstraint(z_i,z_iplus1,timestep_i,theta_unit)(n_zDot_/2) - z_iplus1(n_zDot_/2) + z_i(n_zDot_/2);
   }
+  // TODO(yminchen): You can also use autoDiff to get the gradient herre.
   return gradient;
 }
 

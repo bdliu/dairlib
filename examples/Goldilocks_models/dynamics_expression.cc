@@ -49,8 +49,12 @@ T DynamicsExpression::getFeature(const T & z) const {
   // feature << 0;
 
   // Version 3: testing
-  T feature(1);
-  feature << z(0);
+  // T feature(1);
+  // feature << z(0);
+
+  // Version 4: testing
+  T feature(2);
+  feature << z(0), z(1);
 
   return feature;
 }

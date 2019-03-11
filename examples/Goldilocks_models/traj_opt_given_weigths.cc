@@ -371,7 +371,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.dircon.get(),
     gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
-    // Get the value first
+    // Get the gradient value first
     VectorXd xi = gm_traj_opt.dircon->GetSolution(
         gm_traj_opt.dircon->state(i));
     VectorXd kin_gradient =
@@ -393,6 +393,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   int N_accum = 0;
   for (int i = 0; i < num_time_samples.size() ; i++) {
     for (int j = 0; j < num_time_samples[i]-2 ; j++) {
+      // Get the gradient value first
       auto z_k = gm_traj_opt.reduced_model_state(N_accum+j, n_z);
       auto z_kplus1 = gm_traj_opt.reduced_model_state(N_accum+j+1, n_z);
       auto h_btwn_knot_k_kplus1 = gm_traj_opt.dircon->timestep(N_accum+j);
@@ -400,15 +401,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       VectorXd z_kplus1_sol = gm_traj_opt.dircon->GetSolution(z_kplus1);
       VectorXd h = gm_traj_opt.dircon->GetSolution(h_btwn_knot_k_kplus1);
 
-      VectorXd testing = -h/6*(z_k_sol(0)+2*(z_k_sol(0)+z_kplus1_sol(0))+z_kplus1_sol(0));
-      cout << "testing = " << testing << endl;
-
       VectorXd dyn_gradient =
           gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
             z_k_sol, z_kplus1_sol, h);
+      // cout<< "("<< i<< ", "<< j<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
-      cout<< "("<< i<< ", "<< j<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
-
+      // Fill in B matrix
 
     }
 
