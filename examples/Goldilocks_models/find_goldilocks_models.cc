@@ -12,14 +12,14 @@ void findGoldilocksModels() {
   double duration = .5;
   int iter = 500;
   string directory = "examples/Goldilocks_models/data/";
-  // string init_file = "";
-  string init_file = "w.csv";
+  string init_file = "";
+  // string init_file = "w.csv";
   string output_prefix = "";
 
 
 
   // parameters
-  int n_z = 4;
+  int n_z = 2;
   int n_zDot = n_z; // Assume that are the same (no quaternion)
   int n_featureZ = 2; // This should match with the dimension of the feature,
                       // since we are hard coding it now. (same below)
@@ -33,7 +33,7 @@ void findGoldilocksModels() {
   VectorXd thetaZDot(n_thetaZDot);
   thetaZ = VectorXd::Zero(n_thetaZ);
   thetaZ(0) = 1;
-  thetaZ(5) = 1;
+  thetaZ(3) = 1;
   thetaZDot = VectorXd::Zero(n_thetaZDot);
 
 

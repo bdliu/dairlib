@@ -336,7 +336,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   for(int i = 0; i<N-1 ; i++){
     auto x_i = gm_traj_opt.dircon->state(i);
     VectorXd x_i_sol = gm_traj_opt.dircon->GetSolution(x_i);
-    cout << "x_"<< i <<"_sol = " << x_i_sol(1) << endl;
+    cout << "x1_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
 
   for(int i = 0; i<N-1 ; i++){
@@ -400,7 +400,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       VectorXd z_kplus1_sol = gm_traj_opt.dircon->GetSolution(z_kplus1);
       VectorXd h = gm_traj_opt.dircon->GetSolution(h_btwn_knot_k_kplus1);
 
-      VectorXd testing = h/6*(z_k_sol(0)+2*(z_k_sol(0)+z_kplus1_sol(0)+z_kplus1_sol(0)));
+      VectorXd testing = -h/6*(z_k_sol(0)+2*(z_k_sol(0)+z_kplus1_sol(0))+z_kplus1_sol(0));
       cout << "testing = " << testing << endl;
 
       VectorXd dyn_gradient =
