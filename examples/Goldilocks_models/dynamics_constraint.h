@@ -64,6 +64,18 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
+  VectorXd getGradientWrtTheta(
+      const VectorXd & z_i, const VectorXd & z_iplus1,
+      const VectorXd & timestep_i) const;
+
+  AutoDiffVecXd getDynamicsConstraint(
+      const AutoDiffVecXd & z_i, const AutoDiffVecXd & z_iplus1,
+      const AutoDiffVecXd & timestep_i, const VectorXd & theta) const;
+  VectorXd getDynamicsConstraint(
+      const VectorXd & z_i, const VectorXd & z_iplus1,
+      const VectorXd & timestep_i, const VectorXd & theta) const;
+
+
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_zDot_;

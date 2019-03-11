@@ -64,6 +64,13 @@ class KinematicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
+  VectorXd getGradientWrtTheta(VectorXd & x);
+
+  AutoDiffVecXd getKinematicsConstraint( const AutoDiffVecXd & z,
+    const AutoDiffVecXd & x, const VectorXd & theta) const;
+  VectorXd getKinematicsConstraint( const VectorXd & z,
+    const VectorXd & x, const VectorXd & theta) const;
+
   KinematicsExpression<double> expression_double;
   KinematicsExpression<AutoDiffXd> expression_autoDiff_;
 
@@ -71,6 +78,7 @@ class KinematicsConstraint : public Constraint {
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_constraint_;
   int n_feature_;
+  int n_state_;
   VectorXd thetaZ_;
 
 };

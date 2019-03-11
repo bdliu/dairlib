@@ -62,7 +62,7 @@ int main() {
 
   // We don't have getExpression() that returns VectorX<double>, so we use
   // DiscardGradient here.
-  VectorX<double> expression = DiscardGradient(expr.getExpression(theta, z));
+  VectorX<double> expression = expr.getExpression(theta, z);
   cout << "expression = \n" << expression << "\n\n";
 
   AutoDiffVecXd theta_autoDiff =  initializeAutoDiff(theta);

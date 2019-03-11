@@ -17,6 +17,7 @@ KinematicsConstraint::KinematicsConstraint(
   n_constraint_(n_z),
   n_feature_(n_feature),
   thetaZ_(thetaZ),
+  n_state_(plant->num_positions() + plant->num_velocities()),
   expression_double(KinematicsExpression<double>(n_z, n_feature)),
   expression_autoDiff_(KinematicsExpression<AutoDiffXd>(n_z, n_feature)) {
 
@@ -41,10 +42,9 @@ void KinematicsConstraint::DoEval(const
                              Eigen::Ref<const AutoDiffVecXd>& z_x,
                              AutoDiffVecXd* y) const {
   const AutoDiffVecXd z = z_x.head(n_constraint_);
-  const AutoDiffVecXd x = z_x.tail(
-      plant_->num_positions() + plant_->num_velocities());
+  const AutoDiffVecXd x = z_x.tail(n_state_);
 
-  *y = z - expression_autoDiff_.getExpression(thetaZ_, x);
+  *y = getKinematicsConstraint(z, x, thetaZ_);
 }
 
 void KinematicsConstraint::DoEval(const
@@ -52,6 +52,26 @@ void KinematicsConstraint::DoEval(const
                              VectorX<Expression>*y) const {
   throw std::logic_error(
     "This constraint class does not support symbolic evaluation.");
+}
+
+VectorXd KinematicsConstraint::getGradientWrtTheta(VectorXd & x){
+  VectorXd z = VectorXd::Zero(n_constraint_);
+  VectorXd gradient(n_feature_);
+  for(int i = 0; i<n_feature_; i++){
+    VectorXd theta_unit = VectorXd::Zero(thetaZ_.size());
+    theta_unit(i) = 1;
+    gradient(i) = getKinematicsConstraint(z,x,theta_unit)(0);
+  }
+  return gradient;
+}
+
+AutoDiffVecXd KinematicsConstraint::getKinematicsConstraint(
+  const AutoDiffVecXd & z, const AutoDiffVecXd & x, const VectorXd & theta) const{
+  return z - expression_autoDiff_.getExpression(theta, x);
+}
+VectorXd KinematicsConstraint::getKinematicsConstraint(
+  const VectorXd & z, const VectorXd & x, const VectorXd & theta) const{
+  return z - expression_double.getExpression(theta, x);
 }
 
 

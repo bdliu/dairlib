@@ -14,12 +14,12 @@ int DynamicsExpression::getDimFeature() {
 }
 
 template <typename U, typename V>
-VectorX<AutoDiffXd> DynamicsExpression::getExpression(
+V DynamicsExpression::getExpression(
     const U & theta, const V & z) const {
   // DRAKE_DEMAND(n_zDot_ * n_featureDot_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_featureDot_ == getFeature(z).size());  // check feature size
 
-  VectorX<AutoDiffXd> expression(n_zDot_);
+  V expression(n_zDot_);
 
   expression.segment(0, n_zDot_ / 2) = z.segment(n_zDot_ / 2, n_zDot_ / 2);
   for (int i = 0; i < n_zDot_ / 2 ; i++)
@@ -45,8 +45,12 @@ T DynamicsExpression::getFeature(const T & z) const {
   //            sqrt(z(1));
 
   // Version 2: testing
+  // T feature(1);
+  // feature << 0;
+
+  // Version 3: testing
   T feature(1);
-  feature << 0;
+  feature << z(0);
 
   return feature;
 }
@@ -55,14 +59,14 @@ T DynamicsExpression::getFeature(const T & z) const {
 // Instantiation
 // TODO(yminchen): is there a way to implement getExpression() that returns
 // VectorX<double>?
-template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
+template VectorX<double> DynamicsExpression::getExpression(
   const VectorX<double> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
   const VectorX<double> &, const VectorX<AutoDiffXd> &) const;
-template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
-  const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
-template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
-  const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
+// template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
+//   const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
+// template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
+//   const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
 
 template VectorX<double> DynamicsExpression::getFeature(
   const VectorX<double> &) const;
