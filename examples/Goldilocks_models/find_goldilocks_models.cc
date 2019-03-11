@@ -13,8 +13,8 @@ void findGoldilocksModels() {
   int max_inner_iter = 500;
   int max_outer_iter = 20;
   string directory = "examples/Goldilocks_models/data/";
-  string init_file = "";
-  // string init_file = "w0.csv";
+  // string init_file = "";
+  string init_file = "w0.csv";
   string output_prefix = "";
 
 

@@ -23,6 +23,7 @@
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/constraint.h"
+#include "drake/solvers/solve.h"
 #include "systems/trajectory_optimization/dircon_util.h"
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
@@ -60,6 +61,10 @@ using drake::geometry::SceneGraph;
 using drake::multibody::Body;
 using drake::multibody::Parser;
 using drake::systems::rendering::MultibodyPositionToGeometryPose;
+
+using drake::solvers::MathematicalProgram;
+using drake::solvers::MathematicalProgramResult;
+using drake::solvers::SolutionResult;
 
 // using Isometry3 = Eigen::Transform<Scalar, 3, Eigen::Isometry>
 
@@ -307,16 +312,17 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
-  auto result = gm_traj_opt.dircon->Solve();
+  const MathematicalProgramResult result = Solve(
+    *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  // gm_traj_opt.dircon->PrintSolution();
   std::cout << "Solve time:" << elapsed.count() << std::endl;
-  std::cout << result << std::endl;
-  std::cout << "Cost:" << gm_traj_opt.dircon->GetOptimalCost() << std::endl;
+  SolutionResult solution_result = result.get_solution_result();
+  std::cout << solution_result << std::endl;
+  std::cout << "Cost:" << result.get_optimal_cost() << std::endl;
 
-
-
+  // The following line gives seg fault
+  // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
 
 
 
@@ -328,20 +334,20 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   //   cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
   // }
   auto h_0 = gm_traj_opt.dircon->timestep(0);
-  VectorXd h_0_sol = gm_traj_opt.dircon->GetSolution(h_0);
+  VectorXd h_0_sol = result.GetSolution(h_0);
   cout << "timestep = " << h_0_sol << endl;
 
   cout << endl;
   // Testing: print out the vertical pos
   for(int i = 0; i<N ; i++){
     auto x_i = gm_traj_opt.dircon->state(i);
-    VectorXd x_i_sol = gm_traj_opt.dircon->GetSolution(x_i);
+    VectorXd x_i_sol = result.GetSolution(x_i);
     cout << "x1_"<< i <<"_sol = " << x_i_sol(1) << endl;
   }
 
   for(int i = 0; i<N ; i++){
       auto z_k = gm_traj_opt.reduced_model_state(i, n_z);
-      VectorXd z_k_sol = gm_traj_opt.dircon->GetSolution(z_k);
+      VectorXd z_k_sol = result.GetSolution(z_k);
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
   }
 
@@ -350,7 +356,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   // Get the solution of the decision variable
-  VectorXd w_sol = gm_traj_opt.dircon->GetSolution(
+  VectorXd w_sol = result.GetSolution(
                  gm_traj_opt.dircon->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("w.csv"), w_sol);
 
@@ -380,7 +386,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
     // Get the gradient value first
-    VectorXd xi = gm_traj_opt.dircon->GetSolution(
+    VectorXd xi = result.GetSolution(
         gm_traj_opt.dircon->state(i));
     VectorXd kin_gradient =
         gm_traj_opt.kinematics_constraint->getGradientWrtTheta(xi);
@@ -407,9 +413,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       auto z_i = gm_traj_opt.reduced_model_state(i, n_z);
       auto z_iplus1 = gm_traj_opt.reduced_model_state(i + 1, n_z);
       auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-      VectorXd z_i_sol = gm_traj_opt.dircon->GetSolution(z_i);
-      VectorXd z_iplus1_sol = gm_traj_opt.dircon->GetSolution(z_iplus1);
-      VectorXd h = gm_traj_opt.dircon->GetSolution(h_btwn_knot_i_iplus1);
+      VectorXd z_i_sol = result.GetSolution(z_i);
+      VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
+      VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
 
       VectorXd dyn_gradient =
           gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
@@ -449,17 +455,14 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // std::cout<<"input_at_knot_point = \n"<<input_at_knot_point<<"\n";
 
 
-  cout << "here\n";
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
-    gm_traj_opt.dircon->ReconstructStateTrajectory();
+    gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
-
   auto diagram = builder.Build();
 
-  cout << "here\n";
   while (true) {
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(.1);
@@ -467,7 +470,6 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     simulator.StepTo(pp_xtraj.end_time());
   }
 
-  cout << "here\n";
   return ;
 }
 
