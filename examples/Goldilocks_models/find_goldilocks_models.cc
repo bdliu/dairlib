@@ -27,7 +27,7 @@ void findGoldilocksModels() {
 
   // Paramters for the outer loop optimization
   int max_outer_iter = 1;
-  double epsilon = 0.001;
+  double epsilon = 1e-3;
 
   // Reduced order model parameters
   int n_z = 2;
@@ -131,8 +131,21 @@ void findGoldilocksModels() {
       }
     }
 
+    cout << "nw = " << nw << endl;
+    cout << "nt = " << nt << endl;
+    cout << "nl = " << nl << endl;
+
+    // Reference for solving a sparse linear system
+    // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html
+    // https://eigen.tuxfamily.org/dox/group__LeastSquares.html
     
 
+    H_vec[0] = H_vec[0] + epsilon*MatrixXd::Ones(H_vec[0].cols(),H_vec[0].cols());
+
+    // Testing
+    Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+    int n_sv = svd.singularValues().size();
+    cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
 
 
 
