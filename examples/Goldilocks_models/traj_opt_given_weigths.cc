@@ -75,7 +75,7 @@ using systems::SubvectorPassThrough;
 
 void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                          Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
-                         double stride_length, double duration, int iter,
+                         double stride_length, double duration, int max_iter,
                          string directory,
                          string init_file,
                          string output_prefix) {

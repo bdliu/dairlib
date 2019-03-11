@@ -10,10 +10,11 @@ namespace goldilocks_models {
 void findGoldilocksModels() {
   double stride_length = 0.3;
   double duration = .5;
-  int iter = 500;
+  int max_inner_iter = 500;
+  int max_outer_iter = 20;
   string directory = "examples/Goldilocks_models/data/";
-  // string init_file = "";
-  string init_file = "w0.csv";
+  string init_file = "";
+  // string init_file = "w0.csv";
   string output_prefix = "";
 
 
@@ -36,12 +37,12 @@ void findGoldilocksModels() {
   thetaZDot = VectorXd::Zero(n_thetaZDot);
 
 
-  // The following function should return the solution x
+  // Trajectory optimization with fixed model paramters
   trajOptGivenWeights(n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
-                      stride_length, duration, iter,
+                      stride_length, duration, max_inner_iter,
                       directory, init_file, output_prefix);
 
-  // Construct the outer loop optimization based on the solutino x
+  // Construct the outer loop optimization based on the solution w
 
 
 
