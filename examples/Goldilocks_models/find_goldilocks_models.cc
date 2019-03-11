@@ -200,6 +200,10 @@ void findGoldilocksModels() {
 
 
     // Get P_i and q_i
+
+    // Method 1: use optimization program to solve it
+
+    // Method 2: use schur complement (see notes)
     // (w = P_i * theta + q_i)
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;
