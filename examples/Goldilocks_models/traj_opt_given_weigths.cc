@@ -93,8 +93,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
   Parser parser(&plant, &scene_graph);
 
-  std::string full_name =
-    FindResourceOrThrow("examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  std::string full_name = FindResourceOrThrow(
+      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
   plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
     -9.81 * Eigen::Vector3d::UnitZ());
@@ -214,7 +214,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   auto x0 = trajopt->initial_state();
   // auto xf = trajopt->final_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
-                                        num_time_samples[num_time_samples.size() - 1] - 1);
+                             num_time_samples[num_time_samples.size() - 1] - 1);
 
   //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
   trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
@@ -350,7 +350,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
   }
 
-
+  cout << "\nAll decision variable:\n"
+    << gm_traj_opt.dircon->decision_variables() << endl;
 
 
 
@@ -439,10 +440,11 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   b_vec.push_back(b);
   B_vec.push_back(B);
 
+
   // Store the vectors and matrices
   // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
   // string iter_prefix = std::to_string(iter-1) + "_";
-  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
+/*  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
   writeCSV(directory + output_prefix + string("A.csv"), A);
   writeCSV(directory + output_prefix + string("y.csv"), y);
   writeCSV(directory + output_prefix + string("lb.csv"), lb);
@@ -457,7 +459,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
   writeCSV(directory + output_prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + output_prefix + string("state_at_knots.csv"), state_at_knots);
-  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);
+  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);*/
+
 
   /*// visualizer
   const PiecewisePolynomial<double> pp_xtraj =

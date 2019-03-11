@@ -10,6 +10,9 @@ using drake::math::initializeAutoDiff;
 using drake::math::autoDiffToGradientMatrix;
 using drake::math::autoDiffToValueMatrix;
 
+using std::cout;
+using std::endl;
+
 namespace dairlib {
 namespace systems {
 namespace trajectory_optimization {
@@ -43,11 +46,16 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
   w = Eigen::MatrixXd::Zero(num_vars, 1);
   double c = 0;
 
+  int i_binding_num = 0;
   for (auto const& binding : prog->GetAllCosts()) {
     //evaluate cost
     auto variables = binding.variables();
     if (variables.size() == 0)
       continue;
+    cout << "In cost binding #" << i_binding_num << " variables.size() = " << variables.size() << endl;
+    cout << "    variables = " << variables.transpose() << endl;
+    i_binding_num++;
+
     AutoDiffVecXd y_val = initializeAutoDiff(VectorXd::Zero(1), variables.size());
     VectorXd x_binding(variables.size());
     for (int i=0; i < variables.size(); i++) {

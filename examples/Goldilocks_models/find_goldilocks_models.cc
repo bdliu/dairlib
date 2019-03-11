@@ -3,6 +3,7 @@
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+using Eigen::VectorXcd;
 using std::string;
 using std::vector;
 using std::cout;
@@ -26,7 +27,7 @@ void findGoldilocksModels() {
   int max_inner_iter = 500;
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 3;
+  int max_outer_iter = 1;
   double epsilon = 1e-3;
 
   // Reduced order model parameters
@@ -62,10 +63,10 @@ void findGoldilocksModels() {
 
   // Start the gradient descent
   for (int iter = 1; iter <= max_outer_iter; iter++) {
-    cout << "*********** Iteration "<< iter <<" *************" << endl;
+    cout << "*********** Iteration " << iter << " *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
 
-    // Clear the matrices for outer loop
+    // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
     B_vec.clear();
     H_vec.clear();
@@ -99,7 +100,7 @@ void findGoldilocksModels() {
 
     // Then do outer loop optimization given the solution w
 
-    // Construct vector/matrices for the optmization
+    // Construct vectors/matrices for the problem (get the active constraints)
     vector<double> nw_vec;  // size of decision var of traj opt for all tasks
     vector<double> nl_vec;  // # of rows of active constraints for all tasks
     int nw = 0;  // sum of size of decision variables for all task
@@ -164,6 +165,29 @@ void findGoldilocksModels() {
     // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html
     // https://eigen.tuxfamily.org/dox/group__LeastSquares.html
 
+    // Our calculation below is based on the fact that the H matrices are pd and
+    // symmetric, so we check them here.
+    // However, H turned out not to be psd, since it's a constrainted problem.
+    // Not sure if our calculation would still work in this case......
+    // TODO(yminchen): does it matter???????
+    cout << "Checking if H is pd and symmetric\n";
+    for (int batch = 0; batch < current_batch; batch++) {
+      // Check if H is symmetric
+      VectorXd One_w = VectorXd::Ones(nw_vec[batch]);
+      double sum =
+        One_w.transpose() * (H_vec[batch] - H_vec[batch].transpose()) * One_w;
+      if (sum != 0) cout << "H is not symmetric\n";
+
+      // Check if H is pd
+      VectorXd eivals_real = H_vec[batch].eigenvalues().real();
+      for (int i = 0; i < eivals_real.size(); i++) {
+        if (eivals_real(i) < -1e-3)
+          cout << "H is not positive semi-definite (with e-value = "
+               << eivals_real(i) << ")\n";
+      }
+    }
+    cout << "Finished checking\n";
+
     // Regularization (since H is singular and we cannot inverse it)
     for (int batch = 0; batch < current_batch; batch++)
       H_vec[batch] += epsilon*MatrixXd::Identity(nw_vec[batch],nw_vec[batch]);
@@ -174,6 +198,16 @@ void findGoldilocksModels() {
     // int n_sv = svd.singularValues().size();
     // cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
 
+
+    // Get P_i and q_i
+    // (w = P_i * theta + q_i)
+    vector<MatrixXd> P_vec;
+    vector<VectorXd> q_vec;
+    for (int batch = 0; batch < current_batch; batch++) {
+
+
+
+    }
 
 
 
