@@ -6,6 +6,7 @@
 
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
+using std::vector;
 
 namespace dairlib {
 namespace goldilocks_models  {
@@ -15,10 +16,12 @@ void trajOptGivenWeights(
     VectorXd & thetaZ, VectorXd & thetaZDot,
     double stride_length, double duration, int max_iter,
     std::string directory, std::string init_file, std::string output_prefix,
-    VectorXd & w_sol,
-    MatrixXd & A, MatrixXd & H,
-    VectorXd & y, VectorXd & lb, VectorXd & ub, VectorXd & b,
-    MatrixXd & B);
+    vector<VectorXd> & w_sol_vec,
+    vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
+    vector<VectorXd> & y_vec,
+    vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
+    vector<VectorXd> & b_vec,
+    vector<MatrixXd> & B_vec);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib

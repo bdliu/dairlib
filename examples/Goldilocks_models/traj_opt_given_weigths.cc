@@ -49,7 +49,6 @@ using drake::solvers::VectorXDecisionVariable;
 using drake::solvers::MatrixXDecisionVariable;
 using drake::symbolic::Variable;
 using drake::symbolic::Expression;
-using std::vector;
 using std::shared_ptr;
 using std::cout;
 using std::endl;
@@ -83,10 +82,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                       double stride_length, double duration, int max_iter,
                       string directory,
                       string init_file, std::string output_prefix,
-                      VectorXd & w_sol,
-                      MatrixXd & A, MatrixXd & H,
-                      VectorXd & y, VectorXd & lb, VectorXd & ub, VectorXd & b,
-                      MatrixXd & B) {
+                      vector<VectorXd> & w_sol_vec,
+                      vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
+                      vector<VectorXd> & y_vec,
+                      vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
+                      vector<VectorXd> & b_vec,
+                      vector<MatrixXd> & B_vec) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -353,12 +354,15 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
+
   // Get the solution of all the decision variable
-  w_sol = result.GetSolution(
+  VectorXd w_sol = result.GetSolution(
                  gm_traj_opt.dircon->decision_variables());
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
+  MatrixXd A, H;
+  VectorXd y, lb, ub, b;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
   double costval = systems::trajectory_optimization::secondOrderCost(
@@ -367,7 +371,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Get matrix B (~get feature vectors)
   int n_thetaZ = thetaZ.size();
   int n_thetaZDot = thetaZDot.size();
-  B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
+  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -425,7 +429,19 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     N_accum -= 1;  // due to overlaps between modes
   }
 
+  // Push the solution to the vector
+  w_sol_vec.push_back(w_sol);
+  A_vec.push_back(A);
+  H_vec.push_back(H);
+  lb_vec.push_back(lb);
+  ub_vec.push_back(ub);
+  y_vec.push_back(y);
+  b_vec.push_back(b);
+  B_vec.push_back(B);
+
   // Store the vectors and matrices
+  // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
+  // string iter_prefix = std::to_string(iter-1) + "_";
   writeCSV(directory + output_prefix + string("w.csv"), w_sol);
   writeCSV(directory + output_prefix + string("A.csv"), A);
   writeCSV(directory + output_prefix + string("y.csv"), y);
