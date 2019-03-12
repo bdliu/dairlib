@@ -328,7 +328,7 @@ void findGoldilocksModels() {
       cout << "smallest singular value is " << svd.singularValues()(n_sv - 1) << endl;
       cout << "singular values are \n" << svd.singularValues() << endl;
 
-
+/*
       // Testing
       cout << "try to inverse the matrix directly by inverse()\n";
       MatrixXd AinvQA_2 = A_active_vec[batch] *
@@ -337,7 +337,7 @@ void findGoldilocksModels() {
       VectorXd one_lambda = VectorXd::Ones(nl_vec[batch]);
       MatrixXd abs_diff = (AinvQA - AinvQA_2).cwiseAbs();
       cout << "Compare two method's difference: " << one_lambda.transpose()*abs_diff*one_lambda << endl;
-      cout << "Finsihing inverting the matrix.\n";
+      cout << "Finsihing inverting the matrix.\n";*/
 
 
       MatrixXd Pi = -solveInvATimesB(H_vec[batch],
@@ -353,7 +353,35 @@ void findGoldilocksModels() {
 
 
     // Testing inverse of the extended matrix
+    //H_ext = [H A'; A 0]
+    int nl0 = nl_vec[0];
+    int nw0 = nw_vec[0];
+    MatrixXd H_ext(nw0 + nl0, nw0 + nl0);
+    H_ext.block(0, 0, nw0, nw0) = H_vec[0];
+    H_ext.block(0, nw0, nw0, nl0) = A_active_vec[0].transpose();
+    H_ext.block(nw0, 0, nl0, nw0) = A_active_vec[0];
+    H_ext.block(nw0, nw0, nl0, nl0) = MatrixXd::Zero(nl0,nl0);
 
+    cout << "nw0 = " << nw0 << endl;
+    cout << "col = " << H_vec[0].cols() << endl;
+    cout << "row = " << H_vec[0].rows() << endl;
+    cout << "nl0 = " << nl0 << endl;
+    cout << "col = " << A_active_vec[0].cols() << endl;
+    cout << "row = " << A_active_vec[0].rows() << endl;
+
+
+    // cout << "try to inverse the matrix directly by inverse()\n";
+    // MatrixXd inv_H_ext = H_ext.inverse();
+    // cout << "inv_H_ext = \n" << inv_H_ext << endl;
+    // cout << "Finsihing inverting the matrix.\n";
+
+    // // checking e values of H_ext
+    // VectorXd eivals_real = H_ext.eigenvalues().real();
+    // for (int i = 0; i < eivals_real.size(); i++) {
+    //   if (eivals_real(i) <= 0)
+    //     cout << "H_ext is not positive definite (with e-value = "
+    //          << eivals_real(i) << ")\n";
+    // }
 
 
 
