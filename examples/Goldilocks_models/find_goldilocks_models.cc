@@ -25,14 +25,16 @@ void findGoldilocksModels() {
   // Parametres for tasks
   int n_batch = 1;
   double stride_length = 0.3;
-  double duration = .5;
+  double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
+  double R = 10;  // Cost on input effort
+  double Q_double = 10; // Cost on velocity
 
   // Paramters for the outer loop optimization
   int max_outer_iter = 1;
-  double epsilon = 1e-3;
+  double epsilon = 1e-4;
 
   // Reduced order model parameters
   int n_z = 2;
@@ -95,7 +97,9 @@ void findGoldilocksModels() {
                           stride_length, duration, max_inner_iter,
                           directory, init_file, output_prefix,
                           w_sol_vec, A_vec, H_vec,
-                          y_vec, lb_vec, ub_vec, b_vec, B_vec);
+                          y_vec, lb_vec, ub_vec, b_vec, B_vec,
+                          Q_double, R,
+                          epsilon);
       VectorXd theta(n_thetaZ + n_thetaZDot);
       theta << thetaZ, thetaZDot;
       theta_vec.push_back(theta);
@@ -171,9 +175,9 @@ void findGoldilocksModels() {
 
     // Our calculation below is based on the fact that the H matrices are pd and
     // symmetric, so we check them here.
-    // However, H turned out not to be psd, since it's a constrainted problem.
-    // Not sure if our calculation would still work in this case......
-    // TODO(yminchen): does it matter???????
+    // However, H turned out not to be psd, since we have timestep h as decision
+    // variable. (It came from running cost. ~h*u'*R*u, etc)
+    // Fixed it by adding running cost by hand (but the timestep is fixed now).
     cout << "Checking if H is pd and symmetric\n";
     for (int batch = 0; batch < current_batch; batch++) {
       // Check if H is symmetric
@@ -185,16 +189,12 @@ void findGoldilocksModels() {
       // Check if H is pd
       VectorXd eivals_real = H_vec[batch].eigenvalues().real();
       for (int i = 0; i < eivals_real.size(); i++) {
-        if (eivals_real(i) < -1e-3)
-          cout << "H is not positive semi-definite (with e-value = "
+        if (eivals_real(i) <= 0)
+          cout << "H is not positive definite (with e-value = "
                << eivals_real(i) << ")\n";
       }
     }
     cout << "Finished checking\n";
-
-    // Regularization (since H is singular and we cannot inverse it)
-    for (int batch = 0; batch < current_batch; batch++)
-      H_vec[batch] += epsilon*MatrixXd::Identity(nw_vec[batch],nw_vec[batch]);
 
 
     // Testing
@@ -205,9 +205,10 @@ void findGoldilocksModels() {
 
     // Get P_i and q_i
 
-    // Method 1: use optimization program to solve it?
+    // Method 1: use optimization program to solve it???
 
     // Method 2: use schur complement (see notes)
+    // This one requires the Hessian H to be pd.
     // (w = P_i * theta + q_i)
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;

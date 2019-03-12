@@ -52,9 +52,9 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
     auto variables = binding.variables();
     if (variables.size() == 0)
       continue;
-    cout << "In cost binding #" << i_binding_num << " variables.size() = " << variables.size() << endl;
-    cout << "    variables = " << variables.transpose() << endl;
-    i_binding_num++;
+    // cout << "In cost binding #" << i_binding_num << " variables.size() = " << variables.size() << endl;
+    // cout << "    variables = " << variables.transpose() << endl;
+    // i_binding_num++;
 
     AutoDiffVecXd y_val = initializeAutoDiff(VectorXd::Zero(1), variables.size());
     VectorXd x_binding(variables.size());

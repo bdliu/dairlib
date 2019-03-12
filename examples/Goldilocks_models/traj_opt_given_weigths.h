@@ -21,7 +21,9 @@ void trajOptGivenWeights(
     vector<VectorXd> & y_vec,
     vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
     vector<VectorXd> & b_vec,
-    vector<MatrixXd> & B_vec);
+    vector<MatrixXd> & B_vec,
+    const double & Q_double, const double & R_double,
+    double epsilon);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib

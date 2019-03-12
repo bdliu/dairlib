@@ -87,7 +87,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                       vector<VectorXd> & y_vec,
                       vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
                       vector<VectorXd> & b_vec,
-                      vector<MatrixXd> & B_vec) {
+                      vector<MatrixXd> & B_vec,
+                      const double & Q_double, const double & R_double,
+                      double epsilon) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -123,9 +125,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   int n_q = plant.num_positions();
-  // int n_v = plant.num_velocities();
-  // int n_x = n_q + n_v;
-  // int n_u = plant.num_actuators();
+  int n_v = plant.num_velocities();
+  int n_x = n_q + n_v;
+  int n_u = plant.num_actuators();
   // std::cout<<"n_x = "<<n_x<<"\n";
   // std::cout<<"n_u = "<<n_u<<"\n";
 
@@ -200,7 +202,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   auto trajopt = std::make_unique<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list);
 
-  // trajopt->AddDurationBounds(duration, duration); // You can comment this out to not put any constraint on the time
+  // You can comment this out to not put any constraint on the time
+  // However, we need it now, since we add the running cost by hand
+  trajopt->AddDurationBounds(duration, duration);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
@@ -287,15 +291,40 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
                                    x0(positions_map.at("right_hip_pin")));
 
-  // add cost
-  const double R = 10;  // Cost on input effort
-  auto u = trajopt->input();
-  trajopt->AddRunningCost(u.transpose()*R * u);
-  MatrixXd Q = MatrixXd::Zero(2 * n_q, 2 * n_q);
-  for (int i = 0; i < n_q; i++) {
-    Q(i + n_q, i + n_q) = 10;
+  // Add cost
+  MatrixXd R = MatrixXd::Identity(n_u,n_u);
+  MatrixXd Q = MatrixXd::Zero(n_x, n_x);
+  MatrixXd I_x = MatrixXd::Identity(n_x, n_x);
+  for (int i = 0; i < n_v; i++) {
+    Q(i + n_q, i + n_q) = Q_double;
   }
-  trajopt->AddRunningCost(x.transpose()*Q * x);
+  // Don't use AddRunningCost, cause it makes cost Hessian to be indefinite
+  // I'll fix the timestep and add cost myself
+    /*auto u = trajopt->input();
+    trajopt->AddRunningCost(u.transpose()*R * u);
+    trajopt->AddRunningCost(x.transpose()*Q * x);*/
+  // Add running cost by hand (Trapezoidal integration):
+  double timestep = duration/(N-1);
+  trajopt->AddQuadraticCost(Q*timestep/2,VectorXd::Zero(n_x),x0);
+  trajopt->AddQuadraticCost(R*timestep/2,VectorXd::Zero(n_u),u0);
+  for(int i=1; i<=N-2; i++){
+    auto ui = trajopt->input(i);
+    auto xi = trajopt->state(i);
+    trajopt->AddQuadraticCost(Q*timestep,VectorXd::Zero(n_x),xi);
+    trajopt->AddQuadraticCost(R*timestep,VectorXd::Zero(n_u),ui);
+  }
+  trajopt->AddQuadraticCost(Q*timestep/2,VectorXd::Zero(n_x),xf);
+  trajopt->AddQuadraticCost(R*timestep/2,VectorXd::Zero(n_u),uf);
+  // Add regularization term here so that hessian is pd (for outer loop), so
+  // that we can use schur complement method
+  // Actually, Hessian still has zero eigen value because of h_var and z_var
+    /*trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),x0);
+    for(int i=1; i<=N-2; i++){
+      auto xi = trajopt->state(i);
+      trajopt->AddQuadraticCost(epsilon*I_x*timestep,VectorXd::Zero(n_x),xi);
+    }
+    trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
+
 
   // initial guess if the file exists
   if (!init_file.empty()) {
@@ -308,6 +337,14 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   GoldilcocksModelTrajOpt gm_traj_opt(
       n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
       std::move(trajopt), &plant_autoDiff, num_time_samples);
+
+  // Add regularization term here so that hessian is pd (for outer loop), so
+  // that we can use schur complement method
+  // TODO(yminchen): should I add to all decision variable? or just state?
+  auto w = gm_traj_opt.dircon->decision_variables();
+  for(int i=0; i<w.size(); i++)
+    gm_traj_opt.dircon->AddQuadraticCost(epsilon*w(i)*w(i));
+
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -350,8 +387,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
   }
 
-  cout << "\nAll decision variable:\n"
-    << gm_traj_opt.dircon->decision_variables() << endl;
+  // Testing: see what are the decision varaibles
+  // cout << "\nAll decision variable:\n"
+  //   << gm_traj_opt.dircon->decision_variables() << endl;
 
 
 
@@ -366,7 +404,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   VectorXd y, lb, ub, b;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-  double costval = systems::trajectory_optimization::secondOrderCost(
+  systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.dircon.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
@@ -444,7 +482,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Store the vectors and matrices
   // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
   // string iter_prefix = std::to_string(iter-1) + "_";
-/*  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
+  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
   writeCSV(directory + output_prefix + string("A.csv"), A);
   writeCSV(directory + output_prefix + string("y.csv"), y);
   writeCSV(directory + output_prefix + string("lb.csv"), lb);
@@ -459,7 +497,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
   writeCSV(directory + output_prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + output_prefix + string("state_at_knots.csv"), state_at_knots);
-  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);*/
+  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);
+  cout << "time_at_knots = " << time_at_knots << endl;
 
 
   /*// visualizer
