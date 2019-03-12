@@ -12,6 +12,10 @@ using std::endl;
 namespace dairlib {
 namespace goldilocks_models {
 
+MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B){
+  return (A.transpose() * A).ldlt().solve(A.transpose() * B);
+}
+
 void findGoldilocksModels() {
   string directory = "examples/Goldilocks_models/data/";
   // string init_file = "";
@@ -201,14 +205,15 @@ void findGoldilocksModels() {
 
     // Get P_i and q_i
 
-    // Method 1: use optimization program to solve it
+    // Method 1: use optimization program to solve it?
 
     // Method 2: use schur complement (see notes)
     // (w = P_i * theta + q_i)
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;
     for (int batch = 0; batch < current_batch; batch++) {
-
+      MatrixXd Q = H_vec[batch];
+      MatrixXd inQAtransp = solveInvATimesB(H_vec[batch],A_vec[batch].transpose());
 
 
     }
