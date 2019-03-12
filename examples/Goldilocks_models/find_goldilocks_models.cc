@@ -172,7 +172,6 @@ void findGoldilocksModels() {
       B_active_vec.push_back(B_active);
       y_active_vec.push_back(y_active);
 
-
       // Testing redundant rows (there seems to exsit redundant rows)
       cout << "Testing redundant rows of constraints\n";
       VectorXd rowi(nw_i);
@@ -185,14 +184,20 @@ void findGoldilocksModels() {
           rowj = A_active.row(j).transpose();
           normalized_rowi = rowi/rowi.norm();
           normalized_rowj = rowj/rowj.norm();
-          if((normalized_rowi-normalized_rowj).norm() < 1e-12)
+          if((normalized_rowi-normalized_rowj).norm() < 1e-12){
             cout << "There are redundant rows ("<<i<<","<<j<<")\n";
-          // We don't need to check the b in Ax=b, because we know there are
-          // feasible solutions
+            // We don't need to check the b in Ax=b, because we know there are
+            // feasible solutions
+            // But we still check it just in case.
+            if(y_active(i)/rowi.norm() - y_active(j)/rowj.norm() > 1e-12)
+              cout << "There are over-constraining rows!!!!\n";
+          }
         }
       }
       cout << "Finished testing redundant rows of constraints\n";
-
+      // Get rid of redundant rows
+      // Careful: the algorithm here assumes that there are at most two rows
+      // that are parallel to each other for each set of parallel equations
 
 
       if (batch == 0) {
