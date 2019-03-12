@@ -210,8 +210,6 @@ void findGoldilocksModels() {
       cout << "Finished finding redundant rows of constraints\n";
 
       nl_i = non_redundant_row_idx.size();
-      nl_vec.push_back(nl_i);
-      nl += nl_i;
 
       // Get rid of redundant rows
       MatrixXd A_active_nonredundant(nl_i, nw_i);
@@ -223,49 +221,76 @@ void findGoldilocksModels() {
         y_active_nonredundant(i) = y_active(non_redundant_row_idx[i]);
       }
 
+      // // Find redundant rows
+      // cout << "Double checking: Find redundant rows of constraints\n";
+      // vector<int> non_redundant_row_idx_2;
+      // non_redundant_row_idx_2.push_back(0);
+      // VectorXd rowi_2(nw_i);
+      // VectorXd rowj_2(nw_i);
+      // VectorXd normalized_rowi_2(nw_i);
+      // VectorXd normalized_rowj_2(nw_i);
+      // unsigned int count_2 = 0; // see if it goes through all element of vector
+      // for (int i = 1; i < nl_i; i++) {
+      //   count_2 = 0;
+      //   for (int j : non_redundant_row_idx_2) {
+      //     rowi_2 = A_active_nonredundant.row(i).transpose();
+      //     rowj_2 = A_active_nonredundant.row(j).transpose();
+      //     normalized_rowi_2 = rowi_2 / rowi_2.norm();
+      //     normalized_rowj_2 = rowj_2 / rowj_2.norm();
+      //     if ((normalized_rowi_2 - normalized_rowj_2).norm() < 1e-6) {
+      //       cout << "There are redundant rows (" << j << "," << i << ")\n";
+      //       // We don't need to check the b in Ax=b, because we know there are
+      //       // feasible solutions
+      //       // But we still check it just in case.
+      //       if (y_active(i) / rowi_2.norm() - y_active(j) / rowj_2.norm() > 1e-6)
+      //         cout << "There are over-constraining rows!!!!\n";
+      //       break;
+      //     }
+      //     count_2++;
+      //   }
+      //   if (count_2 == non_redundant_row_idx_2.size())
+      //     non_redundant_row_idx_2.push_back(i);
+      // }
+      // cout << "Double checking: Finished finding redundant rows of constraints\n";
 
-
-
-      // Find redundant rows
-      cout << "Double checking: Find redundant rows of constraints\n";
-      vector<int> non_redundant_row_idx_2;
-      non_redundant_row_idx_2.push_back(0);
-      VectorXd rowi_2(nw_i);
-      VectorXd rowj_2(nw_i);
-      VectorXd normalized_rowi_2(nw_i);
-      VectorXd normalized_rowj_2(nw_i);
-      unsigned int count_2 = 0; // see if it goes through all element of vector
+      // Only add the rows that are linearly independent
+      cout << "Start extracting independent rows of A\n";
+      MatrixXd A_full_row_rank = A_active_nonredundant.row(0);
+      std::vector<int> full_row_rank_idx;
+      full_row_rank_idx.push_back(0);
       for (int i = 1; i < nl_i; i++) {
-        count_2 = 0;
-        for (int j : non_redundant_row_idx_2) {
-          rowi_2 = A_active_nonredundant.row(i).transpose();
-          rowj_2 = A_active_nonredundant.row(j).transpose();
-          normalized_rowi_2 = rowi_2 / rowi_2.norm();
-          normalized_rowj_2 = rowj_2 / rowj_2.norm();
-          if ((normalized_rowi_2 - normalized_rowj_2).norm() < 1e-6) {
-            cout << "There are redundant rows (" << j << "," << i << ")\n";
-            // We don't need to check the b in Ax=b, because we know there are
-            // feasible solutions
-            // But we still check it just in case.
-            if (y_active(i) / rowi_2.norm() - y_active(j) / rowj_2.norm() > 1e-6)
-              cout << "There are over-constraining rows!!!!\n";
-            break;
-          }
-          count_2++;
+        int n_current_rows = A_full_row_rank.rows();
+        MatrixXd A_test(n_current_rows+1,nw_i);
+        A_test.block(0,0,n_current_rows,nw_i) = A_full_row_rank;
+        A_test.block(nw_i,0,1,nw_i) = A_active_nonredundant.row(i);
+
+        // Perform svd to check rank
+        Eigen::BDCSVD<MatrixXd> svd(A_test);
+        if(svd.singularValues()(n_current_rows) > 1e-6){
+          A_full_row_rank = A_test;
+          full_row_rank_idx.push_back(i);
         }
-        if (count_2 == non_redundant_row_idx_2.size())
-          non_redundant_row_idx_2.push_back(i);
       }
-      cout << "Double checking: Finished finding redundant rows of constraints\n";
+      cout << "Finished extracting independent rows of A\n";
+
+      nl_i = full_row_rank_idx.size();
+      nl_vec.push_back(nl_i);
+      nl += nl_i;
+
+      // B and y
+      MatrixXd B_full_row_rank(nl_i, nt_i);
+      VectorXd y_full_row_rank(nl_i);
+      for (int i = 0; i < nl_i; i++) {
+        B_full_row_rank.row(i) = B_active_nonredundant.row(full_row_rank_idx[i]);
+        y_full_row_rank(i) = y_active_nonredundant(full_row_rank_idx[i]);
+      }
 
 
 
 
-
-
-      A_active_vec.push_back(A_active_nonredundant);
-      B_active_vec.push_back(B_active_nonredundant);
-      y_active_vec.push_back(y_active_nonredundant);
+      A_active_vec.push_back(A_full_row_rank);
+      B_active_vec.push_back(B_full_row_rank);
+      y_active_vec.push_back(y_full_row_rank);
 
       if (batch == 0) {
         nt = nt_i;
