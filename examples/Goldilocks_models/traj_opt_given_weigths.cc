@@ -393,7 +393,6 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
-
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                  gm_traj_opt.dircon->decision_variables());
@@ -455,7 +454,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-      for (int k = 0; k < n_zDot; k++) {
+      for (int k = 0; k < n_zDot/2; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
           B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
             dyn_gradient(j);
@@ -501,7 +500,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   cout << "time_at_knots = " << time_at_knots << endl;*/
 
 
-  /*// visualizer
+  // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
@@ -512,7 +511,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }*/
+  }
 
   return ;
 }

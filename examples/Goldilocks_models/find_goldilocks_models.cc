@@ -56,6 +56,8 @@ void findGoldilocksModels() {
   int n_featureZDot = 21;//1; // since we are hard coding it now. (same below)
   int n_thetaZ = n_z * n_featureZ;
   int n_thetaZDot = (n_zDot / 2) * n_featureZDot;
+  cout << "n_thetaZ = " << n_thetaZ << endl;
+  cout << "n_thetaZDot = " << n_thetaZDot << endl;
   // Assuming position and velocity has the same dimension
   // for the reduced order model.
 
