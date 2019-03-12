@@ -12,7 +12,7 @@ using std::endl;
 namespace dairlib {
 namespace goldilocks_models {
 
-MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B){
+MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   return (A.transpose() * A).ldlt().solve(A.transpose() * B);
 }
 
@@ -63,6 +63,7 @@ void findGoldilocksModels() {
   vector<VectorXd> lb_vec;
   vector<VectorXd> ub_vec;
   vector<VectorXd> y_vec;
+  vector<VectorXd> y_active_vec;
   vector<VectorXd> b_vec;
   vector<VectorXd> w_sol_vec;
   vector<VectorXd> theta_vec;
@@ -81,6 +82,7 @@ void findGoldilocksModels() {
     lb_vec.clear();
     ub_vec.clear();
     y_vec.clear();
+    y_active_vec.clear();
     b_vec.clear();
     w_sol_vec.clear();
     theta_vec.clear();
@@ -141,7 +143,7 @@ void findGoldilocksModels() {
 
       MatrixXd A_active(nl_i, nw_i);
       MatrixXd B_active(nl_i, nt_i);
-      MatrixXd AB_active(nl_i, nw_i + nt_i);
+      VectorXd y_active(nl_i);
 
       nl_i = 0;
       for (int i = 0; i < y_vec[batch].rows(); i++) {
@@ -149,13 +151,14 @@ void findGoldilocksModels() {
             y_vec[batch](i) <= lb_vec[batch](i) + tol) {
           A_active.row(nl_i) = A_vec[batch].row(i);
           B_active.row(nl_i) = B_vec[batch].row(i);
-          AB_active.row(nl_i) << A_vec[batch].row(i), B_vec[batch].row(i);
+          y_active(nl_i) = y_vec[batch](i);
           nl_i++;
         }
       }
 
       A_active_vec.push_back(A_active);
       B_active_vec.push_back(B_active);
+      y_active_vec.push_back(y_active);
 
       if (batch == 0) {
         nt = nt_i;
@@ -204,19 +207,23 @@ void findGoldilocksModels() {
 
 
     // Get P_i and q_i
-
     // Method 1: use optimization program to solve it???
-
     // Method 2: use schur complement (see notes)
     // This one requires the Hessian H to be pd.
     // (w = P_i * theta + q_i)
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;
     for (int batch = 0; batch < current_batch; batch++) {
-      MatrixXd Q = H_vec[batch];
-      MatrixXd inQAtransp = solveInvATimesB(H_vec[batch],A_vec[batch].transpose());
+      cout << "Start calculating\n";
+      MatrixXd AinvQA = A_vec[batch] * solveInvATimesB(
+                          H_vec[batch], A_vec[batch].transpose());
+      VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
+      MatrixXd E = solveInvATimesB(AinvQA, B_vec[batch]);
+      VectorXd F = -solveInvATimesB(AinvQA, y_active_vec[batch]+A_vec[batch]*invQc);
 
-
+      MatrixXd P = -solveInvATimesB(H_vec[batch],A_vec[batch].transpose()*E);
+      VectorXd q = -solveInvATimesB(H_vec[batch],b_vec[batch]+A_vec[batch].transpose()*F);
+      cout << "Finished calculating\n";
     }
 
 
