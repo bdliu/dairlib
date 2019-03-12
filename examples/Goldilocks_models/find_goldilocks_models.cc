@@ -50,10 +50,10 @@ void findGoldilocksModels() {
   double epsilon = 1e-4;
 
   // Reduced order model parameters
-  int n_z = 2;
+  int n_z = 4; //2
   int n_zDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 1;    // n_feature should match with the dim of the feature,
-  int n_featureZDot = 1; // since we are hard coding it now. (same below)
+  int n_featureZ = 309;//1;    // n_feature should match with the dim of the feature,
+  int n_featureZDot = 21;//1; // since we are hard coding it now. (same below)
   int n_thetaZ = n_z * n_featureZ;
   int n_thetaZDot = (n_zDot / 2) * n_featureZDot;
   // Assuming position and velocity has the same dimension
@@ -66,6 +66,10 @@ void findGoldilocksModels() {
   // thetaZ(0) = 1;
   // thetaZ(3) = 1;
   thetaZDot = VectorXd::Zero(n_thetaZDot);
+  // Testing intial theta
+  // thetaZ = VectorXd::Random(n_thetaZ);
+  // thetaZDot = VectorXd::Random(n_thetaZDot);
+
 
   // Vectors/Matrices for the outer loop
   vector<MatrixXd> A_vec;
