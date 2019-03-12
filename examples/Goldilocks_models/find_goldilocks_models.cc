@@ -13,8 +13,18 @@ namespace dairlib {
 namespace goldilocks_models {
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
-  return (A.transpose() * A).ldlt().solve(A.transpose() * B);
+  MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
+  MatrixXd abs_resid = (A*X-B).cwiseAbs();
+  VectorXd left_one = VectorXd::Ones(abs_resid.rows());
+  VectorXd right_one = VectorXd::Ones(abs_resid.cols());
+  cout << "residual-sum: "<< left_one.transpose()*abs_resid*right_one << endl;
+  return X;
 }
+// MatrixXd solveInvATimesB(const MatrixXd & A, const VectorXd & b) {
+//   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * b);
+//   cout << "residual-norm: "<< (A*X-b).norm() << endl;
+//   return X;
+// }
 
 void findGoldilocksModels() {
   string directory = "examples/Goldilocks_models/data/";
@@ -34,6 +44,8 @@ void findGoldilocksModels() {
 
   // Paramters for the outer loop optimization
   int max_outer_iter = 1;
+  double threshold = 1e-4;
+  double h_step = 1e-2;
   double epsilon = 1e-4;
 
   // Reduced order model parameters
@@ -69,7 +81,9 @@ void findGoldilocksModels() {
   vector<VectorXd> theta_vec;
 
   // Start the gradient descent
-  for (int iter = 1; iter <= max_outer_iter; iter++) {
+  VectorXd theta(n_thetaZ + n_thetaZDot);
+  theta << thetaZ, thetaZDot;
+  for (int iter = 1; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
 
@@ -102,8 +116,6 @@ void findGoldilocksModels() {
                           y_vec, lb_vec, ub_vec, b_vec, B_vec,
                           Q_double, R,
                           epsilon);
-      VectorXd theta(n_thetaZ + n_thetaZDot);
-      theta << thetaZ, thetaZDot;
       theta_vec.push_back(theta);
 
     }
@@ -220,16 +232,40 @@ void findGoldilocksModels() {
       MatrixXd E = solveInvATimesB(AinvQA, B_active_vec[batch]);
       VectorXd F = -solveInvATimesB(AinvQA, y_active_vec[batch]+A_active_vec[batch]*invQc);
 
+
+      // Testing
+      // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+      // int n_sv = svd.singularValues().size();
+      // cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+
+
+
       MatrixXd Pi = -solveInvATimesB(H_vec[batch],A_active_vec[batch].transpose()*E);
       VectorXd qi = -solveInvATimesB(H_vec[batch],b_vec[batch]+A_active_vec[batch].transpose()*F);
 
+      cout << "qi norm = " << qi.norm() << endl;
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
     }
 
+    // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
+    VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
+    for (int batch = 0; batch < current_batch; batch++) {
+      costGradient +=
+        P_vec[batch].transpose()*(b_vec[batch]+H_vec[batch]*q_vec[batch]);
+    }
 
+    // Gradient descent and assign thetaZ and thetaZDot
+    theta -= h_step * costGradient;
+    thetaZ = theta.head(n_thetaZ);
+    thetaZDot = theta.tail(n_thetaZDot);
 
-
+    // Check optimality
+    cout << "costGradient norm: " << costGradient.norm() << endl;
+    if(costGradient.norm() < threshold){
+      cout << "Found optimal theta.\n";
+      break;
+    }
   }
 
 

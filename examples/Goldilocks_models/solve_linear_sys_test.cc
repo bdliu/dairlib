@@ -28,9 +28,13 @@ int main() {
   // Testing eigenvalues
   MatrixXd ones = MatrixXd::Random(3,3);
   ones = ones + ones.transpose();
+  cout << "ones = \n" << ones << "\n\n";
   VectorXcd eivals = ones.eigenvalues();
   cout << "The eigenvalues of the 3x3 matrix of ones are:" << endl << eivals << endl;
   cout<< "real part = \n"<<eivals.real()<<endl;
 
+
+  // Testing abs
+  cout << ones.cwiseAbs() << endl;
   return 0;
 }
