@@ -172,32 +172,44 @@ void findGoldilocksModels() {
       B_active_vec.push_back(B_active);
       y_active_vec.push_back(y_active);
 
-      // Testing redundant rows (there seems to exsit redundant rows)
-      cout << "Testing redundant rows of constraints\n";
+
+
+
+
+      // Find redundant rows
+      cout << "Find redundant rows of constraints\n";
+      vector<int> non_redundant_row_idx;
+      non_redundant_row_idx.push_back(0);
       VectorXd rowi(nw_i);
       VectorXd rowj(nw_i);
       VectorXd normalized_rowi(nw_i);
       VectorXd normalized_rowj(nw_i);
-      for(int i =0; i<nl_i; i++){
-        for(int j=i+1; j<nl_i; j++){
+      unsigned int count = 0; // see if it goes through all element of vector
+      for(int i =1; i<nl_i; i++){
+        count = 0;
+        for(int j : non_redundant_row_idx){
           rowi = A_active.row(i).transpose();
           rowj = A_active.row(j).transpose();
           normalized_rowi = rowi/rowi.norm();
           normalized_rowj = rowj/rowj.norm();
           if((normalized_rowi-normalized_rowj).norm() < 1e-12){
-            cout << "There are redundant rows ("<<i<<","<<j<<")\n";
+            cout << "There are redundant rows ("<<j<<","<<i<<")\n";
             // We don't need to check the b in Ax=b, because we know there are
             // feasible solutions
             // But we still check it just in case.
             if(y_active(i)/rowi.norm() - y_active(j)/rowj.norm() > 1e-12)
               cout << "There are over-constraining rows!!!!\n";
+            break;
           }
+          count++;
         }
+        if(count == non_redundant_row_idx.size())
+          non_redundant_row_idx.push_back(i);
       }
-      cout << "Finished testing redundant rows of constraints\n";
+      cout << "Finished finding redundant rows of constraints\n";
+
       // Get rid of redundant rows
-      // Careful: the algorithm here assumes that there are at most two rows
-      // that are parallel to each other for each set of parallel equations
+
 
 
       if (batch == 0) {
