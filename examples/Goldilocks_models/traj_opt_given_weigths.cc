@@ -491,14 +491,14 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   writeCSV(directory + output_prefix + string("b.csv"), b);
   writeCSV(directory + output_prefix + string("B.csv"), B);
 
-  // Store the time, state, and input at knot points
+  /*// Store the time, state, and input at knot points
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
   MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
   MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
   writeCSV(directory + output_prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + output_prefix + string("state_at_knots.csv"), state_at_knots);
   writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);
-  cout << "time_at_knots = " << time_at_knots << endl;
+  cout << "time_at_knots = " << time_at_knots << endl;*/
 
 
   /*// visualizer

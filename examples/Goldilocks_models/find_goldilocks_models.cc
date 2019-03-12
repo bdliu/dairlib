@@ -14,10 +14,11 @@ namespace goldilocks_models {
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
-  MatrixXd abs_resid = (A*X-B).cwiseAbs();
+  MatrixXd abs_resid = (A * X - B).cwiseAbs();
   VectorXd left_one = VectorXd::Ones(abs_resid.rows());
   VectorXd right_one = VectorXd::Ones(abs_resid.cols());
-  cout << "sum-abs-residual: "<< left_one.transpose()*abs_resid*right_one << endl;
+  cout << "sum-abs-residual: " << left_one.transpose()*abs_resid*right_one <<
+       endl;
   return X;
 }
 // MatrixXd solveInvATimesB(const MatrixXd & A, const VectorXd & b) {
@@ -136,8 +137,10 @@ void findGoldilocksModels() {
       DRAKE_ASSERT(b_vec[batch].cols() == 1);
       DRAKE_ASSERT(w_sol_vec[batch].cols() == 1);
 
-      int nw_i = A_vec[batch].cols();
       int nt_i = B_vec[batch].cols();
+      int nw_i = A_vec[batch].cols();
+      nw_vec.push_back(nw_i);
+      nw += nw_i;
 
       int nl_i = 0;
       double tol = 1e-4;
@@ -146,12 +149,6 @@ void findGoldilocksModels() {
             y_vec[batch](i) <= lb_vec[batch](i) + tol)
           nl_i++;
       }
-
-      nw_vec.push_back(nw_i);
-      nl_vec.push_back(nl_i);
-
-      nw += nw_i;
-      nl += nl_i;
 
       MatrixXd A_active(nl_i, nw_i);
       MatrixXd B_active(nl_i, nt_i);
@@ -168,14 +165,6 @@ void findGoldilocksModels() {
         }
       }
 
-      A_active_vec.push_back(A_active);
-      B_active_vec.push_back(B_active);
-      y_active_vec.push_back(y_active);
-
-
-
-
-
       // Find redundant rows
       cout << "Find redundant rows of constraints\n";
       vector<int> non_redundant_row_idx;
@@ -185,32 +174,90 @@ void findGoldilocksModels() {
       VectorXd normalized_rowi(nw_i);
       VectorXd normalized_rowj(nw_i);
       unsigned int count = 0; // see if it goes through all element of vector
-      for(int i =1; i<nl_i; i++){
+      for (int i = 1; i < nl_i; i++) {
         count = 0;
-        for(int j : non_redundant_row_idx){
+        for (int j : non_redundant_row_idx) {
           rowi = A_active.row(i).transpose();
           rowj = A_active.row(j).transpose();
-          normalized_rowi = rowi/rowi.norm();
-          normalized_rowj = rowj/rowj.norm();
-          if((normalized_rowi-normalized_rowj).norm() < 1e-12){
-            cout << "There are redundant rows ("<<j<<","<<i<<")\n";
+          normalized_rowi = rowi / rowi.norm();
+          normalized_rowj = rowj / rowj.norm();
+          if ((normalized_rowi - normalized_rowj).norm() < 1e-6) {
+            cout << "There are redundant rows (" << j << "," << i << ")\n";
             // We don't need to check the b in Ax=b, because we know there are
             // feasible solutions
             // But we still check it just in case.
-            if(y_active(i)/rowi.norm() - y_active(j)/rowj.norm() > 1e-12)
+            if (y_active(i) / rowi.norm() - y_active(j) / rowj.norm() > 1e-6)
               cout << "There are over-constraining rows!!!!\n";
+            // Checking if B is involved
+            for(int k = 0; k<n_thetaZ + n_thetaZDot; k++){
+              if(B_active(i,k) != 0) cout << "B is in redundant rows of constraints\n";
+            }
             break;
           }
           count++;
         }
-        if(count == non_redundant_row_idx.size())
+        if (count == non_redundant_row_idx.size())
           non_redundant_row_idx.push_back(i);
       }
       cout << "Finished finding redundant rows of constraints\n";
 
+      nl_i = non_redundant_row_idx.size();
+      nl_vec.push_back(nl_i);
+      nl += nl_i;
+
       // Get rid of redundant rows
+      MatrixXd A_active_nonredundant(nl_i, nw_i);
+      MatrixXd B_active_nonredundant(nl_i, nt_i);
+      VectorXd y_active_nonredundant(nl_i);
+      for (int i = 0; i < nl_i; i++) {
+        A_active_nonredundant.row(i) = A_active.row(non_redundant_row_idx[i]);
+        B_active_nonredundant.row(i) = B_active.row(non_redundant_row_idx[i]);
+        y_active_nonredundant(i) = y_active(non_redundant_row_idx[i]);
+      }
 
 
+
+
+      // Find redundant rows
+      cout << "Double checking: Find redundant rows of constraints\n";
+      vector<int> non_redundant_row_idx_2;
+      non_redundant_row_idx_2.push_back(0);
+      VectorXd rowi_2(nw_i);
+      VectorXd rowj_2(nw_i);
+      VectorXd normalized_rowi_2(nw_i);
+      VectorXd normalized_rowj_2(nw_i);
+      unsigned int count_2 = 0; // see if it goes through all element of vector
+      for (int i = 1; i < nl_i; i++) {
+        count_2 = 0;
+        for (int j : non_redundant_row_idx_2) {
+          rowi_2 = A_active_nonredundant.row(i).transpose();
+          rowj_2 = A_active_nonredundant.row(j).transpose();
+          normalized_rowi_2 = rowi_2 / rowi_2.norm();
+          normalized_rowj_2 = rowj_2 / rowj_2.norm();
+          if ((normalized_rowi_2 - normalized_rowj_2).norm() < 1e-6) {
+            cout << "There are redundant rows (" << j << "," << i << ")\n";
+            // We don't need to check the b in Ax=b, because we know there are
+            // feasible solutions
+            // But we still check it just in case.
+            if (y_active(i) / rowi_2.norm() - y_active(j) / rowj_2.norm() > 1e-6)
+              cout << "There are over-constraining rows!!!!\n";
+            break;
+          }
+          count_2++;
+        }
+        if (count_2 == non_redundant_row_idx_2.size())
+          non_redundant_row_idx_2.push_back(i);
+      }
+      cout << "Double checking: Finished finding redundant rows of constraints\n";
+
+
+
+
+
+
+      A_active_vec.push_back(A_active_nonredundant);
+      B_active_vec.push_back(B_active_nonredundant);
+      y_active_vec.push_back(y_active_nonredundant);
 
       if (batch == 0) {
         nt = nt_i;
@@ -253,9 +300,10 @@ void findGoldilocksModels() {
 
 
     // Testing
-    // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-    // int n_sv = svd.singularValues().size();
-    // cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+    Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+    int n_sv = svd.singularValues().size();
+    cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+    cout << "singular values are \n" << svd.singularValues() << endl;
 
 
     // Get P_i and q_i
@@ -270,30 +318,57 @@ void findGoldilocksModels() {
                           H_vec[batch], A_active_vec[batch].transpose());
       VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
       MatrixXd E = solveInvATimesB(AinvQA, B_active_vec[batch]);
-      VectorXd F = -solveInvATimesB(AinvQA, y_active_vec[batch]+A_active_vec[batch]*invQc);
+      VectorXd F = -solveInvATimesB(AinvQA,
+                                    y_active_vec[batch] + A_active_vec[batch] * invQc);
 
 
       // Testing
       Eigen::BDCSVD<MatrixXd> svd(AinvQA);
       int n_sv = svd.singularValues().size();
-      cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+      cout << "smallest singular value is " << svd.singularValues()(n_sv - 1) << endl;
+      cout << "singular values are \n" << svd.singularValues() << endl;
 
 
+      // Testing
+      cout << "try to inverse the matrix directly by inverse()\n";
+      MatrixXd AinvQA_2 = A_active_vec[batch] *
+                       H_vec[batch].inverse() * A_active_vec[batch].transpose();
+      cout << "AinvQA_2 = \n" << AinvQA_2 << endl;
+      VectorXd one_lambda = VectorXd::Ones(nl_vec[batch]);
+      MatrixXd abs_diff = (AinvQA - AinvQA_2).cwiseAbs();
+      cout << "Compare two method's difference: " << one_lambda.transpose()*abs_diff*one_lambda << endl;
+      cout << "Finsihing inverting the matrix.\n";
 
-      MatrixXd Pi = -solveInvATimesB(H_vec[batch],A_active_vec[batch].transpose()*E);
-      VectorXd qi = -solveInvATimesB(H_vec[batch],b_vec[batch]+A_active_vec[batch].transpose()*F);
+
+      MatrixXd Pi = -solveInvATimesB(H_vec[batch],
+                                     A_active_vec[batch].transpose() * E);
+      VectorXd qi = -solveInvATimesB(H_vec[batch],
+                                     b_vec[batch] + A_active_vec[batch].transpose() * F);
 
       cout << "qi norm = " << qi.norm() << endl;
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
     }
 
+
+
+    // Testing inverse of the extended matrix
+
+
+
+
+
+
+
+
     // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
+    cout << "Calculating gradient\n";
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
       costGradient +=
-        P_vec[batch].transpose()*(b_vec[batch]+H_vec[batch]*q_vec[batch]);
+        P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
     }
+    // cout << "costGradient = \n" << costGradient;
 
     // Gradient descent and assign thetaZ and thetaZDot
     theta -= h_step * costGradient;
@@ -302,7 +377,7 @@ void findGoldilocksModels() {
 
     // Check optimality
     cout << "costGradient norm: " << costGradient.norm() << endl;
-    if(costGradient.norm() < threshold){
+    if (costGradient.norm() < threshold) {
       cout << "Found optimal theta.\n";
       break;
     }
