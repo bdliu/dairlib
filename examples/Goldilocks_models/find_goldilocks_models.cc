@@ -214,17 +214,19 @@ void findGoldilocksModels() {
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;
     for (int batch = 0; batch < current_batch; batch++) {
-      cout << "Start calculating\n";
-      MatrixXd AinvQA = A_vec[batch] * solveInvATimesB(
-                          H_vec[batch], A_vec[batch].transpose());
+      MatrixXd AinvQA = A_active_vec[batch] * solveInvATimesB(
+                          H_vec[batch], A_active_vec[batch].transpose());
       VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
-      MatrixXd E = solveInvATimesB(AinvQA, B_vec[batch]);
-      VectorXd F = -solveInvATimesB(AinvQA, y_active_vec[batch]+A_vec[batch]*invQc);
+      MatrixXd E = solveInvATimesB(AinvQA, B_active_vec[batch]);
+      VectorXd F = -solveInvATimesB(AinvQA, y_active_vec[batch]+A_active_vec[batch]*invQc);
 
-      MatrixXd P = -solveInvATimesB(H_vec[batch],A_vec[batch].transpose()*E);
-      VectorXd q = -solveInvATimesB(H_vec[batch],b_vec[batch]+A_vec[batch].transpose()*F);
-      cout << "Finished calculating\n";
+      MatrixXd Pi = -solveInvATimesB(H_vec[batch],A_active_vec[batch].transpose()*E);
+      VectorXd qi = -solveInvATimesB(H_vec[batch],b_vec[batch]+A_active_vec[batch].transpose()*F);
+
+      P_vec.push_back(Pi);
+      q_vec.push_back(qi);
     }
+
 
 
 
