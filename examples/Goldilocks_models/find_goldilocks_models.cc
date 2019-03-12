@@ -17,7 +17,7 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd abs_resid = (A*X-B).cwiseAbs();
   VectorXd left_one = VectorXd::Ones(abs_resid.rows());
   VectorXd right_one = VectorXd::Ones(abs_resid.cols());
-  cout << "residual-sum: "<< left_one.transpose()*abs_resid*right_one << endl;
+  cout << "sum-abs-residual: "<< left_one.transpose()*abs_resid*right_one << endl;
   return X;
 }
 // MatrixXd solveInvATimesB(const MatrixXd & A, const VectorXd & b) {
@@ -172,6 +172,34 @@ void findGoldilocksModels() {
       B_active_vec.push_back(B_active);
       y_active_vec.push_back(y_active);
 
+
+      // Testing redundent rows (there seems to exsit redundent rows)
+      cout << "Testing redundent rows of constraints\n";
+      double ratio_difference;
+      VectorXd rowi(nw_i);
+      VectorXd rowj(nw_i);
+      int count = 0;
+      for(int i =0; i<nl_i; i++){
+        for(int j=i+1; j<nl_i; j++){
+          rowi = A_active.row(i).transpose();
+          rowj = A_active.row(j).transpose();
+          for(int k=0;k<nw_i-1; k++){
+            ratio_difference = rowi(k)*rowj(k+1)-rowi(k+1)*rowj(k);
+            if(ratio_difference < 1e-12)
+              count++;
+          }
+          ratio_difference = rowi(nw_i)*y_active(j)-y_active(i)*rowj(nw_i);
+          if(ratio_difference < 1e-12)
+            count++;
+          if(count == nw_i)
+            cout << "There are redundent rows ("<<i<<","<<j<<")\n";
+          count = 0;
+        }
+      }
+      cout << "Finished testing redundent rows of constraints\n";
+
+
+
       if (batch == 0) {
         nt = nt_i;
       } else {
@@ -234,9 +262,9 @@ void findGoldilocksModels() {
 
 
       // Testing
-      // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-      // int n_sv = svd.singularValues().size();
-      // cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+      Eigen::BDCSVD<MatrixXd> svd(AinvQA);
+      int n_sv = svd.singularValues().size();
+      cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
 
 
 
