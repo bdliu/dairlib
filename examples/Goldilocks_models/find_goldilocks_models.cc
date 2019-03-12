@@ -56,21 +56,19 @@ void findGoldilocksModels() {
   int n_featureZDot = 21;//1; // since we are hard coding it now. (same below)
   int n_thetaZ = n_z * n_featureZ;
   int n_thetaZDot = (n_zDot / 2) * n_featureZDot;
-  cout << "n_thetaZ = " << n_thetaZ << endl;
-  cout << "n_thetaZDot = " << n_thetaZDot << endl;
   // Assuming position and velocity has the same dimension
   // for the reduced order model.
 
   // Initial guess of theta
   VectorXd thetaZ(n_thetaZ);
   VectorXd thetaZDot(n_thetaZDot);
-  thetaZ = VectorXd::Zero(n_thetaZ);
+  // thetaZ = VectorXd::Zero(n_thetaZ);
   // thetaZ(0) = 1;
   // thetaZ(3) = 1;
-  thetaZDot = VectorXd::Zero(n_thetaZDot);
+  // thetaZDot = VectorXd::Zero(n_thetaZDot);
   // Testing intial theta
-  // thetaZ = VectorXd::Random(n_thetaZ);
-  // thetaZDot = VectorXd::Random(n_thetaZDot);
+  thetaZ = VectorXd::Random(n_thetaZ);
+  thetaZDot = VectorXd::Random(n_thetaZDot);
 
 
   // Vectors/Matrices for the outer loop
@@ -93,6 +91,9 @@ void findGoldilocksModels() {
   for (int iter = 1; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
+
+    writeCSV(directory + output_prefix + string("thetaZ.csv"), thetaZ);
+    writeCSV(directory + output_prefix + string("thetaZDot.csv"), thetaZDot);
 
     // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
