@@ -36,6 +36,7 @@ void findGoldilocksModels() {
   // Parametres for tasks
   int n_batch = 1;
   double stride_length = 0.3;
+  //double delta_stride_length = 0.03;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the inner loop optimization
@@ -62,13 +63,13 @@ void findGoldilocksModels() {
   // Initial guess of theta
   VectorXd thetaZ(n_thetaZ);
   VectorXd thetaZDot(n_thetaZDot);
-  // thetaZ = VectorXd::Zero(n_thetaZ);
+  thetaZ = VectorXd::Zero(n_thetaZ);
   // thetaZ(0) = 1;
   // thetaZ(3) = 1;
-  // thetaZDot = VectorXd::Zero(n_thetaZDot);
+  thetaZDot = VectorXd::Zero(n_thetaZDot);
   // Testing intial theta
-  thetaZ = VectorXd::Random(n_thetaZ);
-  thetaZDot = VectorXd::Random(n_thetaZDot);
+  // thetaZ = VectorXd::Random(n_thetaZ);
+  // thetaZDot = VectorXd::Random(n_thetaZDot);
 
 
   // Vectors/Matrices for the outer loop
@@ -375,6 +376,12 @@ void findGoldilocksModels() {
     cout << "nl0 = " << nl0 << endl;
     cout << "col = " << A_active_vec[0].cols() << endl;
     cout << "row = " << A_active_vec[0].rows() << endl;
+
+    // Testing
+    Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
+    int n_sv_2 = svd_2.singularValues().size();
+    cout << "smallest singular value is " << svd_2.singularValues()(n_sv_2-1) << endl;
+    cout << "singular values are \n" << svd_2.singularValues() << endl;
 
 
     // cout << "try to inverse the matrix directly by inverse()\n";
