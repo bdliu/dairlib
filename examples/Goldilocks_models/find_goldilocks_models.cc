@@ -173,30 +173,25 @@ void findGoldilocksModels() {
       y_active_vec.push_back(y_active);
 
 
-      // Testing redundent rows (there seems to exsit redundent rows)
-      cout << "Testing redundent rows of constraints\n";
-      double ratio_difference;
+      // Testing redundant rows (there seems to exsit redundant rows)
+      cout << "Testing redundant rows of constraints\n";
       VectorXd rowi(nw_i);
       VectorXd rowj(nw_i);
-      int count = 0;
+      VectorXd normalized_rowi(nw_i);
+      VectorXd normalized_rowj(nw_i);
       for(int i =0; i<nl_i; i++){
         for(int j=i+1; j<nl_i; j++){
           rowi = A_active.row(i).transpose();
           rowj = A_active.row(j).transpose();
-          for(int k=0;k<nw_i-1; k++){
-            ratio_difference = rowi(k)*rowj(k+1)-rowi(k+1)*rowj(k);
-            if(ratio_difference < 1e-12)
-              count++;
-          }
-          ratio_difference = rowi(nw_i)*y_active(j)-y_active(i)*rowj(nw_i);
-          if(ratio_difference < 1e-12)
-            count++;
-          if(count == nw_i)
-            cout << "There are redundent rows ("<<i<<","<<j<<")\n";
-          count = 0;
+          normalized_rowi = rowi/rowi.norm();
+          normalized_rowj = rowj/rowj.norm();
+          if((normalized_rowi-normalized_rowj).norm() < 1e-12)
+            cout << "There are redundant rows ("<<i<<","<<j<<")\n";
+          // We don't need to check the b in Ax=b, because we know there are
+          // feasible solutions
         }
       }
-      cout << "Finished testing redundent rows of constraints\n";
+      cout << "Finished testing redundant rows of constraints\n";
 
 
 
