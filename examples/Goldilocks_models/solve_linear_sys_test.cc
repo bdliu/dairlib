@@ -73,6 +73,12 @@ int main() {
   cout << "smallest singular value is " << svd.singularValues()(n_sv - 1) << endl;
   cout << "singular values are \n" << svd.singularValues() << endl;*/
 
+  // Testing if I can change the size of MatrixXd
+  MatrixXd A_temp = MatrixXd::Zero(1,1);
+  cout << "A_temp = \n" << A_temp << endl;
+  A_temp = MatrixXd::Zero(2,1);
+  cout << "A_temp = \n" << A_temp << endl;
+
 
   return 0;
 }

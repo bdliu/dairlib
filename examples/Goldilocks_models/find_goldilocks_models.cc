@@ -255,19 +255,21 @@ void findGoldilocksModels() {
 
       // Only add the rows that are linearly independent
       cout << "Start extracting independent rows of A\n";
-      MatrixXd A_full_row_rank = A_active_nonredundant.row(0);
       std::vector<int> full_row_rank_idx;
       full_row_rank_idx.push_back(0);
       for (int i = 1; i < nl_i; i++) {
-        int n_current_rows = A_full_row_rank.rows();
+        cout << "i = " << i << endl;
+        // Construct test matrix
+        int n_current_rows = full_row_rank_idx.size();
         MatrixXd A_test(n_current_rows+1,nw_i);
-        A_test.block(0,0,n_current_rows,nw_i) = A_full_row_rank;
-        A_test.block(nw_i,0,1,nw_i) = A_active_nonredundant.row(i);
+        for(unsigned int j=0 ; j<full_row_rank_idx.size(); j++)
+          A_test.block(j,0,1,nw_i) = A_active_nonredundant.row(full_row_rank_idx[j]);
+        A_test.block(n_current_rows,0,1,nw_i) = A_active_nonredundant.row(i);
 
         // Perform svd to check rank
         Eigen::BDCSVD<MatrixXd> svd(A_test);
+        // double sigular_value = svd.singularValues()(n_current_rows);
         if(svd.singularValues()(n_current_rows) > 1e-6){
-          A_full_row_rank = A_test;
           full_row_rank_idx.push_back(i);
         }
       }
@@ -278,9 +280,11 @@ void findGoldilocksModels() {
       nl += nl_i;
 
       // B and y
+      MatrixXd A_full_row_rank(nl_i, nw_i);
       MatrixXd B_full_row_rank(nl_i, nt_i);
       VectorXd y_full_row_rank(nl_i);
       for (int i = 0; i < nl_i; i++) {
+        A_full_row_rank.row(i) = A_active_nonredundant.row(full_row_rank_idx[i]);
         B_full_row_rank.row(i) = B_active_nonredundant.row(full_row_rank_idx[i]);
         y_full_row_rank(i) = y_active_nonredundant(full_row_rank_idx[i]);
       }
@@ -335,8 +339,9 @@ void findGoldilocksModels() {
     // Testing
     Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
     int n_sv = svd.singularValues().size();
+    cout << "biggest singular value is " << svd.singularValues()(0) << endl;
     cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
-    cout << "singular values are \n" << svd.singularValues() << endl;
+    // cout << "singular values are \n" << svd.singularValues() << endl;
 
 
     // Get P_i and q_i
@@ -358,8 +363,9 @@ void findGoldilocksModels() {
       // Testing
       Eigen::BDCSVD<MatrixXd> svd(AinvQA);
       int n_sv = svd.singularValues().size();
+      cout << "biggest singular value is " << svd.singularValues()(0) << endl;
       cout << "smallest singular value is " << svd.singularValues()(n_sv - 1) << endl;
-      cout << "singular values are \n" << svd.singularValues() << endl;
+      // cout << "singular values are \n" << svd.singularValues() << endl;
 
 /*
       // Testing
@@ -405,8 +411,9 @@ void findGoldilocksModels() {
     // Testing
     Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
     int n_sv_2 = svd_2.singularValues().size();
+    cout << "biggest singular value is " << svd_2.singularValues()(0) << endl;
     cout << "smallest singular value is " << svd_2.singularValues()(n_sv_2-1) << endl;
-    cout << "singular values are \n" << svd_2.singularValues() << endl;
+    // cout << "singular values are \n" << svd_2.singularValues() << endl;
 
 
     // cout << "try to inverse the matrix directly by inverse()\n";
