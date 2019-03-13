@@ -469,7 +469,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Push the solution to the vector
   w_sol_vec.push_back(w_sol);
   A_vec.push_back(A);
-  H_vec.push_back(H*0.5);
+  H_vec.push_back(H);
   lb_vec.push_back(lb);
   ub_vec.push_back(ub);
   y_vec.push_back(y);
@@ -489,7 +489,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                             lb-y,
                             ub-y,
                             w2);
-  quadprog.AddQuadraticCost(H*0.5,b,w2);
+  quadprog.AddQuadraticCost(H,b,w2);
   const auto result2 = Solve(quadprog);
   auto solution_result2 = result2.get_solution_result();
   cout << solution_result2 << endl;
