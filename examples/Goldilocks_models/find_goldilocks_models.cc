@@ -357,16 +357,31 @@ void findGoldilocksModels() {
       MatrixXd inv_H_ext = H_ext.inverse();
       cout << "Finsihed inverting the matrix.\n\n";
 
-      cout << "inv_H_ext.cols() = " << inv_H_ext.cols() << endl;
-      cout << "inv_H_ext.rows() = " << inv_H_ext.rows() << endl;
       MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
       MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
 
       MatrixXd Pi = -inv_H_ext11 * b_vec[batch]
                     + inv_H_ext12 * y_active_vec[batch];
       VectorXd qi = -inv_H_ext12 * B_active_vec[batch];
+
+
+      MatrixXd abs_Pi = Pi.cwiseAbs();
+      VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
+      VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
+      cout << "sum-abs-Pi: " <<
+        left_one.transpose()*abs_Pi*right_one << endl;
+      cout << "sum-abs-Pi divide by m*n: " <<
+        left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
+        << endl;
+      double max_Pi_element = abs_Pi(0,0);
+      for(int i=0; i<abs_Pi.rows(); i++)
+        for(int j=0; j<abs_Pi.cols(); j++){
+          if(abs_Pi(i,j)>max_Pi_element) max_Pi_element = abs_Pi(i,j);
+        }
+      cout << "max element of abs-Pi = " << max_Pi_element << endl;
       cout << "qi norm (this number should be close to 0) = "
            << qi.norm() << endl;
+
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
     }
