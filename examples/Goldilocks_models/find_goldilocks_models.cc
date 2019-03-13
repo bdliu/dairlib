@@ -53,7 +53,8 @@ void findGoldilocksModels() {
   // Reduced order model parameters
   int n_z = 4; //2
   int n_zDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 309;//1;    // n_feature should match with the dim of the feature,
+  int n_featureZ =
+    309;//1;    // n_feature should match with the dim of the feature,
   int n_featureZDot = 21;//1; // since we are hard coding it now. (same below)
   int n_thetaZ = n_z * n_featureZ;
   int n_thetaZDot = (n_zDot / 2) * n_featureZDot;
@@ -173,7 +174,7 @@ void findGoldilocksModels() {
         }
       }
 
-      // Find redundant rows
+      /*// Find redundant rows
       cout << "Find redundant rows of constraints\n";
       vector<int> non_redundant_row_idx;
       non_redundant_row_idx.push_back(0);
@@ -219,78 +220,44 @@ void findGoldilocksModels() {
         A_active_nonredundant.row(i) = A_active.row(non_redundant_row_idx[i]);
         B_active_nonredundant.row(i) = B_active.row(non_redundant_row_idx[i]);
         y_active_nonredundant(i) = y_active(non_redundant_row_idx[i]);
-      }
-
-      // // Find redundant rows
-      // cout << "Double checking: Find redundant rows of constraints\n";
-      // vector<int> non_redundant_row_idx_2;
-      // non_redundant_row_idx_2.push_back(0);
-      // VectorXd rowi_2(nw_i);
-      // VectorXd rowj_2(nw_i);
-      // VectorXd normalized_rowi_2(nw_i);
-      // VectorXd normalized_rowj_2(nw_i);
-      // unsigned int count_2 = 0; // see if it goes through all element of vector
-      // for (int i = 1; i < nl_i; i++) {
-      //   count_2 = 0;
-      //   for (int j : non_redundant_row_idx_2) {
-      //     rowi_2 = A_active_nonredundant.row(i).transpose();
-      //     rowj_2 = A_active_nonredundant.row(j).transpose();
-      //     normalized_rowi_2 = rowi_2 / rowi_2.norm();
-      //     normalized_rowj_2 = rowj_2 / rowj_2.norm();
-      //     if ((normalized_rowi_2 - normalized_rowj_2).norm() < 1e-6) {
-      //       cout << "There are redundant rows (" << j << "," << i << ")\n";
-      //       // We don't need to check the b in Ax=b, because we know there are
-      //       // feasible solutions
-      //       // But we still check it just in case.
-      //       if (y_active(i) / rowi_2.norm() - y_active(j) / rowj_2.norm() > 1e-6)
-      //         cout << "There are over-constraining rows!!!!\n";
-      //       break;
-      //     }
-      //     count_2++;
-      //   }
-      //   if (count_2 == non_redundant_row_idx_2.size())
-      //     non_redundant_row_idx_2.push_back(i);
-      // }
-      // cout << "Double checking: Finished finding redundant rows of constraints\n";
+      }*/
 
       // Only add the rows that are linearly independent
       cout << "Start extracting independent rows of A\n";
       std::vector<int> full_row_rank_idx;
       full_row_rank_idx.push_back(0);
       for (int i = 1; i < nl_i; i++) {
-        cout << "i = " << i << endl;
         // Construct test matrix
         int n_current_rows = full_row_rank_idx.size();
-        MatrixXd A_test(n_current_rows+1,nw_i);
-        for(unsigned int j=0 ; j<full_row_rank_idx.size(); j++)
-          A_test.block(j,0,1,nw_i) = A_active_nonredundant.row(full_row_rank_idx[j]);
-        A_test.block(n_current_rows,0,1,nw_i) = A_active_nonredundant.row(i);
+        MatrixXd A_test(n_current_rows + 1, nw_i);
+        for (unsigned int j = 0 ; j < full_row_rank_idx.size(); j++) {
+          A_test.block(j, 0, 1, nw_i) =
+            A_active.row(full_row_rank_idx[j]);
+        }
+        A_test.block(n_current_rows, 0, 1, nw_i) = A_active.row(i);
 
         // Perform svd to check rank
         Eigen::BDCSVD<MatrixXd> svd(A_test);
         // double sigular_value = svd.singularValues()(n_current_rows);
-        if(svd.singularValues()(n_current_rows) > 1e-6){
+        if (svd.singularValues()(n_current_rows) > 1e-6) {
           full_row_rank_idx.push_back(i);
         }
       }
-      cout << "Finished extracting independent rows of A\n";
+      cout << "Finished extracting independent rows of A\n\n";
 
       nl_i = full_row_rank_idx.size();
       nl_vec.push_back(nl_i);
       nl += nl_i;
 
-      // B and y
+      // Assign the rows
       MatrixXd A_full_row_rank(nl_i, nw_i);
       MatrixXd B_full_row_rank(nl_i, nt_i);
       VectorXd y_full_row_rank(nl_i);
       for (int i = 0; i < nl_i; i++) {
-        A_full_row_rank.row(i) = A_active_nonredundant.row(full_row_rank_idx[i]);
-        B_full_row_rank.row(i) = B_active_nonredundant.row(full_row_rank_idx[i]);
-        y_full_row_rank(i) = y_active_nonredundant(full_row_rank_idx[i]);
+        A_full_row_rank.row(i) = A_active.row(full_row_rank_idx[i]);
+        B_full_row_rank.row(i) = B_active.row(full_row_rank_idx[i]);
+        y_full_row_rank(i) = y_active(full_row_rank_idx[i]);
       }
-
-
-
 
       A_active_vec.push_back(A_full_row_rank);
       B_active_vec.push_back(B_full_row_rank);
@@ -304,9 +271,9 @@ void findGoldilocksModels() {
       }
     }
 
-    cout << "nw = " << nw << endl;
-    cout << "nt = " << nt << endl;
-    cout << "nl = " << nl << endl;
+    // cout << "nw = " << nw << endl;
+    // cout << "nt = " << nt << endl;
+    // cout << "nl = " << nl << endl;
 
     // Reference for solving a sparse linear system
     // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html
@@ -333,14 +300,15 @@ void findGoldilocksModels() {
                << eivals_real(i) << ")\n";
       }
     }
-    cout << "Finished checking\n";
+    cout << "Finished checking\n\n";
 
 
     // Testing
     Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-    int n_sv = svd.singularValues().size();
-    cout << "biggest singular value is " << svd.singularValues()(0) << endl;
-    cout << "smallest singular value is " << svd.singularValues()(n_sv-1) << endl;
+    cout << "H matrix:\n";
+    cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd.singularValues().tail(1) << endl;
     // cout << "singular values are \n" << svd.singularValues() << endl;
 
 
@@ -362,21 +330,22 @@ void findGoldilocksModels() {
 
       // Testing
       Eigen::BDCSVD<MatrixXd> svd(AinvQA);
-      int n_sv = svd.singularValues().size();
-      cout << "biggest singular value is " << svd.singularValues()(0) << endl;
-      cout << "smallest singular value is " << svd.singularValues()(n_sv - 1) << endl;
+      cout << "AinvQA':\n";
+      cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+      cout << "  smallest singular value is "
+              << svd.singularValues().tail(1) << endl;
       // cout << "singular values are \n" << svd.singularValues() << endl;
 
-/*
-      // Testing
-      cout << "try to inverse the matrix directly by inverse()\n";
-      MatrixXd AinvQA_2 = A_active_vec[batch] *
-                       H_vec[batch].inverse() * A_active_vec[batch].transpose();
-      cout << "AinvQA_2 = \n" << AinvQA_2 << endl;
-      VectorXd one_lambda = VectorXd::Ones(nl_vec[batch]);
-      MatrixXd abs_diff = (AinvQA - AinvQA_2).cwiseAbs();
-      cout << "Compare two method's difference: " << one_lambda.transpose()*abs_diff*one_lambda << endl;
-      cout << "Finsihing inverting the matrix.\n";*/
+      /*
+            // Testing
+            cout << "try to inverse the matrix directly by inverse()\n";
+            MatrixXd AinvQA_2 = A_active_vec[batch] *
+                             H_vec[batch].inverse() * A_active_vec[batch].transpose();
+            cout << "AinvQA_2 = \n" << AinvQA_2 << endl;
+            VectorXd one_lambda = VectorXd::Ones(nl_vec[batch]);
+            MatrixXd abs_diff = (AinvQA - AinvQA_2).cwiseAbs();
+            cout << "Compare two method's difference: " << one_lambda.transpose()*abs_diff*one_lambda << endl;
+            cout << "Finsihing inverting the matrix.\n";*/
 
 
       MatrixXd Pi = -solveInvATimesB(H_vec[batch],
@@ -399,22 +368,22 @@ void findGoldilocksModels() {
     H_ext.block(0, 0, nw0, nw0) = H_vec[0];
     H_ext.block(0, nw0, nw0, nl0) = A_active_vec[0].transpose();
     H_ext.block(nw0, 0, nl0, nw0) = A_active_vec[0];
-    H_ext.block(nw0, nw0, nl0, nl0) = MatrixXd::Zero(nl0,nl0);
-
-    cout << "nw0 = " << nw0 << endl;
-    cout << "col = " << H_vec[0].cols() << endl;
-    cout << "row = " << H_vec[0].rows() << endl;
-    cout << "nl0 = " << nl0 << endl;
-    cout << "col = " << A_active_vec[0].cols() << endl;
-    cout << "row = " << A_active_vec[0].rows() << endl;
+    H_ext.block(nw0, nw0, nl0, nl0) = MatrixXd::Zero(nl0, nl0);
 
     // Testing
     Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
-    int n_sv_2 = svd_2.singularValues().size();
-    cout << "biggest singular value is " << svd_2.singularValues()(0) << endl;
-    cout << "smallest singular value is " << svd_2.singularValues()(n_sv_2-1) << endl;
+    cout << "A:\n";
+    cout << "  biggest singular value is " << svd_2.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd_2.singularValues().tail(1) << endl;
     // cout << "singular values are \n" << svd_2.singularValues() << endl;
 
+    // Testing
+    Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
+    cout << "H_ext:\n";
+    cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd_3.singularValues().tail(1) << endl;
 
     // cout << "try to inverse the matrix directly by inverse()\n";
     // MatrixXd inv_H_ext = H_ext.inverse();

@@ -369,13 +369,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   //   VectorXd h_i_sol = gm_traj_opt.dircon->GetSolution(h_i);
   //   cout << "h_"<< i <<"_sol = " << h_i_sol << endl;
   // }
-  auto h_0 = gm_traj_opt.dircon->timestep(0);
+  /*auto h_0 = gm_traj_opt.dircon->timestep(0);
   VectorXd h_0_sol = result.GetSolution(h_0);
-  cout << "timestep = " << h_0_sol << endl;
+  cout << "timestep = " << h_0_sol << endl << endl;*/
 
-  cout << endl;
   // Testing: print out the vertical pos
-  for(int i = 0; i<N ; i++){
+  /*for(int i = 0; i<N ; i++){
     auto x_i = gm_traj_opt.dircon->state(i);
     VectorXd x_i_sol = result.GetSolution(x_i);
     cout << "x1_"<< i <<"_sol = " << x_i_sol(1) << endl;
@@ -385,7 +384,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       auto z_k = gm_traj_opt.reduced_model_state(i, n_z);
       VectorXd z_k_sol = result.GetSolution(z_k);
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
-  }
+  }*/
 
   // Testing: see what are the decision varaibles
   // cout << "\nAll decision variable:\n"
