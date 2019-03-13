@@ -303,73 +303,88 @@ void findGoldilocksModels() {
     cout << "Finished checking\n\n";
 
 
-    // Testing
-    Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-    cout << "H matrix:\n";
-    cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-    cout << "  smallest singular value is "
-            << svd.singularValues().tail(1) << endl;
-    // cout << "singular values are \n" << svd.singularValues() << endl;
-
-
-    // Get P_i and q_i
-    // Method 1: use optimization program to solve it???
-    // Method 2: use schur complement (see notes)
-    // This one requires the Hessian H to be pd.
-    // (w = P_i * theta + q_i)
+    // Get w in terms of theta (Get P_i and q_i where w = P_i * theta + q_i)
     vector<MatrixXd> P_vec;
     vector<VectorXd> q_vec;
+    // Method 1: use optimization program to solve it???
+
+    // Method 2: use schur complement (see notes)
+    /*
+    // This one requires the Hessian H to be pd.
+    // Also, although this method might be more computationally efficient, the
+    // accuracy is not as high as when we use inverse() directly. The reason is
+    // that the condition number of A and invH is high, so AinvHA' makes it very
+    // ill-conditioned.
     for (int batch = 0; batch < current_batch; batch++) {
-      MatrixXd AinvQA = A_active_vec[batch] * solveInvATimesB(
+      MatrixXd AinvHA = A_active_vec[batch] * solveInvATimesB(
                           H_vec[batch], A_active_vec[batch].transpose());
       VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
-      MatrixXd E = solveInvATimesB(AinvQA, B_active_vec[batch]);
-      VectorXd F = -solveInvATimesB(AinvQA,
-                                    y_active_vec[batch] + A_active_vec[batch] * invQc);
-
-
+      MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[batch]);
+      VectorXd F = -solveInvATimesB(AinvHA,
+                            y_active_vec[batch] + A_active_vec[batch] * invQc);
       // Testing
-      Eigen::BDCSVD<MatrixXd> svd(AinvQA);
-      cout << "AinvQA':\n";
+      Eigen::BDCSVD<MatrixXd> svd(AinvHA);
+      cout << "AinvHA':\n";
       cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
       cout << "  smallest singular value is "
               << svd.singularValues().tail(1) << endl;
+      cout << "The condition number of A and invH are large. That's why AinvHA'"
+              "is ill-conditioned.\n";
       // cout << "singular values are \n" << svd.singularValues() << endl;
-
-      /*
-            // Testing
-            cout << "try to inverse the matrix directly by inverse()\n";
-            MatrixXd AinvQA_2 = A_active_vec[batch] *
-                             H_vec[batch].inverse() * A_active_vec[batch].transpose();
-            cout << "AinvQA_2 = \n" << AinvQA_2 << endl;
-            VectorXd one_lambda = VectorXd::Ones(nl_vec[batch]);
-            MatrixXd abs_diff = (AinvQA - AinvQA_2).cwiseAbs();
-            cout << "Compare two method's difference: " << one_lambda.transpose()*abs_diff*one_lambda << endl;
-            cout << "Finsihing inverting the matrix.\n";*/
-
 
       MatrixXd Pi = -solveInvATimesB(H_vec[batch],
                                      A_active_vec[batch].transpose() * E);
       VectorXd qi = -solveInvATimesB(H_vec[batch],
-                                     b_vec[batch] + A_active_vec[batch].transpose() * F);
+                            b_vec[batch] + A_active_vec[batch].transpose() * F);
+      cout << "qi norm (this number should be close to 0) = "
+           << qi.norm() << endl;
+      P_vec.push_back(Pi);
+      q_vec.push_back(qi);
+    }*/
 
-      cout << "qi norm = " << qi.norm() << endl;
+    // Method 3: use inverse() directly
+    // H_ext = [H A'; A 0]
+    for (int batch = 0; batch < current_batch; batch++) {
+      int nl_i = nl_vec[batch];
+      int nw_i = nw_vec[batch];
+      MatrixXd H_ext(nw_i + nl_i, nw_i + nl_i);
+      H_ext.block(0, 0, nw_i, nw_i) = H_vec[batch];
+      H_ext.block(0, nw_i, nw_i, nl_i) = A_active_vec[batch].transpose();
+      H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[batch];
+      H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
+
+      cout << "Start inverting the matrix.\n";
+      MatrixXd inv_H_ext = H_ext.inverse();
+      cout << "Finsihed inverting the matrix.\n\n";
+
+      cout << "inv_H_ext.cols() = " << inv_H_ext.cols() << endl;
+      cout << "inv_H_ext.rows() = " << inv_H_ext.rows() << endl;
+      MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
+      MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
+
+      MatrixXd Pi = -inv_H_ext11 * b_vec[batch]
+                    + inv_H_ext12 * y_active_vec[batch];
+      VectorXd qi = -inv_H_ext12 * B_active_vec[batch];
+      cout << "qi norm (this number should be close to 0) = "
+           << qi.norm() << endl;
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
     }
 
-
-
-    // Testing inverse of the extended matrix
-    //H_ext = [H A'; A 0]
-    int nl0 = nl_vec[0];
-    int nw0 = nw_vec[0];
-    MatrixXd H_ext(nw0 + nl0, nw0 + nl0);
-    H_ext.block(0, 0, nw0, nw0) = H_vec[0];
-    H_ext.block(0, nw0, nw0, nl0) = A_active_vec[0].transpose();
-    H_ext.block(nw0, 0, nl0, nw0) = A_active_vec[0];
-    H_ext.block(nw0, nw0, nl0, nl0) = MatrixXd::Zero(nl0, nl0);
-
+    /*// Testing
+    Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+    cout << "H:\n";
+    cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd.singularValues().tail(1) << endl;
+    // cout << "singular values are \n" << svd.singularValues() << endl;
+    // Testing
+    MatrixXd invH = H_vec[0].inverse();
+    Eigen::BDCSVD<MatrixXd> svd_4(invH);
+    cout << "invH:\n";
+    cout << "  biggest singular value is " << svd_4.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd_4.singularValues().tail(1) << endl;
     // Testing
     Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
     cout << "A:\n";
@@ -385,33 +400,23 @@ void findGoldilocksModels() {
     cout << "  smallest singular value is "
             << svd_3.singularValues().tail(1) << endl;
 
-    // cout << "try to inverse the matrix directly by inverse()\n";
-    // MatrixXd inv_H_ext = H_ext.inverse();
-    // cout << "inv_H_ext = \n" << inv_H_ext << endl;
-    // cout << "Finsihing inverting the matrix.\n";
-
-    // // checking e values of H_ext
-    // VectorXd eivals_real = H_ext.eigenvalues().real();
-    // for (int i = 0; i < eivals_real.size(); i++) {
-    //   if (eivals_real(i) <= 0)
-    //     cout << "H_ext is not positive definite (with e-value = "
-    //          << eivals_real(i) << ")\n";
-    // }
-
-
-
-
-
+    Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
+    cout << "inv_H_ext:\n";
+    cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+            << svd_5.singularValues().tail(1) << endl;*/
 
 
     // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
     cout << "Calculating gradient\n";
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
-      costGradient +=
-        P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
+      // costGradient +=
+      //   P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
     }
     // cout << "costGradient = \n" << costGradient;
+    P_vec.clear();
+    q_vec.clear();
 
     // Gradient descent and assign thetaZ and thetaZDot
     theta -= h_step * costGradient;
