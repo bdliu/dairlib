@@ -158,7 +158,7 @@ void findGoldilocksModels() {
       nw += nw_i;
 
       int nl_i = 0;
-      double tol = 1e-4;
+      double tol = 1e-1;//1e-4;
       for (int i = 0; i < y_vec[batch].rows(); i++) {
         if (y_vec[batch](i) >= ub_vec[batch](i) - tol ||
             y_vec[batch](i) <= lb_vec[batch](i) + tol)
@@ -179,6 +179,34 @@ void findGoldilocksModels() {
           nl_i++;
         }
       }
+
+
+
+
+      cout << "Run traj opt to check if your quadratic approximation is correct\n";
+      nl_i = A_active.rows();
+      nw_i = A_active.cols();
+      MathematicalProgram quadprog;
+      auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
+      quadprog.AddLinearConstraint( A_active,
+                                VectorXd::Zero(nl_i),
+                                VectorXd::Zero(nl_i),
+                                w2);
+      quadprog.AddQuadraticCost(H_vec[0],b_vec[0],w2);
+      const auto result2 = Solve(quadprog);
+      auto solution_result2 = result2.get_solution_result();
+      cout << solution_result2 << endl;
+      cout << "Cost:" << result2.get_optimal_cost() << endl;
+      VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
+      cout << "w_sol norm:" << w_sol_check.norm() << endl;
+      cout << "Finished traj opt\n\n";
+
+
+
+
+
+
+
 
       /*// Find redundant rows
       cout << "Find redundant rows of constraints\n";

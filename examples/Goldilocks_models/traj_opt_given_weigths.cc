@@ -469,7 +469,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Push the solution to the vector
   w_sol_vec.push_back(w_sol);
   A_vec.push_back(A);
-  H_vec.push_back(H);
+  H_vec.push_back(H*0.5);
   lb_vec.push_back(lb);
   ub_vec.push_back(ub);
   y_vec.push_back(y);
@@ -478,25 +478,25 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
+  cout << "norm of y = " << y.norm() << endl;
 
-
-    cout << "Run traj opt to check if your quadratic approximation is correct\n";
-    int nl_i = A.rows();
-    int nw_i = A.cols();
-    MathematicalProgram quadprog;
-    auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
-    quadprog.AddLinearConstraint( A,
-                              VectorXd::Zero(nl_i),
-                              VectorXd::Zero(nl_i),
-                              w2);
-    quadprog.AddQuadraticCost(H,b,w2);
-    const auto result2 = Solve(quadprog);
-    auto solution_result2 = result2.get_solution_result();
-    cout << solution_result2 << endl;
-    cout << "Cost:" << result2.get_optimal_cost() << endl;
-    VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
-    cout << "w_sol norm:" << w_sol_check.norm() << endl;
-    cout << "Finished traj opt\n\n";
+  cout << "Run traj opt to check if your quadratic approximation is correct\n";
+  int nl_i = A.rows();
+  int nw_i = A.cols();
+  MathematicalProgram quadprog;
+  auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
+  quadprog.AddLinearConstraint( A,
+                            lb-y,
+                            ub-y,
+                            w2);
+  quadprog.AddQuadraticCost(H*0.5,b,w2);
+  const auto result2 = Solve(quadprog);
+  auto solution_result2 = result2.get_solution_result();
+  cout << solution_result2 << endl;
+  cout << "Cost:" << result2.get_optimal_cost() << endl;
+  VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
+  cout << "w_sol norm:" << w_sol_check.norm() << endl;
+  cout << "Finished traj opt\n\n";
 
 
 

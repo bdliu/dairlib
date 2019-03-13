@@ -272,3 +272,16 @@ cc_binary(
     ],
 )
 
+
+
+cc_binary(
+    name = "approx_problem_test",
+    srcs = ["approx_problem_test.cc"],
+    deps = [
+        "@drake//common",
+        "@drake//solvers",
+        "@drake//solvers:mathematical_program",
+        "//systems/trajectory_optimization:dircon",
+    ],
+)
+
