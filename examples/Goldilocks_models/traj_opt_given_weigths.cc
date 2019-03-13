@@ -477,6 +477,31 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   B_vec.push_back(B);
 
 
+
+
+
+    cout << "Run traj opt to check if your quadratic approximation is correct\n";
+    int nl_i = A.rows();
+    int nw_i = A.cols();
+    MathematicalProgram quadprog;
+    auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
+    quadprog.AddLinearConstraint( A,
+                              VectorXd::Zero(nl_i),
+                              VectorXd::Zero(nl_i),
+                              w2);
+    quadprog.AddQuadraticCost(H,b,w2);
+    const auto result2 = Solve(quadprog);
+    auto solution_result2 = result2.get_solution_result();
+    cout << solution_result2 << endl;
+    cout << "Cost:" << result2.get_optimal_cost() << endl;
+    VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
+    cout << "w_sol norm:" << w_sol_check.norm() << endl;
+    cout << "Finished traj opt\n\n";
+
+
+
+
+
   // Store the vectors and matrices
   // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
   // string iter_prefix = std::to_string(iter-1) + "_";

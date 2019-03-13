@@ -1,6 +1,13 @@
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
 
+//Debugging
+#include "drake/solvers/mathematical_program.h"
+#include "drake/solvers/snopt_solver.h"
+#include "drake/solvers/solve.h"
+using drake::solvers::MathematicalProgram;
+
+
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::VectorXcd;
@@ -356,7 +363,8 @@ void findGoldilocksModels() {
       cout << "Finsihed inverting the matrix.\n\n";
 
       // Check if the inverse is correct
-      cout << "trace = " << (inv_H_ext*H_ext - MatrixXd::Identity(nw_i + nl_i,nw_i + nl_i)).trace() << endl;
+      cout << "trace = " << (inv_H_ext * H_ext - MatrixXd::Identity(nw_i + nl_i,
+                             nw_i + nl_i)).trace() << endl;
 
 
       MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
@@ -364,21 +372,21 @@ void findGoldilocksModels() {
 
       MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
       VectorXd qi = -inv_H_ext11 * b_vec[batch];
-                    // + inv_H_ext12 * y_active_vec[batch];
+      // + inv_H_ext12 * y_active_vec[batch];
 
 
       MatrixXd abs_Pi = Pi.cwiseAbs();
       VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
       VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
       cout << "sum-abs-Pi: " <<
-        left_one.transpose()*abs_Pi*right_one << endl;
+           left_one.transpose()*abs_Pi*right_one << endl;
       cout << "sum-abs-Pi divide by m*n: " <<
-        left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
-        << endl;
-      double max_Pi_element = abs_Pi(0,0);
-      for(int i=0; i<abs_Pi.rows(); i++)
-        for(int j=0; j<abs_Pi.cols(); j++){
-          if(abs_Pi(i,j)>max_Pi_element) max_Pi_element = abs_Pi(i,j);
+           left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
+           << endl;
+      double max_Pi_element = abs_Pi(0, 0);
+      for (int i = 0; i < abs_Pi.rows(); i++)
+        for (int j = 0; j < abs_Pi.cols(); j++) {
+          if (abs_Pi(i, j) > max_Pi_element) max_Pi_element = abs_Pi(i, j);
         }
       cout << "max element of abs-Pi = " << max_Pi_element << endl;
       cout << "qi norm (this number should be close to 0) = "
@@ -430,13 +438,23 @@ void findGoldilocksModels() {
     // Theoratically, it should be 0. Otherwise, something is wrong
     // min 0.5*w^T Q w + c^T w
     // st  A w = 0
-    
-    
-    // Check if your Hessian is missing a 0.5 or 2 factor.
-
-
-
-
+    cout << "Run traj opt to check if your quadratic approximation is correct\n";
+    int nl_i = nl_vec[0];
+    int nw_i = nw_vec[0];
+    MathematicalProgram quadprog;
+    auto w = quadprog.NewContinuousVariables(nw_i, "w");
+    quadprog.AddLinearConstraint( A_active_vec[0],
+                              VectorXd::Zero(nl_i),
+                              VectorXd::Zero(nl_i),
+                              w);
+    quadprog.AddQuadraticCost(H_vec[0],b_vec[0],w);
+    const auto result = Solve(quadprog);
+    auto solution_result = result.get_solution_result();
+    cout << solution_result << endl;
+    cout << "Cost:" << result.get_optimal_cost() << endl;
+    VectorXd w_sol = result.GetSolution(quadprog.decision_variables());
+    cout << "w_sol norm:" << w_sol.norm() << endl;
+    cout << "Finished traj opt\n\n";
 
 
     // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)

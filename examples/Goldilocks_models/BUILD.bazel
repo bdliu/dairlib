@@ -146,6 +146,7 @@ cc_binary(
         "@drake//systems/primitives",
         "@drake//systems/trajectory_optimization",
         "@gflags",
+        "@drake//solvers:mathematical_program",
     ],
 )
 
