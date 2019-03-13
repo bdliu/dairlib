@@ -143,7 +143,6 @@ void findGoldilocksModels() {
       DRAKE_ASSERT(lb_vec[batch].cols() == 1);
       DRAKE_ASSERT(ub_vec[batch].cols() == 1);
       DRAKE_ASSERT(y_vec[batch].cols() == 1);
-      DRAKE_ASSERT(b_vec[batch].cols() == 1);
       DRAKE_ASSERT(w_sol_vec[batch].cols() == 1);
 
       int nt_i = B_vec[batch].cols();
@@ -320,8 +319,7 @@ void findGoldilocksModels() {
                           H_vec[batch], A_active_vec[batch].transpose());
       VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
       MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[batch]);
-      VectorXd F = -solveInvATimesB(AinvHA,
-                            y_active_vec[batch] + A_active_vec[batch] * invQc);
+      VectorXd F = -solveInvATimesB(AinvHA, A_active_vec[batch] * invQc);
       // Testing
       Eigen::BDCSVD<MatrixXd> svd(AinvHA);
       cout << "AinvHA':\n";
@@ -357,12 +355,16 @@ void findGoldilocksModels() {
       MatrixXd inv_H_ext = H_ext.inverse();
       cout << "Finsihed inverting the matrix.\n\n";
 
+      // Check if the inverse is correct
+      cout << "trace = " << (inv_H_ext*H_ext - MatrixXd::Identity(nw_i + nl_i,nw_i + nl_i)).trace() << endl;
+
+
       MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
       MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
 
-      MatrixXd Pi = -inv_H_ext11 * b_vec[batch]
-                    + inv_H_ext12 * y_active_vec[batch];
-      VectorXd qi = -inv_H_ext12 * B_active_vec[batch];
+      MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
+      VectorXd qi = -inv_H_ext11 * b_vec[batch];
+                    // + inv_H_ext12 * y_active_vec[batch];
 
 
       MatrixXd abs_Pi = Pi.cwiseAbs();
@@ -422,8 +424,23 @@ void findGoldilocksModels() {
             << svd_5.singularValues().tail(1) << endl;*/
 
 
+
+
+    // Run a quadprog to check if the solution to the following problem is 0
+    // Theoratically, it should be 0. Otherwise, something is wrong
+    // min 0.5*w^T Q w + c^T w
+    // st  A w = 0
+    
+    
+    // Check if your Hessian is missing a 0.5 or 2 factor.
+
+
+
+
+
+
     // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
-    cout << "Calculating gradient\n";
+    cout << "\nCalculating gradient\n";
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
       // costGradient +=
