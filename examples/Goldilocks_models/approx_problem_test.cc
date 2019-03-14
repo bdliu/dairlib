@@ -81,6 +81,7 @@ int main() {
   cout << "In the original problem: \n";
   cout << "H_o = \n" << H_o << endl;
   cout << "b_o = " << b_o.transpose() << endl;
+  cout << "c_o = 0\n";
   cout << "A_o = \n" << A_o << endl;
   cout << "lb_o = " << lb_o.transpose() << endl;
   cout << "ub_o = " << ub_o.transpose() << endl;
@@ -116,10 +117,10 @@ int main() {
 
   cout << "H = \n" << H << endl;
   cout << "b = " << b.transpose() << endl;
+  cout << "c (Optimal cost) = " << c << endl;
   cout << "A = \n" << A << endl;
   cout << "lb = " << lb.transpose() << endl;
   cout << "ub = " << ub.transpose() << endl;
-  cout << "Optimal cost (c) = " << c << endl;
   cout << "y (constraint value) = " << y.transpose() << endl;
 
 

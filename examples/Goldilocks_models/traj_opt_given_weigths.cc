@@ -552,12 +552,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     VectorXd b2;
     double c_nonlinear;
     c_nonlinear = systems::trajectory_optimization::secondOrderCost(
-                    gm_traj_opt.dircon.get(), w_sol_test, H2, b2);
+                    gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c;
     cout << "i = " << i << endl;
     cout << "  c_nonlinear = " << c_nonlinear << endl;
     VectorXd dw_sol_test = i * eps * dw_sol;
     double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
-                           dw_sol_test) + c;
+                           dw_sol_test) + c - c;
     cout << "  c_aquadprog = " << c_aquadprog << endl;
     cout << "  c_aquadprog - c_nonlinear = " << c_aquadprog - c_nonlinear << endl;
   }
