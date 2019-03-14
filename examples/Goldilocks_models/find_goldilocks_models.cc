@@ -158,7 +158,7 @@ void findGoldilocksModels() {
       nw += nw_i;
 
       int nl_i = 0;
-      double tol = 1e-1;//1e-4;
+      double tol = 1e-4;
       for (int i = 0; i < y_vec[batch].rows(); i++) {
         if (y_vec[batch](i) >= ub_vec[batch](i) - tol ||
             y_vec[batch](i) <= lb_vec[batch](i) + tol)
@@ -183,7 +183,7 @@ void findGoldilocksModels() {
 
 
 
-      cout << "Run traj opt to check if your quadratic approximation is correct\n";
+      cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
       nl_i = A_active.rows();
       nw_i = A_active.cols();
       MathematicalProgram quadprog;

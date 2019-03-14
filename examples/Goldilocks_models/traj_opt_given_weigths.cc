@@ -78,25 +78,25 @@ using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
 void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
-                      Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
-                      double stride_length, double duration, int max_iter,
-                      string directory,
-                      string init_file, std::string output_prefix,
-                      vector<VectorXd> & w_sol_vec,
-                      vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
-                      vector<VectorXd> & y_vec,
-                      vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
-                      vector<VectorXd> & b_vec,
-                      vector<MatrixXd> & B_vec,
-                      const double & Q_double, const double & R_double,
-                      double epsilon) {
+                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
+                         double stride_length, double duration, int max_iter,
+                         string directory,
+                         string init_file, std::string output_prefix,
+                         vector<VectorXd> & w_sol_vec,
+                         vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
+                         vector<VectorXd> & y_vec,
+                         vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
+                         vector<VectorXd> & b_vec,
+                         vector<MatrixXd> & B_vec,
+                         const double & Q_double, const double & R_double,
+                         double epsilon) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
   Parser parser(&plant, &scene_graph);
 
   std::string full_name = FindResourceOrThrow(
-      "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+                            "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
   plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
     -9.81 * Eigen::Vector3d::UnitZ());
@@ -218,7 +218,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   auto x0 = trajopt->initial_state();
   // auto xf = trajopt->final_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
-                             num_time_samples[num_time_samples.size() - 1] - 1);
+                                        num_time_samples[num_time_samples.size() - 1] - 1);
 
   //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
   trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
@@ -235,19 +235,19 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                                  positions_map.at("left_knee_pin")));
 
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_xdot"))
-                           == xf(n_q + velocities_map.at("planar_xdot")));
+                               == xf(n_q + velocities_map.at("planar_xdot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_zdot"))
-                           == xf(n_q + velocities_map.at("planar_zdot")));
+                               == xf(n_q + velocities_map.at("planar_zdot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_rotydot"))
-                           == xf(n_q + velocities_map.at("planar_rotydot")));
+                               == xf(n_q + velocities_map.at("planar_rotydot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_hip_pindot"))
-                           == xf(n_q + velocities_map.at("right_hip_pindot")));
+                               == xf(n_q + velocities_map.at("right_hip_pindot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_knee_pindot"))
-                           == xf(n_q + velocities_map.at("right_knee_pindot")));
+                               == xf(n_q + velocities_map.at("right_knee_pindot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_hip_pindot"))
-                           == xf(n_q + velocities_map.at("left_hip_pindot")));
+                               == xf(n_q + velocities_map.at("left_hip_pindot")));
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_knee_pindot"))
-                           == xf(n_q + velocities_map.at("left_knee_pindot")));
+                               == xf(n_q + velocities_map.at("left_knee_pindot")));
 
   // u periodic constraint
   auto u0 = trajopt->input(0);
@@ -289,10 +289,10 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // make sure it's left stance
   trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
-                                   x0(positions_map.at("right_hip_pin")));
+                               x0(positions_map.at("right_hip_pin")));
 
   // Add cost
-  MatrixXd R = MatrixXd::Identity(n_u,n_u);
+  MatrixXd R = MatrixXd::Identity(n_u, n_u);
   MatrixXd Q = MatrixXd::Zero(n_x, n_x);
   MatrixXd I_x = MatrixXd::Identity(n_x, n_x);
   for (int i = 0; i < n_v; i++) {
@@ -300,30 +300,30 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   }
   // Don't use AddRunningCost, cause it makes cost Hessian to be indefinite
   // I'll fix the timestep and add cost myself
-    /*auto u = trajopt->input();
-    trajopt->AddRunningCost(u.transpose()*R * u);
-    trajopt->AddRunningCost(x.transpose()*Q * x);*/
+  /*auto u = trajopt->input();
+  trajopt->AddRunningCost(u.transpose()*R * u);
+  trajopt->AddRunningCost(x.transpose()*Q * x);*/
   // Add running cost by hand (Trapezoidal integration):
-  double timestep = duration/(N-1);
-  trajopt->AddQuadraticCost(Q*timestep/2,VectorXd::Zero(n_x),x0);
-  trajopt->AddQuadraticCost(R*timestep/2,VectorXd::Zero(n_u),u0);
-  for(int i=1; i<=N-2; i++){
+  double timestep = duration / (N - 1);
+  trajopt->AddQuadraticCost(Q * timestep / 2, VectorXd::Zero(n_x), x0);
+  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
+  for (int i = 1; i <= N - 2; i++) {
     auto ui = trajopt->input(i);
     auto xi = trajopt->state(i);
-    trajopt->AddQuadraticCost(Q*timestep,VectorXd::Zero(n_x),xi);
-    trajopt->AddQuadraticCost(R*timestep,VectorXd::Zero(n_u),ui);
+    trajopt->AddQuadraticCost(Q * timestep, VectorXd::Zero(n_x), xi);
+    trajopt->AddQuadraticCost(R * timestep, VectorXd::Zero(n_u), ui);
   }
-  trajopt->AddQuadraticCost(Q*timestep/2,VectorXd::Zero(n_x),xf);
-  trajopt->AddQuadraticCost(R*timestep/2,VectorXd::Zero(n_u),uf);
+  trajopt->AddQuadraticCost(Q * timestep / 2, VectorXd::Zero(n_x), xf);
+  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
   // Actually, Hessian still has zero eigen value because of h_var and z_var
-    /*trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),x0);
-    for(int i=1; i<=N-2; i++){
-      auto xi = trajopt->state(i);
-      trajopt->AddQuadraticCost(epsilon*I_x*timestep,VectorXd::Zero(n_x),xi);
-    }
-    trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
+  /*trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),x0);
+  for(int i=1; i<=N-2; i++){
+    auto xi = trajopt->state(i);
+    trajopt->AddQuadraticCost(epsilon*I_x*timestep,VectorXd::Zero(n_x),xi);
+  }
+  trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
 
 
   // initial guess if the file exists
@@ -335,21 +335,21 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-      n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
-      std::move(trajopt), &plant_autoDiff, num_time_samples);
+    n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
+    std::move(trajopt), &plant_autoDiff, num_time_samples);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
   // TODO(yminchen): should I add to all decision variable? or just state?
   auto w = gm_traj_opt.dircon->decision_variables();
-  for(int i=0; i<w.size(); i++)
-    gm_traj_opt.dircon->AddQuadraticCost(epsilon*w(i)*w(i));
+  for (int i = 0; i < w.size(); i++)
+    gm_traj_opt.dircon->AddQuadraticCost(epsilon * w(i)*w(i));
 
 
   cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
-    *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
+        *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   cout << "Solve time:" << elapsed.count() << endl;
@@ -394,7 +394,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
-                 gm_traj_opt.dircon->decision_variables());
+                     gm_traj_opt.dircon->decision_variables());
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
@@ -404,7 +404,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
   c = systems::trajectory_optimization::secondOrderCost(
-    gm_traj_opt.dircon.get(), w_sol, H, b);
+        gm_traj_opt.dircon.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
   int n_thetaZ = thetaZ.size();
@@ -413,19 +413,19 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-    gm_traj_opt.dircon.get(),
-    gm_traj_opt.kinematics_constraint_bindings[0]);
+                   gm_traj_opt.dircon.get(),
+                   gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
     // Get the gradient value first
     VectorXd xi = result.GetSolution(
-        gm_traj_opt.dircon->state(i));
+                    gm_traj_opt.dircon->state(i));
     VectorXd kin_gradient =
-        gm_traj_opt.kinematics_constraint->getGradientWrtTheta(xi);
+      gm_traj_opt.kinematics_constraint->getGradientWrtTheta(xi);
 
     // Fill in B matrix
     for (int k = 0; k < n_z; k++) {
       for (int j = 0; j < kin_gradient.size(); j++) {
-        B(ind(0) + i*n_z + k, k*kin_gradient.size() + j) = kin_gradient(j);
+        B(ind(0) + i * n_z + k, k * kin_gradient.size() + j) = kin_gradient(j);
         // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
       }
     }
@@ -433,12 +433,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   /////////////////////////// Dynamics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   ind = systems::trajectory_optimization::getConstraintRows(
-    gm_traj_opt.dircon.get(),
-    gm_traj_opt.dynamics_constraint_bindings[0]);
+          gm_traj_opt.dircon.get(),
+          gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
   for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l]-2 ; m++) {
+    for (int m = 0; m < num_time_samples[l] - 2 ; m++) {
       int i = N_accum + m;
       // Get the gradient value first
       auto z_i = gm_traj_opt.reduced_model_state(i, n_z);
@@ -449,14 +449,14 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
 
       VectorXd dyn_gradient =
-          gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
-            z_i_sol, z_iplus1_sol, h);
+        gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
+          z_i_sol, z_iplus1_sol, h);
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-      for (int k = 0; k < n_zDot/2; k++) {
+      for (int k = 0; k < n_zDot / 2; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p*n_zDot + k, n_thetaZ + k*dyn_gradient.size() + j) =
+          B(ind(0) + p * n_zDot + k, n_thetaZ + k * dyn_gradient.size() + j) =
             dyn_gradient(j);
           // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
         }
@@ -483,10 +483,10 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   cout << "\ncheck if H is diagonal: \n";
   MatrixXd H_test = H;
   int nw = H_test.rows();
-  for(int i=0; i<nw; i++){
-    H_test(i,i) = 0;
+  for (int i = 0; i < nw; i++) {
+    H_test(i, i) = 0;
   }
-  if(VectorXd::Ones(nw).transpose()*H_test*VectorXd::Ones(nw)==0)
+  if (VectorXd::Ones(nw).transpose()*H_test * VectorXd::Ones(nw) == 0)
     cout << "H is diagonal" << endl;
 
   cout << "checking b\n";
@@ -496,16 +496,43 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   cout << "norm of y = " << y.norm() << endl;
 
+
+
+
+
+  // Get the index of the rows of active constraints
+  vector<int> active_eq_row_idx;
+  vector<int> ub_active_ineq_row_idx;
+  vector<int> lb_active_ineq_row_idx;
+  double tol = 1e-4; //1e-4
+  for (int i = 0; i < y.rows(); i++) {
+    if (ub(i) == lb(i))
+      active_eq_row_idx.push_back(i);
+    else if (y(i) >= ub(i) - tol)
+      ub_active_ineq_row_idx.push_back(i);
+    else if (y(i) <= lb(i) + tol)
+      lb_active_ineq_row_idx.push_back(i);
+  }
+  int n_ae = active_eq_row_idx.size();
+  int n_aub = ub_active_ineq_row_idx.size();
+  int n_alb = lb_active_ineq_row_idx.size();
+  cout << "n_ae = " << n_ae << endl;
+  cout << "n_aub = " << n_aub << endl;
+  cout << "n_alb = " << n_alb << endl;
+
+
+
+
   cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
   // int nl_i = A.rows();
   int nw_i = A.cols();
   MathematicalProgram quadprog;
   auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
   quadprog.AddLinearConstraint( A,
-                            lb-y,
-                            ub-y,
-                            dw);
-  quadprog.AddQuadraticCost(H,b,dw);
+                                lb - y,
+                                ub - y,
+                                dw);
+  quadprog.AddQuadraticCost(H, b, dw);
   const auto result2 = Solve(quadprog);
   auto solution_result2 = result2.get_solution_result();
   cout << solution_result2 << endl;
@@ -516,25 +543,110 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // Plug back and check the cost and constraints of nonlinear programming
   double eps = 1e-2;
-  cout << "checking in the original nonlinear programming\n";
-  for(int i=0; i<10 ;i++){
+  // cost
+  cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
+  for (int i = 0; i < 10 ; i++) {
     VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-    MatrixXd A2, H2;
-    VectorXd y2, lb2, ub2, b2;
-    double c2;
-    systems::trajectory_optimization::linearizeConstraints(
-      gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-    c2 = systems::trajectory_optimization::secondOrderCost(
-      gm_traj_opt.dircon.get(), w_sol_test, H2, b2);
-    cout << "i = " << i << ", c2 = " << c2 << endl;
-  }
-  cout << "checking in the approximated quadratic programming\n";
-  for(int i=0; i<10 ;i++){
+    MatrixXd H2;
+    VectorXd b2;
+    double c_nonlinear;
+    c_nonlinear = systems::trajectory_optimization::secondOrderCost(
+                    gm_traj_opt.dircon.get(), w_sol_test, H2, b2);
+    cout << "i = " << i << endl;
+    cout << "  c_nonlinear = " << c_nonlinear << endl;
     VectorXd dw_sol_test = i * eps * dw_sol;
-    double c2 = 0.5*dw_sol_test.transpose()*H*dw_sol_test + b.dot(dw_sol_test)+ c;
-    cout << "i = " << i << ", c2 = " << c2 << endl;
+    double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
+                           dw_sol_test) + c;
+    cout << "  c_aquadprog = " << c_aquadprog << endl;
+    cout << "  c_nonlinear - c_aquadprog = " << c_nonlinear - c_aquadprog << endl;
   }
+  // constraint
+  if (n_ae) {
+    cout << "\nchecking the equality constraints of the original nonlinear programming and the approximated quadratic programming\n";
+    for (int i = 0; i < 10 ; i++) {
+      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+      MatrixXd A2;
+      VectorXd y2, lb2, ub2;
+      systems::trajectory_optimization::linearizeConstraints(
+        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
+      int k = 0;
+      for (int j = 0; j < n_ae; j++) {
+        double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
+        if (abs(violation) > 1e-8) {
+          nonlinear_constraint_val(k) = violation;
+          k++;
+          if (k == 10)
+            break;
+        }
+        if (j == n_ae - 1 && k < 10) {
+          cout << "There are only " << k << " # of violations\n";
+        }
+      }
+      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
+           << endl;
 
+      // VectorXd dw_sol_test = i * eps * dw_sol;
+      // VectorXd aquadprog_constraint_val = (A*dw_sol_test).head(10);
+      // cout << "  aquadprog_constraint_val = " << aquadprog_constraint_val.transpose() << endl;
+      // cout << "  nonlinear_constraint_val - aquadprog_constraint_val = "
+      //     << (nonlinear_constraint_val - aquadprog_constraint_val).transpose() << endl;
+    }
+  }
+  if (n_aub) {
+    cout << "\nchecking the inequality constraints (active upper bound) of the original nonlinear programming and the approximated quadratic programming\n";
+    for (int i = 0; i < 10 ; i++) {
+      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+      MatrixXd A2;
+      VectorXd y2, lb2, ub2;
+      systems::trajectory_optimization::linearizeConstraints(
+        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
+      int k = 0;
+      for (int j = 0; j < n_aub; j++) {
+        double violation =
+            y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
+        if (violation > 1e-8) {
+          nonlinear_constraint_val(k) = violation;
+          k++;
+          if (k == 10)
+            break;
+        }
+        if (j == n_aub - 1 && k < 10) {
+          cout << "There are only " << k << " # of violations\n";
+        }
+      }
+      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
+           << endl;
+    }
+  }
+  if (n_alb) {
+    cout << "\nchecking the inequality constraints (active lower bound) of the original nonlinear programming and the approximated quadratic programming\n";
+    for (int i = 0; i < 10 ; i++) {
+      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+      MatrixXd A2;
+      VectorXd y2, lb2, ub2;
+      systems::trajectory_optimization::linearizeConstraints(
+        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
+      int k = 0;
+      for (int j = 0; j < n_alb; j++) {
+        double violation =
+            y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
+        if (violation < - 1e-8) {
+          nonlinear_constraint_val(k) = violation;
+          k++;
+          if (k == 10)
+            break;
+        }
+        if (j == n_alb - 1 && k < 10) {
+          cout << "There are only " << k << " # of violations\n";
+        }
+      }
+      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
+           << endl;
+    }
+  }
 
 
 
