@@ -332,6 +332,12 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     trajopt->SetInitialGuessForAllVariables(w0);
   }
 
+
+
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
+
+
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
@@ -504,7 +510,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   vector<int> active_eq_row_idx;
   vector<int> ub_active_ineq_row_idx;
   vector<int> lb_active_ineq_row_idx;
-  double tol = 1e-4; //1e-4
+  double tol = 1e-8; //1e-4
   for (int i = 0; i < y.rows(); i++) {
     if (ub(i) == lb(i))
       active_eq_row_idx.push_back(i);
@@ -533,13 +539,30 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
                                 ub - y,
                                 dw);
   quadprog.AddQuadraticCost(H, b, dw);
+  quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
+  quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
   const auto result2 = Solve(quadprog);
   auto solution_result2 = result2.get_solution_result();
   cout << solution_result2 << endl;
   cout << "Cost:" << result2.get_optimal_cost() << endl;
   VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
   cout << "w_sol norm:" << dw_sol.norm() << endl;
+  // cout << "dw_sol = \n" << dw_sol << endl;
   cout << "Finished traj opt\n\n";
+
+  // vector<double> w_sol_sort;
+  // for(int i=0; i<dw_sol.size(); i++){
+  //   w_sol_sort.push_back(dw_sol(i));
+  // }
+  // std::sort(w_sol_sort.begin(), w_sol_sort.end());
+  // for(double w_sol_sort_ele : w_sol_sort)
+  //   cout << w_sol_sort_ele << endl;
+
+
+
+
+
+
 
   // Plug back and check the cost and constraints of nonlinear programming
   double eps = 1e-1;
