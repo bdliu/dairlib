@@ -513,9 +513,9 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     else if (y(i) <= lb(i) + tol)
       lb_active_ineq_row_idx.push_back(i);
   }
-  int n_ae = active_eq_row_idx.size();
-  int n_aub = ub_active_ineq_row_idx.size();
-  int n_alb = lb_active_ineq_row_idx.size();
+  unsigned int n_ae = active_eq_row_idx.size();
+  unsigned int n_aub = ub_active_ineq_row_idx.size();
+  unsigned int n_alb = lb_active_ineq_row_idx.size();
   cout << "n_ae = " << n_ae << endl;
   cout << "n_aub = " << n_aub << endl;
   cout << "n_alb = " << n_alb << endl;
@@ -542,7 +542,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   cout << "Finished traj opt\n\n";
 
   // Plug back and check the cost and constraints of nonlinear programming
-  double eps = 1e-2;
+  double eps = 1e-1;
+  unsigned int n_show = 10;  // number of rows of constraints you want to show
   // cost
   cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
   for (int i = 0; i < 10 ; i++) {
@@ -558,93 +559,110 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
                            dw_sol_test) + c;
     cout << "  c_aquadprog = " << c_aquadprog << endl;
-    cout << "  c_nonlinear - c_aquadprog = " << c_nonlinear - c_aquadprog << endl;
+    cout << "  c_aquadprog - c_nonlinear = " << c_aquadprog - c_nonlinear << endl;
   }
   // constraint
   if (n_ae) {
     cout << "\nchecking the equality constraints of the original nonlinear programming and the approximated quadratic programming\n";
-    for (int i = 0; i < 10 ; i++) {
+    // pick constraint violation row index
+    std::vector<int> constraint_vio_row_idx;
+    for (unsigned int i = 0; i < 10 ; i++) {
       VectorXd w_sol_test = w_sol + i * eps * dw_sol;
       MatrixXd A2;
       VectorXd y2, lb2, ub2;
       systems::trajectory_optimization::linearizeConstraints(
         gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
-      int k = 0;
-      for (int j = 0; j < n_ae; j++) {
+      unsigned int k = 0;
+      for (unsigned int j = 0; j < n_ae; j++) {
         double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
         if (abs(violation) > 1e-8) {
-          nonlinear_constraint_val(k) = violation;
+          constraint_vio_row_idx.push_back(j);
           k++;
-          if (k == 10)
+          if (k == n_show)
             break;
         }
-        if (j == n_ae - 1 && k < 10) {
+        if (i == n_show-1 && j == n_ae - 1 && k < n_show) {
           cout << "There are only " << k << " # of violations\n";
         }
       }
-      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
-           << endl;
-
-      // VectorXd dw_sol_test = i * eps * dw_sol;
-      // VectorXd aquadprog_constraint_val = (A*dw_sol_test).head(10);
-      // cout << "  aquadprog_constraint_val = " << aquadprog_constraint_val.transpose() << endl;
-      // cout << "  nonlinear_constraint_val - aquadprog_constraint_val = "
-      //     << (nonlinear_constraint_val - aquadprog_constraint_val).transpose() << endl;
+      if(constraint_vio_row_idx.size()>=n_show)
+        break;
+      else if (i != 10-1)
+        constraint_vio_row_idx.clear();
+    }
+    cout << "  Row index of violation = ";
+    for(int j : constraint_vio_row_idx){
+      cout << j << ", ";
+    }
+    cout << endl;
+    // evaluate the chosen rows
+    for (unsigned int i = 0; i < 10 ; i++) {
+      cout << "i = " << i << endl;
+      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+      MatrixXd A2;
+      VectorXd y2, lb2, ub2;
+      systems::trajectory_optimization::linearizeConstraints(
+        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+      cout << "  nonlinear_constraint_val = ";
+      for(int j : constraint_vio_row_idx){
+        double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
+        cout << violation << ", ";
+      }
+      cout << endl;
     }
   }
   if (n_aub) {
     cout << "\nchecking the inequality constraints (active upper bound) of the original nonlinear programming and the approximated quadratic programming\n";
-    for (int i = 0; i < 10 ; i++) {
+    for (unsigned int i = 0; i < 10 ; i++) {
       VectorXd w_sol_test = w_sol + i * eps * dw_sol;
       MatrixXd A2;
       VectorXd y2, lb2, ub2;
       systems::trajectory_optimization::linearizeConstraints(
         gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
-      int k = 0;
-      for (int j = 0; j < n_aub; j++) {
+      VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
+      unsigned int k = 0;
+      for (unsigned int j = 0; j < n_aub; j++) {
         double violation =
             y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
         if (violation > 1e-8) {
           nonlinear_constraint_val(k) = violation;
           k++;
-          if (k == 10)
+          if (k == n_show)
             break;
         }
-        if (j == n_aub - 1 && k < 10) {
+        if (j == n_aub - 1 && k < n_show) {
           cout << "There are only " << k << " # of violations\n";
         }
       }
-      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
-           << endl;
+      cout << "  nonlinear_constraint_val = "
+          << nonlinear_constraint_val.transpose() << endl;
     }
   }
   if (n_alb) {
     cout << "\nchecking the inequality constraints (active lower bound) of the original nonlinear programming and the approximated quadratic programming\n";
-    for (int i = 0; i < 10 ; i++) {
+    for (unsigned int i = 0; i < 10 ; i++) {
       VectorXd w_sol_test = w_sol + i * eps * dw_sol;
       MatrixXd A2;
       VectorXd y2, lb2, ub2;
       systems::trajectory_optimization::linearizeConstraints(
         gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      VectorXd nonlinear_constraint_val = VectorXd::Zero(10);
-      int k = 0;
-      for (int j = 0; j < n_alb; j++) {
+      VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
+      unsigned int k = 0;
+      for (unsigned int j = 0; j < n_alb; j++) {
         double violation =
             y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
         if (violation < - 1e-8) {
           nonlinear_constraint_val(k) = violation;
           k++;
-          if (k == 10)
+          if (k == n_show)
             break;
         }
-        if (j == n_alb - 1 && k < 10) {
+        if (j == n_alb - 1 && k < n_show) {
           cout << "There are only " << k << " # of violations\n";
         }
       }
-      cout << "  nonlinear_constraint_val = " << nonlinear_constraint_val.transpose()
-           << endl;
+      cout << "  nonlinear_constraint_val = "
+          << nonlinear_constraint_val.transpose() << endl;
     }
   }
 
