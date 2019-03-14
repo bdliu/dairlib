@@ -201,7 +201,8 @@ void findGoldilocksModels() {
       cout << "w_sol norm:" << w_sol_check.norm() << endl;
       cout << "Finished traj opt\n\n";
 
-
+      cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
+      cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;
 
 
 

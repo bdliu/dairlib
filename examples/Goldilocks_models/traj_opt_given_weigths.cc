@@ -346,16 +346,16 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
     gm_traj_opt.dircon->AddQuadraticCost(epsilon*w(i)*w(i));
 
 
-  std::cout << "Solving DIRCON (based on MultipleShooting)\n";
+  cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
     *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  std::cout << "Solve time:" << elapsed.count() << std::endl;
+  cout << "Solve time:" << elapsed.count() << endl;
   SolutionResult solution_result = result.get_solution_result();
-  std::cout << solution_result << std::endl;
-  std::cout << "Cost:" << result.get_optimal_cost() << std::endl;
+  cout << solution_result << endl;
+  cout << "Cost:" << result.get_optimal_cost() << endl << endl;
 
   // The following line gives seg fault
   // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
@@ -400,9 +400,10 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // second order approximation of the cost.
   MatrixXd A, H;
   VectorXd y, lb, ub, b;
+  double c;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-  systems::trajectory_optimization::secondOrderCost(
+  c = systems::trajectory_optimization::secondOrderCost(
     gm_traj_opt.dircon.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
@@ -478,25 +479,65 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
+
+  cout << "\ncheck if H is diagonal: \n";
+  MatrixXd H_test = H;
+  int nw = H_test.rows();
+  for(int i=0; i<nw; i++){
+    H_test(i,i) = 0;
+  }
+  if(VectorXd::Ones(nw).transpose()*H_test*VectorXd::Ones(nw)==0)
+    cout << "H is diagonal" << endl;
+
+  cout << "checking b\n";
+  cout << "b.norm() = " << b.norm() << endl;
+
+
+
   cout << "norm of y = " << y.norm() << endl;
 
-  cout << "Run traj opt to check if your quadratic approximation is correct\n";
-  int nl_i = A.rows();
+  cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
+  // int nl_i = A.rows();
   int nw_i = A.cols();
   MathematicalProgram quadprog;
-  auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
+  auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
   quadprog.AddLinearConstraint( A,
                             lb-y,
                             ub-y,
-                            w2);
-  quadprog.AddQuadraticCost(H,b,w2);
+                            dw);
+  quadprog.AddQuadraticCost(H,b,dw);
   const auto result2 = Solve(quadprog);
   auto solution_result2 = result2.get_solution_result();
   cout << solution_result2 << endl;
   cout << "Cost:" << result2.get_optimal_cost() << endl;
-  VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
-  cout << "w_sol norm:" << w_sol_check.norm() << endl;
+  VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
+  cout << "w_sol norm:" << dw_sol.norm() << endl;
   cout << "Finished traj opt\n\n";
+
+  // Plug back and check the cost and constraints of nonlinear programming
+  double eps = 1e-2;
+  cout << "checking in the original nonlinear programming\n";
+  for(int i=0; i<10 ;i++){
+    VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+    MatrixXd A2, H2;
+    VectorXd y2, lb2, ub2, b2;
+    double c2;
+    systems::trajectory_optimization::linearizeConstraints(
+      gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+    c2 = systems::trajectory_optimization::secondOrderCost(
+      gm_traj_opt.dircon.get(), w_sol_test, H2, b2);
+    cout << "i = " << i << ", c2 = " << c2 << endl;
+  }
+  cout << "checking in the approximated quadratic programming\n";
+  for(int i=0; i<10 ;i++){
+    VectorXd dw_sol_test = i * eps * dw_sol;
+    double c2 = 0.5*dw_sol_test.transpose()*H*dw_sol_test + b.dot(dw_sol_test)+ c;
+    cout << "i = " << i << ", c2 = " << c2 << endl;
+  }
+
+
+
+
 
 
 
