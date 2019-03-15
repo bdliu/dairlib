@@ -492,9 +492,10 @@ void findGoldilocksModels() {
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
       // costGradient +=
-      //   P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
+        // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
+      costGradient += P_vec[batch].transpose() * b_vec[batch];
     }
-    // cout << "costGradient = \n" << costGradient;
+    cout << "costGradient = \n" << costGradient;
     P_vec.clear();
     q_vec.clear();
 
