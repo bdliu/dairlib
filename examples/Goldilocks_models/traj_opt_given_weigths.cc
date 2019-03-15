@@ -486,7 +486,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
 
-  cout << "\ncheck if H is diagonal: \n";
+  /*cout << "\ncheck if H is diagonal: \n";
   MatrixXd H_test = H;
   int nw = H_test.rows();
   for (int i = 0; i < nw; i++) {
@@ -530,7 +530,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
 
   cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
-  // int nl_i = A.rows();
+  int nl_i = A.rows();
   int nw_i = A.cols();
   MathematicalProgram quadprog;
   auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
@@ -558,8 +558,25 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // for(double w_sol_sort_ele : w_sol_sort)
   //   cout << w_sol_sort_ele << endl;
 
-
-
+  // Check if dw=0 violates any constraint
+  VectorXd QP_ub = ub-y;
+  VectorXd QP_lb = lb-y;
+  for(int i=0; i<nl_i; i++){
+    if(QP_ub(i)<0)
+      cout<< "row " << i << ": upper bound is smaller than 0 by " << QP_ub(i) << endl;
+    if(QP_lb(i)>0)
+      cout<< "row " << i << ": lower bound is larger than 0 by " << QP_lb(i) << endl;
+  }
+  cout << endl;
+  // Check if dw* to the QP violates any constraint
+  VectorXd QP_constraint_val = A*dw_sol;
+  for(int i=0; i<nl_i; i++){
+    if(QP_ub(i) < QP_constraint_val(i))
+      cout<< "row " << i << ": upper bound constraint violation by " << QP_constraint_val(i) - QP_ub(i) << endl;
+    if(QP_lb(i) > QP_constraint_val(i))
+      cout<< "row " << i << ": lower bound constraint violation by " << QP_constraint_val(i) - QP_lb(i) << endl;
+  }
+  cout << endl;
 
 
 
@@ -687,7 +704,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       cout << "  nonlinear_constraint_val = "
           << nonlinear_constraint_val.transpose() << endl;
     }
-  }
+  }*/
 
 
 

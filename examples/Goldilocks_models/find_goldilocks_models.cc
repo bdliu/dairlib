@@ -183,7 +183,7 @@ void findGoldilocksModels() {
 
 
 
-      cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
+      /*cout << "\n (After extracting active constraints) Run traj opt to check if your quadratic approximation is correct\n";
       nl_i = A_active.rows();
       nw_i = A_active.cols();
       MathematicalProgram quadprog;
@@ -202,7 +202,7 @@ void findGoldilocksModels() {
       cout << "Finished traj opt\n\n";
 
       cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-      cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;
+      cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;*/
 
 
 
@@ -258,7 +258,7 @@ void findGoldilocksModels() {
       }*/
 
       // Only add the rows that are linearly independent
-      cout << "Start extracting independent rows of A\n";
+      cout << "\nStart extracting independent rows of A\n";
       std::vector<int> full_row_rank_idx;
       full_row_rank_idx.push_back(0);
       for (int i = 1; i < nl_i; i++) {
@@ -335,7 +335,7 @@ void findGoldilocksModels() {
                << eivals_real(i) << ")\n";
       }
     }
-    cout << "Finished checking\n\n";
+    cout << "Finished checking\n";
 
 
     // Get w in terms of theta (Get P_i and q_i where w = P_i * theta + q_i)
@@ -387,7 +387,7 @@ void findGoldilocksModels() {
       H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[batch];
       H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
 
-      cout << "Start inverting the matrix.\n";
+      cout << "\nStart inverting the matrix.\n";
       MatrixXd inv_H_ext = H_ext.inverse();
       cout << "Finsihed inverting the matrix.\n\n";
 
@@ -424,6 +424,7 @@ void findGoldilocksModels() {
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
     }
+    cout << endl;
 
     /*// Testing
     Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
@@ -467,7 +468,7 @@ void findGoldilocksModels() {
     // Theoratically, it should be 0. Otherwise, something is wrong
     // min 0.5*w^T Q w + c^T w
     // st  A w = 0
-    cout << "Run traj opt to check if your quadratic approximation is correct\n";
+    /*cout << "Run traj opt to check if your quadratic approximation is correct\n";
     int nl_i = nl_vec[0];
     int nw_i = nw_vec[0];
     MathematicalProgram quadprog;
@@ -483,7 +484,7 @@ void findGoldilocksModels() {
     cout << "Cost:" << result.get_optimal_cost() << endl;
     VectorXd w_sol = result.GetSolution(quadprog.decision_variables());
     cout << "w_sol norm:" << w_sol.norm() << endl;
-    cout << "Finished traj opt\n\n";
+    cout << "Finished traj opt\n\n";*/
 
 
     // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
