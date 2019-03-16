@@ -4,26 +4,26 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-DynamicsExpression::DynamicsExpression(int n_sDDot, int n_featureDot) {
-  n_featureDot_ = n_featureDot;
+DynamicsExpression::DynamicsExpression(int n_sDDot, int n_feature_sDDot) {
+  n_feature_sDDot_ = n_feature_sDDot;
   n_sDDot_ = n_sDDot;
 }
 
 int DynamicsExpression::getDimFeature() {
-  return n_featureDot_;
+  return n_feature_sDDot_;
 }
 
 template <typename U, typename V>
 V DynamicsExpression::getExpression(
     const U & theta, const V & z) const {
-  // DRAKE_DEMAND(n_sDDot_ * n_featureDot_ == theta.size());  // check theta size
-  // DRAKE_DEMAND(n_featureDot_ == getFeature(z).size());  // check feature size
+  // DRAKE_DEMAND(n_sDDot_ * n_feature_sDDot_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_feature_sDDot_ == getFeature(z).size());  // check feature size
 
   V expression(n_sDDot_);
 
   for (int i = 0; i < n_sDDot_; i++)
     expression(i) =
-        theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
+        theta.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(getFeature(z));
 
   return expression;
 }
@@ -32,7 +32,7 @@ template <typename T>
 T DynamicsExpression::getFeature(const T & z) const {
 
   // Implement your choice of features below
-  // Be careful that the dimension should match with n_featureDot_
+  // Be careful that the dimension should match with n_feature_sDDot_
   // TODO(yminchen): find a way to avoid hard coding the features here
 
   // Version 1: for dynamics_expression_test

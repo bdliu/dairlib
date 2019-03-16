@@ -143,7 +143,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   feature << foot_to_CoM.norm(),
              tan(foot_to_CoM(0)/foot_to_CoM(2));*/
 
-  /*//////////// Version 7: Quadratic combinations ///////////////////////////////
+  /*//////////// Version 7: Quadratic combinations (input x) ///////////////////
   // elements:
   // q(0),
   // q(1),
@@ -162,7 +162,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   VectorX<U> q = x.head(7);
   VectorX<U> v = x.tail(7);
 
-  VectorX<U> feature(309); //19 + 17*17 + 1
+  VectorX<U> feature(309); //1 + 19 + 17*17
   feature <<1,
             q(0),
             q(1),
@@ -489,6 +489,143 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
             v(4) * v(6),
             v(5) * v(6),
             v(6) * v(6); */
+
+
+  /*//////////// Version 8: Quadratic combinations (input q) ///////////////////
+  // elements:
+  // q(0),
+  // q(1),
+  // sin(q(2)), cos(q(2))
+  // sin(q(3)), cos(q(3))
+  // sin(q(4)), cos(q(4))
+  // sin(q(5)), cos(q(5))
+  // sin(q(6)), cos(q(6))
+  VectorX<U> q = x.head(7);
+
+  VectorX<U> feature(113); //1 + 12 + 10*10
+  feature <<1,
+            q(0),
+            q(1),
+            sin(q(2)),
+            cos(q(2)),
+            sin(q(3)),
+            cos(q(3)),
+            sin(q(4)),
+            cos(q(4)),
+            sin(q(5)),
+            cos(q(5)),
+            sin(q(6)),
+            cos(q(6)), // linear until here, below are quadratic
+            // 1
+            sin(q(2)) * sin(q(2)),
+            cos(q(2)) * sin(q(2)),
+            sin(q(3)) * sin(q(2)),
+            cos(q(3)) * sin(q(2)),
+            sin(q(4)) * sin(q(2)),
+            cos(q(4)) * sin(q(2)),
+            sin(q(5)) * sin(q(2)),
+            cos(q(5)) * sin(q(2)),
+            sin(q(6)) * sin(q(2)),
+            cos(q(6)) * sin(q(2)),
+            // 2
+            sin(q(2)) * cos(q(2)),
+            cos(q(2)) * cos(q(2)),
+            sin(q(3)) * cos(q(2)),
+            cos(q(3)) * cos(q(2)),
+            sin(q(4)) * cos(q(2)),
+            cos(q(4)) * cos(q(2)),
+            sin(q(5)) * cos(q(2)),
+            cos(q(5)) * cos(q(2)),
+            sin(q(6)) * cos(q(2)),
+            cos(q(6)) * cos(q(2)),
+            // 3
+            sin(q(2)) * sin(q(3)),
+            cos(q(2)) * sin(q(3)),
+            sin(q(3)) * sin(q(3)),
+            cos(q(3)) * sin(q(3)),
+            sin(q(4)) * sin(q(3)),
+            cos(q(4)) * sin(q(3)),
+            sin(q(5)) * sin(q(3)),
+            cos(q(5)) * sin(q(3)),
+            sin(q(6)) * sin(q(3)),
+            cos(q(6)) * sin(q(3)),
+            // 4
+            sin(q(2)) * cos(q(3)),
+            cos(q(2)) * cos(q(3)),
+            sin(q(3)) * cos(q(3)),
+            cos(q(3)) * cos(q(3)),
+            sin(q(4)) * cos(q(3)),
+            cos(q(4)) * cos(q(3)),
+            sin(q(5)) * cos(q(3)),
+            cos(q(5)) * cos(q(3)),
+            sin(q(6)) * cos(q(3)),
+            cos(q(6)) * cos(q(3)),
+            // 5
+            sin(q(2)) * sin(q(4)),
+            cos(q(2)) * sin(q(4)),
+            sin(q(3)) * sin(q(4)),
+            cos(q(3)) * sin(q(4)),
+            sin(q(4)) * sin(q(4)),
+            cos(q(4)) * sin(q(4)),
+            sin(q(5)) * sin(q(4)),
+            cos(q(5)) * sin(q(4)),
+            sin(q(6)) * sin(q(4)),
+            cos(q(6)) * sin(q(4)),
+            // 6
+            sin(q(2)) * cos(q(4)),
+            cos(q(2)) * cos(q(4)),
+            sin(q(3)) * cos(q(4)),
+            cos(q(3)) * cos(q(4)),
+            sin(q(4)) * cos(q(4)),
+            cos(q(4)) * cos(q(4)),
+            sin(q(5)) * cos(q(4)),
+            cos(q(5)) * cos(q(4)),
+            sin(q(6)) * cos(q(4)),
+            cos(q(6)) * cos(q(4)),
+            // 7
+            sin(q(2)) * sin(q(5)),
+            cos(q(2)) * sin(q(5)),
+            sin(q(3)) * sin(q(5)),
+            cos(q(3)) * sin(q(5)),
+            sin(q(4)) * sin(q(5)),
+            cos(q(4)) * sin(q(5)),
+            sin(q(5)) * sin(q(5)),
+            cos(q(5)) * sin(q(5)),
+            sin(q(6)) * sin(q(5)),
+            cos(q(6)) * sin(q(5)),
+            // 8
+            sin(q(2)) * cos(q(5)),
+            cos(q(2)) * cos(q(5)),
+            sin(q(3)) * cos(q(5)),
+            cos(q(3)) * cos(q(5)),
+            sin(q(4)) * cos(q(5)),
+            cos(q(4)) * cos(q(5)),
+            sin(q(5)) * cos(q(5)),
+            cos(q(5)) * cos(q(5)),
+            sin(q(6)) * cos(q(5)),
+            cos(q(6)) * cos(q(5)),
+            // 9
+            sin(q(2)) * sin(q(6)),
+            cos(q(2)) * sin(q(6)),
+            sin(q(3)) * sin(q(6)),
+            cos(q(3)) * sin(q(6)),
+            sin(q(4)) * sin(q(6)),
+            cos(q(4)) * sin(q(6)),
+            sin(q(5)) * sin(q(6)),
+            cos(q(5)) * sin(q(6)),
+            sin(q(6)) * sin(q(6)),
+            cos(q(6)) * sin(q(6)),
+            // 10
+            sin(q(2)) * cos(q(6)),
+            cos(q(2)) * cos(q(6)),
+            sin(q(3)) * cos(q(6)),
+            cos(q(3)) * cos(q(6)),
+            sin(q(4)) * cos(q(6)),
+            cos(q(4)) * cos(q(6)),
+            sin(q(5)) * cos(q(6)),
+            cos(q(5)) * cos(q(6)),
+            sin(q(6)) * cos(q(6)),
+            cos(q(6)) * cos(q(6));*/
 
 
 

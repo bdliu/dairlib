@@ -5,7 +5,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DynamicsConstraint::DynamicsConstraint(
-  int n_sDDot, int n_featureDot,
+  int n_sDDot, int n_feature_sDDot,
   VectorXd & theta_sDDot,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::string& description):
@@ -16,16 +16,16 @@ DynamicsConstraint::DynamicsConstraint(
              description),
   plant_(plant),
   n_sDDot_(n_sDDot),
-  n_feature_sDDot_(n_featureDot),
+  n_feature_sDDot_(n_feature_sDDot),
   theta_sDDot_(theta_sDDot),
-  expression_object_(DynamicsExpression(n_sDDot, n_featureDot)) {
+  expression_object_(DynamicsExpression(n_sDDot, n_feature_sDDot)) {
 
   // Check the theta size
-  DRAKE_DEMAND(n_sDDot * n_featureDot == theta_sDDot.size());
+  DRAKE_DEMAND(n_sDDot * n_feature_sDDot == theta_sDDot.size());
 
   // Check the feature size implemented in the model expression
   VectorXd z_temp = VectorXd::Zero(n_sDDot);
-  DRAKE_DEMAND(n_featureDot == expression_object_.getFeature(z_temp).size());
+  DRAKE_DEMAND(n_feature_sDDot == expression_object_.getFeature(z_temp).size());
 }
 
 
