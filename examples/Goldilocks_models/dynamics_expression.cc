@@ -21,9 +21,8 @@ V DynamicsExpression::getExpression(
 
   V expression(n_zDDot_);
 
-  expression.segment(0, n_zDDot_ / 2) = z.segment(n_zDDot_ / 2, n_zDDot_ / 2);
-  for (int i = 0; i < n_zDDot_ / 2 ; i++)
-    expression(n_zDDot_ / 2 + i) =
+  for (int i = 0; i < n_zDDot_; i++)
+    expression(i) =
         theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
 
   return expression;

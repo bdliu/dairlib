@@ -63,7 +63,7 @@ void findGoldilocksModels() {
   int n_featureZ = 1;    // n_feature should match with the dim of the feature,
   int n_featureZDDot = 1; // since we are hard coding it now. (same below)
   int n_thetaZ = n_z * n_featureZ;
-  int n_thetaZDDot = (n_zDDot / 2) * n_featureZDDot;
+  int n_thetaZDDot = n_zDDot * n_featureZDDot;
   // Assuming position and velocity has the same dimension
   // for the reduced order model.
 

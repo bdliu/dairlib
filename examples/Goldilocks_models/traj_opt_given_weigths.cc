@@ -460,7 +460,7 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-      for (int k = 0; k < n_zDDot / 2; k++) {
+      for (int k = 0; k < n_zDDot; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
           B(ind(0) + p * n_zDDot + k, n_thetaZ + k * dyn_gradient.size() + j) =
             dyn_gradient(j);
