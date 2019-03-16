@@ -401,7 +401,6 @@ void findGoldilocksModels() {
 
       MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
       VectorXd qi = -inv_H_ext11 * b_vec[batch];
-      // + inv_H_ext12 * y_active_vec[batch];
 
 
       MatrixXd abs_Pi = Pi.cwiseAbs();
@@ -495,7 +494,7 @@ void findGoldilocksModels() {
         // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
       costGradient += P_vec[batch].transpose() * b_vec[batch];
     }
-    cout << "costGradient = \n" << costGradient;
+    // cout << "costGradient = \n" << costGradient;
     P_vec.clear();
     q_vec.clear();
 

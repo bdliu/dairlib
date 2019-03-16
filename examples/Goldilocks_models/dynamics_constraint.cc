@@ -88,6 +88,8 @@ AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
   const AutoDiffVecXd & z_i, const AutoDiffVecXd & z_iplus1,
   const AutoDiffVecXd & timestep_i, const VectorXd & theta) const{
   // Collocation point
+  //TODO(yminchen): The collocation point below is wrong.
+  //Should be z(h/2). Not middle of z.
   AutoDiffVecXd z_collocation = (z_i+z_iplus1)/2;
 
   // Let the dynamics be dzdt = h(z;thetaZDot) = h(z).
@@ -104,6 +106,8 @@ VectorXd DynamicsConstraint::getDynamicsConstraint(
   const VectorXd & z_i, const VectorXd & z_iplus1,
   const VectorXd & timestep_i, const VectorXd & theta) const{
   // Collocation point
+  //TODO(yminchen): The collocation point below is wrong.
+  //Should be z(h/2). Not middle of z.
   VectorXd z_collocation = (z_i+z_iplus1)/2;
 
   // Let the dynamics be dzdt = h(z;thetaZDot) = h(z).
