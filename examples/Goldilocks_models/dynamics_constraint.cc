@@ -24,8 +24,10 @@ DynamicsConstraint::DynamicsConstraint(
   DRAKE_DEMAND(n_sDDot * n_feature_sDDot == theta_sDDot.size());
 
   // Check the feature size implemented in the model expression
-  VectorXd z_temp = VectorXd::Zero(n_sDDot);
-  DRAKE_DEMAND(n_feature_sDDot == expression_object_.getFeature(z_temp).size());
+  VectorXd s_temp = VectorXd::Zero(n_sDDot);
+  VectorXd ds_temp = VectorXd::Zero(n_sDDot);
+  DRAKE_DEMAND(n_feature_sDDot ==
+    expression_object_.getFeature(s_temp, ds_temp).size());
 }
 
 
@@ -74,19 +76,20 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
 AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
   const AutoDiffVecXd & s_i, const AutoDiffVecXd & s_iplus1,
   const AutoDiffVecXd & timestep_i, const VectorXd & theta) const {
+  //TODO: the implementation here needs to be updated
 
   // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
   AutoDiffVecXd h_of_s_i = expression_object_.getExpression(theta,
-                           s_i);
+                           s_i, s_i);
   AutoDiffVecXd h_of_s_iplus1 = expression_object_.getExpression(theta,
-                                s_iplus1);
+                                s_iplus1, s_iplus1);
 
   // Collocation point
   AutoDiffVecXd z_collocation = (s_i + s_iplus1) / 2 +
                                 (h_of_s_i - h_of_s_iplus1) * timestep_i(0) / 8;
 
   AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(theta,
-                                 z_collocation);
+                                 z_collocation, z_collocation);
 
   return (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
          h_of_s_iplus1) / 6;
@@ -94,19 +97,20 @@ AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
 VectorXd DynamicsConstraint::getDynamicsConstraint(
   const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i, const VectorXd & theta) const {
+  //TODO: the implementation here needs to be updated
 
   // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
   VectorXd h_of_s_i =  expression_object_.getExpression(theta,
-                       s_i);
+                       s_i, s_i);
   VectorXd h_of_s_iplus1 = expression_object_.getExpression(theta,
-                           s_iplus1);
+                           s_iplus1, s_iplus1);
 
   // Collocation point
   VectorXd z_collocation = (s_i + s_iplus1) / 2 +
                            (h_of_s_i - h_of_s_iplus1) * timestep_i(0) / 8;
 
   VectorXd h_of_colloc_pt = expression_object_.getExpression(theta,
-                            z_collocation);
+                            z_collocation, z_collocation);
 
   return (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
          h_of_s_iplus1) / 6;

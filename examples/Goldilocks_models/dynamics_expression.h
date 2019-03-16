@@ -30,10 +30,10 @@ class DynamicsExpression {
   int getDimFeature();
 
   template <typename U, typename V>
-  V getExpression(const U & theta, const V & z) const;
+  V getExpression(const U & theta, const V & s, const V & ds) const;
 
   template <typename T>
-  T getFeature(const T & z) const;
+  T getFeature(const T & s, const T & ds) const;
 
  private:
   int n_feature_sDDot_;

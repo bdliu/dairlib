@@ -26,13 +26,17 @@ int main() {
   VectorXd s(n_s);
   // Matrix<double, Dynamic, 1> s(2);
   s << M_PI / 2, 3, 0;
-  AutoDiffVecXd z_autoDiff = initializeAutoDiff(s);
+  AutoDiffVecXd s_autoDiff = initializeAutoDiff(s);
   DRAKE_DEMAND(n_s == s.size());
 
+  // Copy to velocity
+  VectorXd ds = s;
+  AutoDiffVecXd ds_autoDiff = s_autoDiff;
+
   ////// getFeature() //////
-  VectorXd feature = expr.getFeature(s);
+  VectorXd feature = expr.getFeature(s, ds);
   // cout << "feature = \n" << feature << "\n\n";
-  auto feature_autoDiff = expr.getFeature(z_autoDiff);
+  auto feature_autoDiff = expr.getFeature(s_autoDiff, ds_autoDiff);
   cout << "feature_autoDiff = \n" << feature_autoDiff << "\n\n";
 
   ////// getDimFeature() //////
@@ -61,12 +65,12 @@ int main() {
 
   // We don't have getExpression() that returns VectorX<double>, so we use
   // DiscardGradient here.
-  VectorX<double> expression = expr.getExpression(theta, s);
+  VectorX<double> expression = expr.getExpression(theta, s, ds);
   cout << "expression = \n" << expression << "\n\n";
 
   AutoDiffVecXd theta_autoDiff =  initializeAutoDiff(theta);
-  // auto expression_autoDiff = expr.getExpression(theta_autoDiff,z_autoDiff);
-  auto expression_autoDiff = expr.getExpression(theta, z_autoDiff);
+  // auto expression_autoDiff = expr.getExpression(theta_autoDiff,s_autoDiff);
+  auto expression_autoDiff = expr.getExpression(theta, s_autoDiff, ds_autoDiff);
   cout << "expression_autoDiff = \n" << expression_autoDiff << "\n\n";
 
   // Checking autoDiff
