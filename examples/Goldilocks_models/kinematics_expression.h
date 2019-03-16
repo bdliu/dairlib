@@ -40,15 +40,15 @@ class KinematicsExpression {
   int getDimFeature();
 
   template <typename U, typename V>
-  VectorX<T> getExpression(const U & theta, const V & x) const;
+  VectorX<T> getExpression(const U & theta, const V & q) const;
 
   template <typename U>
-  VectorX<U> getFeature(const VectorX<U> & x) const;
+  VectorX<U> getFeature(const VectorX<U> & q) const;
 
  private:
   const MultibodyPlant<T> * plant_;
   int n_feature_;
-  int n_x_;
+  int n_q_;
   int n_s_;
   const std::vector<std::string> leg_link_names_{
     "left_upper_leg_mass", "left_lower_leg_mass",

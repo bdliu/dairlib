@@ -65,14 +65,14 @@ class DynamicsConstraint : public Constraint {
               VectorX<Expression>*y) const override;
 
   VectorXd getGradientWrtTheta(
-      const VectorXd & z_i, const VectorXd & z_iplus1,
+      const VectorXd & s_i, const VectorXd & s_iplus1,
       const VectorXd & timestep_i) const;
 
   AutoDiffVecXd getDynamicsConstraint(
-      const AutoDiffVecXd & z_i, const AutoDiffVecXd & z_iplus1,
+      const AutoDiffVecXd & s_i, const AutoDiffVecXd & s_iplus1,
       const AutoDiffVecXd & timestep_i, const VectorXd & theta) const;
   VectorXd getDynamicsConstraint(
-      const VectorXd & z_i, const VectorXd & z_iplus1,
+      const VectorXd & s_i, const VectorXd & s_iplus1,
       const VectorXd & timestep_i, const VectorXd & theta) const;
 
 

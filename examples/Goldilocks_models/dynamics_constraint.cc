@@ -40,11 +40,11 @@ void DynamicsConstraint::DoEval(const
 void DynamicsConstraint::DoEval(const
                                 Eigen::Ref<const AutoDiffVecXd>& q,
                                 AutoDiffVecXd* y) const {
-  const AutoDiffVecXd z_i = q.head(n_sDDot_);
-  const AutoDiffVecXd z_iplus1 = q.segment(n_sDDot_, n_sDDot_);
+  const AutoDiffVecXd s_i = q.head(n_sDDot_);
+  const AutoDiffVecXd s_iplus1 = q.segment(n_sDDot_, n_sDDot_);
   const AutoDiffVecXd timestep_i = q.tail(1);
 
-  *y = getDynamicsConstraint(z_i, z_iplus1, timestep_i, theta_sDDot_);
+  *y = getDynamicsConstraint(s_i, s_iplus1, timestep_i, theta_sDDot_);
 }
 
 void DynamicsConstraint::DoEval(const
@@ -56,14 +56,14 @@ void DynamicsConstraint::DoEval(const
 
 
 VectorXd DynamicsConstraint::getGradientWrtTheta(
-  const VectorXd & z_i, const VectorXd & z_iplus1,
+  const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i) const {
   VectorXd gradient(n_feature_sDDot_);
   for (int i = 0; i < n_feature_sDDot_; i++) {
     VectorXd theta_unit = VectorXd::Zero(theta_sDDot_.size());
     theta_unit(i) = 1;
-    gradient(i) = getDynamicsConstraint(z_i, z_iplus1, timestep_i,
-                                        theta_unit)(0) - z_iplus1(0) + z_i(0);
+    gradient(i) = getDynamicsConstraint(
+      s_i, s_iplus1, timestep_i, theta_unit)(0) - s_iplus1(0) + s_i(0);
   }
   // TODO(yminchen): You can also use autoDiff to get the gradient herre.
   return gradient;
@@ -72,44 +72,44 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
 
 
 AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
-  const AutoDiffVecXd & z_i, const AutoDiffVecXd & z_iplus1,
+  const AutoDiffVecXd & s_i, const AutoDiffVecXd & s_iplus1,
   const AutoDiffVecXd & timestep_i, const VectorXd & theta) const {
 
   // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
-  AutoDiffVecXd h_of_z_i = expression_object_.getExpression(theta,
-                           z_i);
-  AutoDiffVecXd h_of_z_iplus1 = expression_object_.getExpression(theta,
-                                z_iplus1);
+  AutoDiffVecXd h_of_s_i = expression_object_.getExpression(theta,
+                           s_i);
+  AutoDiffVecXd h_of_s_iplus1 = expression_object_.getExpression(theta,
+                                s_iplus1);
 
   // Collocation point
-  AutoDiffVecXd z_collocation = (z_i + z_iplus1) / 2 +
-                                (h_of_z_i - h_of_z_iplus1) * timestep_i(0) / 8;
+  AutoDiffVecXd z_collocation = (s_i + s_iplus1) / 2 +
+                                (h_of_s_i - h_of_s_iplus1) * timestep_i(0) / 8;
 
   AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(theta,
                                  z_collocation);
 
-  return (z_iplus1 - z_i) - timestep_i(0) * (h_of_z_i + 4 * h_of_colloc_pt +
-         h_of_z_iplus1) / 6;
+  return (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
+         h_of_s_iplus1) / 6;
 }
 VectorXd DynamicsConstraint::getDynamicsConstraint(
-  const VectorXd & z_i, const VectorXd & z_iplus1,
+  const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i, const VectorXd & theta) const {
 
   // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
-  VectorXd h_of_z_i =  expression_object_.getExpression(theta,
-                       z_i);
-  VectorXd h_of_z_iplus1 = expression_object_.getExpression(theta,
-                           z_iplus1);
+  VectorXd h_of_s_i =  expression_object_.getExpression(theta,
+                       s_i);
+  VectorXd h_of_s_iplus1 = expression_object_.getExpression(theta,
+                           s_iplus1);
 
   // Collocation point
-  VectorXd z_collocation = (z_i + z_iplus1) / 2 +
-                           (h_of_z_i - h_of_z_iplus1) * timestep_i(0) / 8;
+  VectorXd z_collocation = (s_i + s_iplus1) / 2 +
+                           (h_of_s_i - h_of_s_iplus1) * timestep_i(0) / 8;
 
   VectorXd h_of_colloc_pt = expression_object_.getExpression(theta,
                             z_collocation);
 
-  return (z_iplus1 - z_i) - timestep_i(0) * (h_of_z_i + 4 * h_of_colloc_pt +
-         h_of_z_iplus1) / 6;
+  return (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
+         h_of_s_iplus1) / 6;
 }
 
 

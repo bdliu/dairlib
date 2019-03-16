@@ -27,7 +27,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // Create decision variables
-  z_vars_ = dircon->NewContinuousVariables(n_s * N, "z");
+  s_vars_ = dircon->NewContinuousVariables(n_s * N, "s");
 
   // Create kinematics/dynamics constraint (pointer)
   kinematics_constraint = make_shared<KinematicsConstraint>(
@@ -37,17 +37,18 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
   // Add kinematics constraint for all knots
   // TODO(yminchen): check if kinematics constraint is implemented correctly
+  int n_q = plant->num_positions();
   for (int i = 0; i < N ; i++) {
-    auto z_at_knot_i = reduced_model_state(i, n_s);
+    auto s_at_knot_i = reduced_model_position(i, n_s);
     auto x_at_knot_i = dircon->state(i);
     kinematics_constraint_bindings.push_back(dircon->AddConstraint(
-      kinematics_constraint,{z_at_knot_i, x_at_knot_i}));
+      kinematics_constraint,{s_at_knot_i, x_at_knot_i.head(n_q)}));
   }
 
   // Add dynamics constraint for all segments (between knots) except the last
   // segment of each mode
   // // Dynamics constraint waw tested with fix height acceleration.
-  // // Set z = [y;dy] and set dz = [dy;0];
+  // // Set s = [y;dy] and set dz = [dy;0];
   int N_accum = 0;
   for (unsigned int i = 0; i < num_time_samples.size() ; i++) {
     // cout << "i = " << i << endl;
@@ -59,11 +60,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
       // cout << "    j = " << j << endl;
 
-      auto z_at_knot_k = reduced_model_state(N_accum+j, n_s);
-      auto z_at_knot_kplus1 = reduced_model_state(N_accum+j+1, n_s);
+      auto s_at_knot_k = reduced_model_position(N_accum+j, n_s);
+      auto s_at_knot_kplus1 = reduced_model_position(N_accum+j+1, n_s);
       auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
       dynamics_constraint_bindings.push_back(dircon->AddConstraint(
-        dynamics_constraint, {z_at_knot_k, z_at_knot_kplus1,
+        dynamics_constraint, {s_at_knot_k, s_at_knot_kplus1,
           h_btwn_knot_k_iplus1}));
     }
 
@@ -76,9 +77,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
 
 Eigen::VectorBlock<const VectorXDecisionVariable>
-GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_s) const {
+GoldilcocksModelTrajOpt::reduced_model_position(int index, int n_s) const {
   DRAKE_DEMAND(index >= 0 && index < num_knots_);
-  return z_vars_.segment(index * n_s, n_s);
+  return s_vars_.segment(index * n_s, n_s);
 }
 
 

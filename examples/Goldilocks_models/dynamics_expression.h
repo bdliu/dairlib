@@ -37,7 +37,6 @@ class DynamicsExpression {
 
  private:
   int n_feature_sDDot_;
-  int n_x_;
   int n_sDDot_;
 };
 

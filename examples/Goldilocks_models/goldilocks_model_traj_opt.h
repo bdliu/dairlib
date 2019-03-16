@@ -79,7 +79,7 @@ class GoldilcocksModelTrajOpt {
       const MultibodyPlant<AutoDiffXd> * plant,
       const std::vector<int>& num_time_samples);
 
-  Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
+  Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_position(
       int index, int n_s) const;
 
 
@@ -93,7 +93,7 @@ class GoldilcocksModelTrajOpt {
 
  private:
   int num_knots_;
-  VectorXDecisionVariable z_vars_;
+  VectorXDecisionVariable s_vars_;
   int n_s_;
   int n_sDDot_;
   int n_feature_s_;

@@ -55,21 +55,21 @@ class KinematicsConstraint : public Constraint {
   KinematicsConstraint(int n_s, int n_feature, VectorXd & theta_s,
                        const MultibodyPlant<AutoDiffXd> * plant,
                        const std::string& description = "");
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& z_x,
+  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& s_q,
               Eigen::VectorXd* y) const override;
 
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& z_x,
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& s_q,
               drake::AutoDiffVecXd* y) const override;
 
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
-  VectorXd getGradientWrtTheta(VectorXd & x);
+  VectorXd getGradientWrtTheta(const VectorXd & q);
 
-  AutoDiffVecXd getKinematicsConstraint( const AutoDiffVecXd & z,
-    const AutoDiffVecXd & x, const VectorXd & theta) const;
-  VectorXd getKinematicsConstraint( const VectorXd & z,
-    const VectorXd & x, const VectorXd & theta) const;
+  AutoDiffVecXd getKinematicsConstraint( const AutoDiffVecXd & s,
+    const AutoDiffVecXd & q, const VectorXd & theta) const;
+  VectorXd getKinematicsConstraint( const VectorXd & s,
+    const VectorXd & q, const VectorXd & theta) const;
 
   KinematicsExpression<double> expression_double;
   KinematicsExpression<AutoDiffXd> expression_autoDiff_;
@@ -78,7 +78,7 @@ class KinematicsConstraint : public Constraint {
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_constraint_;
   int n_feature_;
-  int n_state_;
+  int n_q_;
   VectorXd theta_s_;
 
 };

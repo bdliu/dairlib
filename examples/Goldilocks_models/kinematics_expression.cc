@@ -31,21 +31,21 @@ int KinematicsExpression<T>::getDimFeature() {
 template <typename T>
 template <typename U, typename V>
 VectorX<T> KinematicsExpression<T>::getExpression(
-  const U & theta, const V & x) const {
+  const U & theta, const V & q) const {
   // DRAKE_DEMAND(n_s_ * n_feature_ == theta.size());  // check theta size
-  // DRAKE_DEMAND(n_feature_ == getFeature(x).size());  // check feature size
+  // DRAKE_DEMAND(n_feature_ == getFeature(q).size());  // check feature size
 
   VectorX<T> expression(n_s_);
   for (int i = 0; i < n_s_ ; i++)
     expression(i) =
-      theta.segment(i * n_feature_, n_feature_).dot(getFeature(x));
+      theta.segment(i * n_feature_, n_feature_).dot(getFeature(q));
 
   return expression;
 }
 
 template <typename T>
 template <typename U>
-VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
+VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_
@@ -53,24 +53,24 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
 
   //////////// Version 1: for kinematics_expression_test ///////////////////////
   // VectorX<U> feature(5);
-  // feature << x(0),
-  //            x(1)*x(1)*x(1),
-  //            x(0) * x(1),
-  //            cos(x(0)),
-  //            sqrt(x(1));
+  // feature << q(0),
+  //            q(1)*q(1)*q(1),
+  //            q(0) * q(1),
+  //            cos(q(0)),
+  //            sqrt(q(1));
 
   //////////// Version 2: testing //////////////////////////////////////////////
   VectorX<U> feature(1);
-  feature << x(1);
+  feature << q(1);
 
   //////////// Version 3: testing //////////////////////////////////////////////
   // VectorX<U> feature(2);
-  // feature << x(1), x(1+x.size()/2);
+  // feature << q(1), q(1+q.size()/2);
 
   //////////// Version 4: testing MBP //////////////////////////////////////////
   // // If you use plant functions, then it's required that T = U?
   // auto context = plant_->CreateDefaultContext();
-  // plant_->SetPositionsAndVelocities(context.get(), x);
+  // plant_->SetPositions(context.get(), q);
 
   // const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
   // const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
@@ -82,40 +82,40 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   // VectorX<U> feature = right_lower_leg_Pos + right_lower_leg_Rotmat * disp;
 
   //////////// Version 5: testing r_stance_foot_to_CoM /////////////////////////
-  // // If you use plant functions, then it's required that T = U?
-  // // Get CoM position and stance foot position in autoDiff
-  // auto context = plant_->CreateDefaultContext();
-  // plant_->SetPositionsAndVelocities(context.get(), x);
+  /*// If you use plant functions, then it's required that T = U?
+  // Get CoM position and stance foot position in autoDiff
+  auto context = plant_->CreateDefaultContext();
+  plant_->SetPositions(context.get(), q);
 
-  // // CoM
-  // const auto & torso = plant_->GetBodyByName("torso_mass");
-  // const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context, torso);
-  // VectorX<U> CoM = 0.5 * torso_pose.translation();
+  // CoM
+  const auto & torso = plant_->GetBodyByName("torso_mass");
+  const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context, torso);
+  VectorX<U> CoM = 0.5 * torso_pose.translation();
 
-  // for (int i = 0; i < 4; i++) {
-  //   const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
-  //   const auto & body_pose = plant_->EvalBodyPoseInWorld(*context, body);
+  for (int i = 0; i < 4; i++) {
+    const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
+    const auto & body_pose = plant_->EvalBodyPoseInWorld(*context, body);
 
-  //   CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
-  // }
+    CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
+  }
 
-  // // Stance foot position (left foot)
-  // const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
-  // const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-  //                                       *context, left_lower_leg);
-  // const VectorX<U> left_lower_leg_Pos = left_lower_leg_pose.translation();
-  // const MatrixX<U> left_lower_leg_Rotmat = left_lower_leg_pose.linear();
-  // VectorX<U> left_foot_pos = left_lower_leg_Pos + left_lower_leg_Rotmat * foot_disp_;
+  // Stance foot position (left foot)
+  const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
+  const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
+                                        *context, left_lower_leg);
+  const VectorX<U> left_lower_leg_Pos = left_lower_leg_pose.translation();
+  const MatrixX<U> left_lower_leg_Rotmat = left_lower_leg_pose.linear();
+  VectorX<U> left_foot_pos = left_lower_leg_Pos + left_lower_leg_Rotmat * foot_disp_;
 
-  // VectorX<U> foot_to_CoM = CoM - left_foot_pos;
-  // VectorX<U> feature(1);
-  // feature << foot_to_CoM.norm();
+  VectorX<U> foot_to_CoM = CoM - left_foot_pos;
+  VectorX<U> feature(1);
+  feature << foot_to_CoM.norm();*/
 
   //////////// Version 6: SLIP /////////////////////////////////////////////////
 /*  // If you use plant functions, then it's required that T = U?
   // Get CoM position and stance foot position in autoDiff
   auto context = plant_->CreateDefaultContext();
-  plant_->SetPositionsAndVelocities(context.get(), x);
+  plant_->SetPositions(context.get(), q);
 
   // CoM
   const auto & torso = plant_->GetBodyByName("torso_mass");
@@ -143,7 +143,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   feature << foot_to_CoM.norm(),
              tan(foot_to_CoM(0)/foot_to_CoM(2));*/
 
-  /*//////////// Version 7: Quadratic combinations (input x) ///////////////////
+  /*//////////// Version 7: Quadratic combinations /////////////////////////////
   // elements:
   // q(0),
   // q(1),
@@ -152,355 +152,6 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   // sin(q(4)), cos(q(4))
   // sin(q(5)), cos(q(5))
   // sin(q(6)), cos(q(6))
-  // v(0),
-  // v(1),
-  // v(2),
-  // v(3),
-  // v(4),
-  // v(5),
-  // v(6),
-  VectorX<U> q = x.head(7);
-  VectorX<U> v = x.tail(7);
-
-  VectorX<U> feature(309); //1 + 19 + 17*17
-  feature <<1,
-            q(0),
-            q(1),
-            sin(q(2)),
-            cos(q(2)),
-            sin(q(3)),
-            cos(q(3)),
-            sin(q(4)),
-            cos(q(4)),
-            sin(q(5)),
-            cos(q(5)),
-            sin(q(6)),
-            cos(q(6)),
-            v(0),
-            v(1),
-            v(2),
-            v(3),
-            v(4),
-            v(5),
-            v(6), // linear until here, below are quadratic
-            // 1
-            sin(q(2)) * sin(q(2)),
-            cos(q(2)) * sin(q(2)),
-            sin(q(3)) * sin(q(2)),
-            cos(q(3)) * sin(q(2)),
-            sin(q(4)) * sin(q(2)),
-            cos(q(4)) * sin(q(2)),
-            sin(q(5)) * sin(q(2)),
-            cos(q(5)) * sin(q(2)),
-            sin(q(6)) * sin(q(2)),
-            cos(q(6)) * sin(q(2)),
-            v(0) * sin(q(2)),
-            v(1) * sin(q(2)),
-            v(2) * sin(q(2)),
-            v(3) * sin(q(2)),
-            v(4) * sin(q(2)),
-            v(5) * sin(q(2)),
-            v(6) * sin(q(2)),
-            // 2
-            sin(q(2)) * cos(q(2)),
-            cos(q(2)) * cos(q(2)),
-            sin(q(3)) * cos(q(2)),
-            cos(q(3)) * cos(q(2)),
-            sin(q(4)) * cos(q(2)),
-            cos(q(4)) * cos(q(2)),
-            sin(q(5)) * cos(q(2)),
-            cos(q(5)) * cos(q(2)),
-            sin(q(6)) * cos(q(2)),
-            cos(q(6)) * cos(q(2)),
-            v(0) * cos(q(2)),
-            v(1) * cos(q(2)),
-            v(2) * cos(q(2)),
-            v(3) * cos(q(2)),
-            v(4) * cos(q(2)),
-            v(5) * cos(q(2)),
-            v(6) * cos(q(2)),
-            // 3
-            sin(q(2)) * sin(q(3)),
-            cos(q(2)) * sin(q(3)),
-            sin(q(3)) * sin(q(3)),
-            cos(q(3)) * sin(q(3)),
-            sin(q(4)) * sin(q(3)),
-            cos(q(4)) * sin(q(3)),
-            sin(q(5)) * sin(q(3)),
-            cos(q(5)) * sin(q(3)),
-            sin(q(6)) * sin(q(3)),
-            cos(q(6)) * sin(q(3)),
-            v(0) * sin(q(3)),
-            v(1) * sin(q(3)),
-            v(2) * sin(q(3)),
-            v(3) * sin(q(3)),
-            v(4) * sin(q(3)),
-            v(5) * sin(q(3)),
-            v(6) * sin(q(3)),
-            // 4
-            sin(q(2)) * cos(q(3)),
-            cos(q(2)) * cos(q(3)),
-            sin(q(3)) * cos(q(3)),
-            cos(q(3)) * cos(q(3)),
-            sin(q(4)) * cos(q(3)),
-            cos(q(4)) * cos(q(3)),
-            sin(q(5)) * cos(q(3)),
-            cos(q(5)) * cos(q(3)),
-            sin(q(6)) * cos(q(3)),
-            cos(q(6)) * cos(q(3)),
-            v(0) * cos(q(3)),
-            v(1) * cos(q(3)),
-            v(2) * cos(q(3)),
-            v(3) * cos(q(3)),
-            v(4) * cos(q(3)),
-            v(5) * cos(q(3)),
-            v(6) * cos(q(3)),
-            // 5
-            sin(q(2)) * sin(q(4)),
-            cos(q(2)) * sin(q(4)),
-            sin(q(3)) * sin(q(4)),
-            cos(q(3)) * sin(q(4)),
-            sin(q(4)) * sin(q(4)),
-            cos(q(4)) * sin(q(4)),
-            sin(q(5)) * sin(q(4)),
-            cos(q(5)) * sin(q(4)),
-            sin(q(6)) * sin(q(4)),
-            cos(q(6)) * sin(q(4)),
-            v(0) * sin(q(4)),
-            v(1) * sin(q(4)),
-            v(2) * sin(q(4)),
-            v(3) * sin(q(4)),
-            v(4) * sin(q(4)),
-            v(5) * sin(q(4)),
-            v(6) * sin(q(4)),
-            // 6
-            sin(q(2)) * cos(q(4)),
-            cos(q(2)) * cos(q(4)),
-            sin(q(3)) * cos(q(4)),
-            cos(q(3)) * cos(q(4)),
-            sin(q(4)) * cos(q(4)),
-            cos(q(4)) * cos(q(4)),
-            sin(q(5)) * cos(q(4)),
-            cos(q(5)) * cos(q(4)),
-            sin(q(6)) * cos(q(4)),
-            cos(q(6)) * cos(q(4)),
-            v(0) * cos(q(4)),
-            v(1) * cos(q(4)),
-            v(2) * cos(q(4)),
-            v(3) * cos(q(4)),
-            v(4) * cos(q(4)),
-            v(5) * cos(q(4)),
-            v(6) * cos(q(4)),
-            // 7
-            sin(q(2)) * sin(q(5)),
-            cos(q(2)) * sin(q(5)),
-            sin(q(3)) * sin(q(5)),
-            cos(q(3)) * sin(q(5)),
-            sin(q(4)) * sin(q(5)),
-            cos(q(4)) * sin(q(5)),
-            sin(q(5)) * sin(q(5)),
-            cos(q(5)) * sin(q(5)),
-            sin(q(6)) * sin(q(5)),
-            cos(q(6)) * sin(q(5)),
-            v(0) * sin(q(5)),
-            v(1) * sin(q(5)),
-            v(2) * sin(q(5)),
-            v(3) * sin(q(5)),
-            v(4) * sin(q(5)),
-            v(5) * sin(q(5)),
-            v(6) * sin(q(5)),
-            // 8
-            sin(q(2)) * cos(q(5)),
-            cos(q(2)) * cos(q(5)),
-            sin(q(3)) * cos(q(5)),
-            cos(q(3)) * cos(q(5)),
-            sin(q(4)) * cos(q(5)),
-            cos(q(4)) * cos(q(5)),
-            sin(q(5)) * cos(q(5)),
-            cos(q(5)) * cos(q(5)),
-            sin(q(6)) * cos(q(5)),
-            cos(q(6)) * cos(q(5)),
-            v(0) * cos(q(5)),
-            v(1) * cos(q(5)),
-            v(2) * cos(q(5)),
-            v(3) * cos(q(5)),
-            v(4) * cos(q(5)),
-            v(5) * cos(q(5)),
-            v(6) * cos(q(5)),
-            // 9
-            sin(q(2)) * sin(q(6)),
-            cos(q(2)) * sin(q(6)),
-            sin(q(3)) * sin(q(6)),
-            cos(q(3)) * sin(q(6)),
-            sin(q(4)) * sin(q(6)),
-            cos(q(4)) * sin(q(6)),
-            sin(q(5)) * sin(q(6)),
-            cos(q(5)) * sin(q(6)),
-            sin(q(6)) * sin(q(6)),
-            cos(q(6)) * sin(q(6)),
-            v(0) * sin(q(6)),
-            v(1) * sin(q(6)),
-            v(2) * sin(q(6)),
-            v(3) * sin(q(6)),
-            v(4) * sin(q(6)),
-            v(5) * sin(q(6)),
-            v(6) * sin(q(6)),
-            // 10
-            sin(q(2)) * cos(q(6)),
-            cos(q(2)) * cos(q(6)),
-            sin(q(3)) * cos(q(6)),
-            cos(q(3)) * cos(q(6)),
-            sin(q(4)) * cos(q(6)),
-            cos(q(4)) * cos(q(6)),
-            sin(q(5)) * cos(q(6)),
-            cos(q(5)) * cos(q(6)),
-            sin(q(6)) * cos(q(6)),
-            cos(q(6)) * cos(q(6)),
-            v(0) * cos(q(6)),
-            v(1) * cos(q(6)),
-            v(2) * cos(q(6)),
-            v(3) * cos(q(6)),
-            v(4) * cos(q(6)),
-            v(5) * cos(q(6)),
-            v(6) * cos(q(6)),
-            // 11
-            sin(q(2)) * v(0),
-            cos(q(2)) * v(0),
-            sin(q(3)) * v(0),
-            cos(q(3)) * v(0),
-            sin(q(4)) * v(0),
-            cos(q(4)) * v(0),
-            sin(q(5)) * v(0),
-            cos(q(5)) * v(0),
-            sin(q(6)) * v(0),
-            cos(q(6)) * v(0),
-            v(0) * v(0),
-            v(1) * v(0),
-            v(2) * v(0),
-            v(3) * v(0),
-            v(4) * v(0),
-            v(5) * v(0),
-            v(6) * v(0),
-            // 12
-            sin(q(2)) * v(1),
-            cos(q(2)) * v(1),
-            sin(q(3)) * v(1),
-            cos(q(3)) * v(1),
-            sin(q(4)) * v(1),
-            cos(q(4)) * v(1),
-            sin(q(5)) * v(1),
-            cos(q(5)) * v(1),
-            sin(q(6)) * v(1),
-            cos(q(6)) * v(1),
-            v(0) * v(1),
-            v(1) * v(1),
-            v(2) * v(1),
-            v(3) * v(1),
-            v(4) * v(1),
-            v(5) * v(1),
-            v(6) * v(1),
-            // 13
-            sin(q(2)) * v(2),
-            cos(q(2)) * v(2),
-            sin(q(3)) * v(2),
-            cos(q(3)) * v(2),
-            sin(q(4)) * v(2),
-            cos(q(4)) * v(2),
-            sin(q(5)) * v(2),
-            cos(q(5)) * v(2),
-            sin(q(6)) * v(2),
-            cos(q(6)) * v(2),
-            v(0) * v(2),
-            v(1) * v(2),
-            v(2) * v(2),
-            v(3) * v(2),
-            v(4) * v(2),
-            v(5) * v(2),
-            v(6) * v(2),
-            // 14
-            sin(q(2)) * v(3),
-            cos(q(2)) * v(3),
-            sin(q(3)) * v(3),
-            cos(q(3)) * v(3),
-            sin(q(4)) * v(3),
-            cos(q(4)) * v(3),
-            sin(q(5)) * v(3),
-            cos(q(5)) * v(3),
-            sin(q(6)) * v(3),
-            cos(q(6)) * v(3),
-            v(0) * v(3),
-            v(1) * v(3),
-            v(2) * v(3),
-            v(3) * v(3),
-            v(4) * v(3),
-            v(5) * v(3),
-            v(6) * v(3),
-            // 15
-            sin(q(2)) * v(4),
-            cos(q(2)) * v(4),
-            sin(q(3)) * v(4),
-            cos(q(3)) * v(4),
-            sin(q(4)) * v(4),
-            cos(q(4)) * v(4),
-            sin(q(5)) * v(4),
-            cos(q(5)) * v(4),
-            sin(q(6)) * v(4),
-            cos(q(6)) * v(4),
-            v(0) * v(4),
-            v(1) * v(4),
-            v(2) * v(4),
-            v(3) * v(4),
-            v(4) * v(4),
-            v(5) * v(4),
-            v(6) * v(4),
-            // 16
-            sin(q(2)) * v(5),
-            cos(q(2)) * v(5),
-            sin(q(3)) * v(5),
-            cos(q(3)) * v(5),
-            sin(q(4)) * v(5),
-            cos(q(4)) * v(5),
-            sin(q(5)) * v(5),
-            cos(q(5)) * v(5),
-            sin(q(6)) * v(5),
-            cos(q(6)) * v(5),
-            v(0) * v(5),
-            v(1) * v(5),
-            v(2) * v(5),
-            v(3) * v(5),
-            v(4) * v(5),
-            v(5) * v(5),
-            v(6) * v(5),
-            // 17
-            sin(q(2)) * v(6),
-            cos(q(2)) * v(6),
-            sin(q(3)) * v(6),
-            cos(q(3)) * v(6),
-            sin(q(4)) * v(6),
-            cos(q(4)) * v(6),
-            sin(q(5)) * v(6),
-            cos(q(5)) * v(6),
-            sin(q(6)) * v(6),
-            cos(q(6)) * v(6),
-            v(0) * v(6),
-            v(1) * v(6),
-            v(2) * v(6),
-            v(3) * v(6),
-            v(4) * v(6),
-            v(5) * v(6),
-            v(6) * v(6); */
-
-
-  /*//////////// Version 8: Quadratic combinations (input q) ///////////////////
-  // elements:
-  // q(0),
-  // q(1),
-  // sin(q(2)), cos(q(2))
-  // sin(q(3)), cos(q(3))
-  // sin(q(4)), cos(q(4))
-  // sin(q(5)), cos(q(5))
-  // sin(q(6)), cos(q(6))
-  VectorX<U> q = x.head(7);
 
   VectorX<U> feature(113); //1 + 12 + 10*10
   feature <<1,

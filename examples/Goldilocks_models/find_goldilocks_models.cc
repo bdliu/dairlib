@@ -58,7 +58,7 @@ void findGoldilocksModels() {
   double epsilon = 1e-4;
 
   // Reduced order model parameters
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_feature_s = 1;    // n_feature should match with the dim of the feature,
   int n_feature_sDDot = 1; // since we are hard coding it now. (same below)
