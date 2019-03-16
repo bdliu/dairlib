@@ -77,8 +77,8 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
-                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDot,
+void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDot,
+                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDDot,
                          double stride_length, double duration, int max_iter,
                          string directory,
                          string init_file, std::string output_prefix,
@@ -341,7 +341,7 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-    n_z, n_zDot, n_featureZ, n_featureZDot, thetaZ, thetaZDot,
+    n_z, n_zDDot, n_featureZ, n_featureZDDot, thetaZ, thetaZDDot,
     std::move(trajopt), &plant_autoDiff, num_time_samples);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
@@ -414,8 +414,8 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
 
   // Get matrix B (~get feature vectors)
   int n_thetaZ = thetaZ.size();
-  int n_thetaZDot = thetaZDot.size();
-  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDot);
+  int n_thetaZDDot = thetaZDDot.size();
+  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -460,11 +460,11 @@ void trajOptGivenWeights(int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-      for (int k = 0; k < n_zDot / 2; k++) {
+      for (int k = 0; k < n_zDDot / 2; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p * n_zDot + k, n_thetaZ + k * dyn_gradient.size() + j) =
+          B(ind(0) + p * n_zDDot + k, n_thetaZ + k * dyn_gradient.size() + j) =
             dyn_gradient(j);
-          // cout << "ind(0) + p*n_zDot + k = " << ind(0) + p*n_zDot + k << endl;
+          // cout << "ind(0) + p*n_zDDot + k = " << ind(0) + p*n_zDDot + k << endl;
         }
       }
       p++;

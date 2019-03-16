@@ -18,10 +18,10 @@ using drake::math::autoDiffToGradientMatrix;
 using drake::math::initializeAutoDiff;
 
 int main() {
-  int n_zDot = 6;
-  int n_z = n_zDot;
+  int n_zDDot = 6;
+  int n_z = n_zDDot;
   int n_feature = 5;
-  dairlib::goldilocks_models::DynamicsExpression expr(n_zDot, n_feature);
+  dairlib::goldilocks_models::DynamicsExpression expr(n_zDDot, n_feature);
 
   VectorXd z(n_z);
   // Matrix<double, Dynamic, 1> z(2);
@@ -43,11 +43,11 @@ int main() {
   // cout << "num_feature_autoDiff = \n" << n_feature_autoDiff << "\n\n";
 
   ///// getExpression() //////
-  VectorXd theta = VectorXd::Zero(n_zDot/2 * n_feature);
+  VectorXd theta = VectorXd::Zero(n_zDDot/2 * n_feature);
   theta << 1, 1, 0, 0, 0,
            0, 0, 1, 0, 0,
            0, 0, 0, 1, 1;
-  DRAKE_DEMAND(n_zDot/2 * n_feature == theta.size());
+  DRAKE_DEMAND(n_zDDot/2 * n_feature == theta.size());
   // Features implemented in DynamicsExpression should be:
   // feature << z(0),
   //            z(1)*z(1)*z(1),

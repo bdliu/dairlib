@@ -12,8 +12,8 @@ namespace dairlib {
 namespace goldilocks_models  {
 
 void trajOptGivenWeights(
-    int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
-    VectorXd & thetaZ, VectorXd & thetaZDot,
+    int n_z, int n_zDDot, int n_featureZ, int n_featureZDDot,
+    VectorXd & thetaZ, VectorXd & thetaZDDot,
     double stride_length, double duration, int max_iter,
     std::string directory, std::string init_file, std::string output_prefix,
     vector<VectorXd> & w_sol_vec,

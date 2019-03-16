@@ -60,8 +60,8 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   //            sqrt(x(1));
 
   //////////// Version 2: testing //////////////////////////////////////////////
-  // VectorX<U> feature(1);
-  // feature << x(1);
+  VectorX<U> feature(1);
+  feature << x(1);
 
   //////////// Version 3: testing //////////////////////////////////////////////
   // VectorX<U> feature(2);
@@ -143,7 +143,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
   feature << foot_to_CoM.norm(),
              tan(foot_to_CoM(0)/foot_to_CoM(2));*/
 
-  //////////// Version 7: Quadratic combinations ///////////////////////////////
+  /*//////////// Version 7: Quadratic combinations ///////////////////////////////
   // elements:
   // q(0),
   // q(1),
@@ -488,7 +488,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & x) const {
             v(3) * v(6),
             v(4) * v(6),
             v(5) * v(6),
-            v(6) * v(6);
+            v(6) * v(6); */
 
 
 

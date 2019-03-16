@@ -4,9 +4,9 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-DynamicsExpression::DynamicsExpression(int n_zDot, int n_featureDot) {
+DynamicsExpression::DynamicsExpression(int n_zDDot, int n_featureDot) {
   n_featureDot_ = n_featureDot;
-  n_zDot_ = n_zDot;
+  n_zDDot_ = n_zDDot;
 }
 
 int DynamicsExpression::getDimFeature() {
@@ -16,14 +16,14 @@ int DynamicsExpression::getDimFeature() {
 template <typename U, typename V>
 V DynamicsExpression::getExpression(
     const U & theta, const V & z) const {
-  // DRAKE_DEMAND(n_zDot_ * n_featureDot_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_zDDot_ * n_featureDot_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_featureDot_ == getFeature(z).size());  // check feature size
 
-  V expression(n_zDot_);
+  V expression(n_zDDot_);
 
-  expression.segment(0, n_zDot_ / 2) = z.segment(n_zDot_ / 2, n_zDot_ / 2);
-  for (int i = 0; i < n_zDot_ / 2 ; i++)
-    expression(n_zDot_ / 2 + i) =
+  expression.segment(0, n_zDDot_ / 2) = z.segment(n_zDDot_ / 2, n_zDDot_ / 2);
+  for (int i = 0; i < n_zDDot_ / 2 ; i++)
+    expression(n_zDDot_ / 2 + i) =
         theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
 
   return expression;
@@ -45,8 +45,8 @@ T DynamicsExpression::getFeature(const T & z) const {
   //            sqrt(z(1));
 
   // Version 2: testing
-  // T feature(1);
-  // feature << 0;
+  T feature(1);
+  feature << 0;
 
   // Version 3: testing
   // T feature(1);
@@ -57,7 +57,7 @@ T DynamicsExpression::getFeature(const T & z) const {
   // feature << z(0), z(1);
 
   // Version 5: nz = 4, all combinations until quadratic
-  T feature(21);
+  /*T feature(21);
   feature << 1,     // constant
              z(0),  // linear
              z(1),
@@ -78,7 +78,7 @@ T DynamicsExpression::getFeature(const T & z) const {
              z(0) * z(3),
              z(1) * z(3),
              z(2) * z(3),
-             z(3) * z(3);
+             z(3) * z(3);*/
 
 
   return feature;

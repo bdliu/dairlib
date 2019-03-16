@@ -6,15 +6,15 @@ namespace goldilocks_models {
 
 // Constructor
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
-  int n_z, int n_zDot, int n_featureZ, int n_featureZDot,
-  VectorXd & thetaZ, VectorXd & thetaZDot,
+  int n_z, int n_zDDot, int n_featureZ, int n_featureZDDot,
+  VectorXd & thetaZ, VectorXd & thetaZDDot,
   std::unique_ptr<HybridDircon<double>> dircon_in,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::vector<int> & num_time_samples):
   n_z_(n_z),
-  n_zDot_(n_zDot),
+  n_zDDot_(n_zDDot),
   n_featureZ_(n_featureZ),
-  n_featureZDot_(n_featureZDot) {
+  n_featureZDDot_(n_featureZDDot) {
 
   // Get total sample ponits
   int N = 0;
@@ -33,7 +33,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   kinematics_constraint = make_shared<KinematicsConstraint>(
                                  n_z, n_featureZ, thetaZ, plant);
   dynamics_constraint = make_shared<DynamicsConstraint>(
-                                 n_zDot, n_featureZDot, thetaZDot, plant);
+                                 n_zDDot, n_featureZDDot, thetaZDDot, plant);
 
   // Add kinematics constraint for all knots
   // TODO(yminchen): check if kinematics constraint is implemented correctly
@@ -49,7 +49,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // // Dynamics constraint waw tested with fix height acceleration.
   // // Set z = [y;dy] and set dz = [dy;0];
   int N_accum = 0;
-  for (int i = 0; i < num_time_samples.size() ; i++) {
+  for (unsigned int i = 0; i < num_time_samples.size() ; i++) {
     // cout << "i = " << i << endl;
     // cout << "N_accum = " << N_accum << endl;
     for (int j = 0; j < num_time_samples[i]-2 ; j++) {
@@ -90,7 +90,7 @@ GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_z) const {
 // pass in the multipleShooting class
 // pass in the number of knots
 // pass in z constraint class
-// pass in zdot constraint class
+// pass in zDDot constraint class
 //)
 
 // add new decision variable z
@@ -98,9 +98,9 @@ GoldilcocksModelTrajOpt::reduced_model_state(int index, int n_z) const {
 // add constraint for z
 // (decision variables passed into the constraint is {x_i,z_i})
 // In for loop
-// You will need to do direct collocation for zDot (cubic spline)
+// You will need to do direct collocation for zDDot (cubic spline)
 // 1. Get the spline from z0,z1,
-//    zDot0(functino of z0),zDot1(function of z1)
+//    zDDot0(functino of z0),zDDot1(function of z1)
 // 2. The constraint is that at the middle point, the slope still match
 
 

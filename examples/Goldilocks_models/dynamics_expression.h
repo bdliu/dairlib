@@ -24,7 +24,7 @@ namespace goldilocks_models {
 
 class DynamicsExpression {
  public:
-  explicit DynamicsExpression(int n_zDot, int n_featureDot);
+  explicit DynamicsExpression(int n_zDDot, int n_featureDot);
   DynamicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -38,7 +38,7 @@ class DynamicsExpression {
  private:
   int n_featureDot_;
   int n_x_;
-  int n_zDot_;
+  int n_zDDot_;
 };
 
 }  // namespace goldilocks_models
