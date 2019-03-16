@@ -58,25 +58,25 @@ void findGoldilocksModels() {
   double epsilon = 1e-4;
 
   // Reduced order model parameters
-  int n_z = 4; //2
-  int n_zDDot = n_z; // Assume that are the same (no quaternion)
-  int n_featureZ = 1;    // n_feature should match with the dim of the feature,
-  int n_featureZDDot = 1; // since we are hard coding it now. (same below)
-  int n_thetaZ = n_z * n_featureZ;
-  int n_thetaZDDot = n_zDDot * n_featureZDDot;
+  int n_s = 4; //2
+  int n_sDDot = n_s; // Assume that are the same (no quaternion)
+  int n_feature_s = 1;    // n_feature should match with the dim of the feature,
+  int n_feature_sDDot = 1; // since we are hard coding it now. (same below)
+  int n_theta_s = n_s * n_feature_s;
+  int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   // Assuming position and velocity has the same dimension
   // for the reduced order model.
 
   // Initial guess of theta
-  VectorXd thetaZ(n_thetaZ);
-  VectorXd thetaZDDot(n_thetaZDDot);
-  thetaZ = VectorXd::Zero(n_thetaZ);
-  // thetaZ(0) = 1;
-  // thetaZ(3) = 1;
-  thetaZDDot = VectorXd::Zero(n_thetaZDDot);
+  VectorXd theta_s(n_theta_s);
+  VectorXd theta_sDDot(n_theta_sDDot);
+  theta_s = VectorXd::Zero(n_theta_s);
+  // theta_s(0) = 1;
+  // theta_s(3) = 1;
+  theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   // Testing intial theta
-  // thetaZ = VectorXd::Random(n_thetaZ);
-  // thetaZDDot = VectorXd::Random(n_thetaZDDot);
+  // theta_s = VectorXd::Random(n_theta_s);
+  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
 
 
   // Vectors/Matrices for the outer loop
@@ -94,14 +94,14 @@ void findGoldilocksModels() {
   vector<VectorXd> theta_vec;
 
   // Start the gradient descent
-  VectorXd theta(n_thetaZ + n_thetaZDDot);
-  theta << thetaZ, thetaZDDot;
+  VectorXd theta(n_theta_s + n_theta_sDDot);
+  theta << theta_s, theta_sDDot;
   for (int iter = 1; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
 
-    writeCSV(directory + output_prefix + string("thetaZ.csv"), thetaZ);
-    writeCSV(directory + output_prefix + string("thetaZDDot.csv"), thetaZDDot);
+    writeCSV(directory + output_prefix + string("theta_s.csv"), theta_s);
+    writeCSV(directory + output_prefix + string("theta_sDDot.csv"), theta_sDDot);
 
     // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
@@ -124,8 +124,8 @@ void findGoldilocksModels() {
 
 
       // Trajectory optimization with fixed model paramters
-      trajOptGivenWeights(n_z, n_zDDot, n_featureZ, n_featureZDDot,
-                          thetaZ, thetaZDDot,
+      trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
+                          theta_s, theta_sDDot,
                           stride_length, duration, max_inner_iter,
                           directory, init_file, output_prefix,
                           w_sol_vec, A_vec, H_vec,
@@ -232,7 +232,7 @@ void findGoldilocksModels() {
             if (y_active(i) / rowi.norm() - y_active(j) / rowj.norm() > 1e-6)
               cout << "There are over-constraining rows!!!!\n";
             // Checking if B is involved
-            for(int k = 0; k<n_thetaZ + n_thetaZDDot; k++){
+            for(int k = 0; k<n_theta_s + n_theta_sDDot; k++){
               if(B_active(i,k) != 0) cout << "B is in redundant rows of constraints\n";
             }
             break;
@@ -497,10 +497,10 @@ void findGoldilocksModels() {
     P_vec.clear();
     q_vec.clear();
 
-    // Gradient descent and assign thetaZ and thetaZDDot
+    // Gradient descent and assign theta_s and theta_sDDot
     theta -= h_step * costGradient;
-    thetaZ = theta.head(n_thetaZ);
-    thetaZDDot = theta.tail(n_thetaZDDot);
+    theta_s = theta.head(n_theta_s);
+    theta_sDDot = theta.tail(n_theta_sDDot);
 
     // Check optimality
     cout << "costGradient norm: " << costGradient.norm() << endl;

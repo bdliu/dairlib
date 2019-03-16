@@ -18,19 +18,19 @@ using drake::math::autoDiffToGradientMatrix;
 using drake::math::initializeAutoDiff;
 
 int main() {
-  int n_zDDot = 3;
-  int n_z = n_zDDot;
+  int n_sDDot = 3;
+  int n_s = n_sDDot;
   int n_feature = 5;
-  dairlib::goldilocks_models::DynamicsExpression expr(n_zDDot, n_feature);
+  dairlib::goldilocks_models::DynamicsExpression expr(n_sDDot, n_feature);
 
-  VectorXd z(n_z);
-  // Matrix<double, Dynamic, 1> z(2);
-  z << M_PI / 2, 3, 0;
-  AutoDiffVecXd z_autoDiff = initializeAutoDiff(z);
-  DRAKE_DEMAND(n_z == z.size());
+  VectorXd s(n_s);
+  // Matrix<double, Dynamic, 1> s(2);
+  s << M_PI / 2, 3, 0;
+  AutoDiffVecXd z_autoDiff = initializeAutoDiff(s);
+  DRAKE_DEMAND(n_s == s.size());
 
   ////// getFeature() //////
-  VectorXd feature = expr.getFeature(z);
+  VectorXd feature = expr.getFeature(s);
   // cout << "feature = \n" << feature << "\n\n";
   auto feature_autoDiff = expr.getFeature(z_autoDiff);
   cout << "feature_autoDiff = \n" << feature_autoDiff << "\n\n";
@@ -42,26 +42,26 @@ int main() {
   // cout << "num_feature_autoDiff = \n" << n_feature_autoDiff << "\n\n";
 
   ///// getExpression() //////
-  VectorXd theta = VectorXd::Zero(n_zDDot * n_feature);
+  VectorXd theta = VectorXd::Zero(n_sDDot * n_feature);
   theta << 1, 1, 0, 0, 0,
            0, 0, 1, 0, 0,
            0, 0, 0, 1, 1;
-  DRAKE_DEMAND(n_zDDot * n_feature == theta.size());
+  DRAKE_DEMAND(n_sDDot * n_feature == theta.size());
   // Features implemented in DynamicsExpression should be:
-  // feature << z(0),
-  //            z(1)*z(1)*z(1),
-  //            z(0) * z(1),
-  //            cos(z(0)),
-  //            sqrt(z(1));
+  // feature << s(0),
+  //            s(1)*s(1)*s(1),
+  //            s(0) * s(1),
+  //            cos(s(0)),
+  //            sqrt(s(1));
 
   // expression =
-  //      z(0) + z(1)*z(1)*z(1),
-  //      z(0) * z(1),
-  //      cos(z(0)) + sqrt(z(1));
+  //      s(0) + s(1)*s(1)*s(1),
+  //      s(0) * s(1),
+  //      cos(s(0)) + sqrt(s(1));
 
   // We don't have getExpression() that returns VectorX<double>, so we use
   // DiscardGradient here.
-  VectorX<double> expression = expr.getExpression(theta, z);
+  VectorX<double> expression = expr.getExpression(theta, s);
   cout << "expression = \n" << expression << "\n\n";
 
   AutoDiffVecXd theta_autoDiff =  initializeAutoDiff(theta);

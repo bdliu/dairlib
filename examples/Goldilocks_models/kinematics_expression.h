@@ -32,8 +32,8 @@ namespace goldilocks_models {
 template <typename T>
 class KinematicsExpression {
  public:
-  explicit KinematicsExpression(int n_z, int n_feature);
-  explicit KinematicsExpression(int n_z, int n_feature,
+  explicit KinematicsExpression(int n_s, int n_feature);
+  explicit KinematicsExpression(int n_s, int n_feature,
       const MultibodyPlant<T> * plant);
   KinematicsExpression() {}  // Default constructor
 
@@ -49,7 +49,7 @@ class KinematicsExpression {
   const MultibodyPlant<T> * plant_;
   int n_feature_;
   int n_x_;
-  int n_z_;
+  int n_s_;
   const std::vector<std::string> leg_link_names_{
     "left_upper_leg_mass", "left_lower_leg_mass",
     "right_upper_leg_mass", "right_lower_leg_mass"};

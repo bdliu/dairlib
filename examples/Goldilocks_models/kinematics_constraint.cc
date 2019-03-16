@@ -5,24 +5,24 @@ namespace dairlib {
 namespace goldilocks_models {
 
 KinematicsConstraint::KinematicsConstraint(
-                                 int n_z, int n_feature, VectorXd & thetaZ,
+                                 int n_s, int n_feature, VectorXd & theta_s,
                                  const MultibodyPlant<AutoDiffXd> * plant,
                                  const std::string& description):
-  Constraint(n_z,
-             n_z + plant->num_positions() + plant->num_velocities(),
-             VectorXd::Zero(n_z),
-             VectorXd::Zero(n_z),
+  Constraint(n_s,
+             n_s + plant->num_positions() + plant->num_velocities(),
+             VectorXd::Zero(n_s),
+             VectorXd::Zero(n_s),
              description),
+  expression_double(KinematicsExpression<double>(n_s, n_feature)),
+  expression_autoDiff_(KinematicsExpression<AutoDiffXd>(n_s, n_feature)),
   plant_(plant),
-  n_constraint_(n_z),
+  n_constraint_(n_s),
   n_feature_(n_feature),
-  thetaZ_(thetaZ),
   n_state_(plant->num_positions() + plant->num_velocities()),
-  expression_double(KinematicsExpression<double>(n_z, n_feature)),
-  expression_autoDiff_(KinematicsExpression<AutoDiffXd>(n_z, n_feature)) {
+  theta_s_(theta_s) {
 
   // Check the theta size
-  DRAKE_DEMAND(n_z * n_feature == thetaZ.size());
+  DRAKE_DEMAND(n_s * n_feature == theta_s.size());
 
   // Check the feature size implemented in the model expression
   VectorXd x_temp = VectorXd::Zero(
@@ -44,7 +44,7 @@ void KinematicsConstraint::DoEval(const
   const AutoDiffVecXd z = z_x.head(n_constraint_);
   const AutoDiffVecXd x = z_x.tail(n_state_);
 
-  *y = getKinematicsConstraint(z, x, thetaZ_);
+  *y = getKinematicsConstraint(z, x, theta_s_);
 }
 
 void KinematicsConstraint::DoEval(const
@@ -58,7 +58,7 @@ VectorXd KinematicsConstraint::getGradientWrtTheta(VectorXd & x){
   VectorXd z = VectorXd::Zero(n_constraint_);
   VectorXd gradient(n_feature_);
   for(int i = 0; i<n_feature_; i++){
-    VectorXd theta_unit = VectorXd::Zero(thetaZ_.size());
+    VectorXd theta_unit = VectorXd::Zero(theta_s_.size());
     theta_unit(i) = 1;
     gradient(i) = getKinematicsConstraint(z,x,theta_unit)(0);
   }

@@ -5,22 +5,22 @@ namespace dairlib {
 namespace goldilocks_models {
 
 template <typename T>
-KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature) {
+KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature) {
   n_feature_ = n_feature;
-  n_z_ = n_z;
-  DRAKE_DEMAND(n_z > 1);
+  n_s_ = n_s;
+  DRAKE_DEMAND(n_s > 1);
 }
 
 template <typename T>
-KinematicsExpression<T>::KinematicsExpression(int n_z, int n_feature,
+KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature,
     const MultibodyPlant<T> * plant) {
   n_feature_ = n_feature;
-  n_z_ = n_z;
+  n_s_ = n_s;
   plant_ = plant;
 
   mass_disp_ << 0, 0, -0.25;
   foot_disp_ << 0, 0, -0.5;
-  DRAKE_DEMAND(n_z > 1);
+  DRAKE_DEMAND(n_s > 1);
 }
 
 template <typename T>
@@ -32,11 +32,11 @@ template <typename T>
 template <typename U, typename V>
 VectorX<T> KinematicsExpression<T>::getExpression(
   const U & theta, const V & x) const {
-  // DRAKE_DEMAND(n_z_ * n_feature_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_s_ * n_feature_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_feature_ == getFeature(x).size());  // check feature size
 
-  VectorX<T> expression(n_z_);
-  for (int i = 0; i < n_z_ ; i++)
+  VectorX<T> expression(n_s_);
+  for (int i = 0; i < n_s_ ; i++)
     expression(i) =
       theta.segment(i * n_feature_, n_feature_).dot(getFeature(x));
 

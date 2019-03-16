@@ -52,7 +52,7 @@ namespace goldilocks_models {
 
 class KinematicsConstraint : public Constraint {
  public:
-  KinematicsConstraint(int n_z, int n_feature, VectorXd & thetaZ,
+  KinematicsConstraint(int n_s, int n_feature, VectorXd & theta_s,
                        const MultibodyPlant<AutoDiffXd> * plant,
                        const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& z_x,
@@ -79,7 +79,7 @@ class KinematicsConstraint : public Constraint {
   int n_constraint_;
   int n_feature_;
   int n_state_;
-  VectorXd thetaZ_;
+  VectorXd theta_s_;
 
 };
 

@@ -73,14 +73,14 @@ using systems::SubvectorPassThrough;
 class GoldilcocksModelTrajOpt {
  public:
   GoldilcocksModelTrajOpt(
-      int n_z_, int n_zDDot_, int n_featureZ_, int n_featureZDDot_,
-      VectorXd & thetaZ_, VectorXd & thetaZDDot_,
+      int n_s_, int n_sDDot_, int n_feature_s_, int n_feature_sDDot_,
+      VectorXd & theta_s_, VectorXd & theta_sDDot_,
       std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,
       const std::vector<int>& num_time_samples);
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_state(
-      int index, int n_z) const;
+      int index, int n_s) const;
 
 
   std::unique_ptr<HybridDircon<double>> dircon;
@@ -94,12 +94,12 @@ class GoldilcocksModelTrajOpt {
  private:
   int num_knots_;
   VectorXDecisionVariable z_vars_;
-  int n_z_;
-  int n_zDDot_;
-  int n_featureZ_;
-  int n_featureZDDot_;
-  VectorXd thetaZ_;
-  VectorXd thetaZDDot_;
+  int n_s_;
+  int n_sDDot_;
+  int n_feature_s_;
+  int n_feature_sDDot_;
+  VectorXd theta_s_;
+  VectorXd theta_sDDot_;
 };
 
 }  // namespace goldilocks_models

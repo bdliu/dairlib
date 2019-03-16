@@ -4,9 +4,9 @@
 namespace dairlib {
 namespace goldilocks_models {
 
-DynamicsExpression::DynamicsExpression(int n_zDDot, int n_featureDot) {
+DynamicsExpression::DynamicsExpression(int n_sDDot, int n_featureDot) {
   n_featureDot_ = n_featureDot;
-  n_zDDot_ = n_zDDot;
+  n_sDDot_ = n_sDDot;
 }
 
 int DynamicsExpression::getDimFeature() {
@@ -16,12 +16,12 @@ int DynamicsExpression::getDimFeature() {
 template <typename U, typename V>
 V DynamicsExpression::getExpression(
     const U & theta, const V & z) const {
-  // DRAKE_DEMAND(n_zDDot_ * n_featureDot_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_sDDot_ * n_featureDot_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_featureDot_ == getFeature(z).size());  // check feature size
 
-  V expression(n_zDDot_);
+  V expression(n_sDDot_);
 
-  for (int i = 0; i < n_zDDot_; i++)
+  for (int i = 0; i < n_sDDot_; i++)
     expression(i) =
         theta.segment(i * n_featureDot_, n_featureDot_).dot(getFeature(z));
 

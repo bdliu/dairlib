@@ -5,26 +5,26 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DynamicsConstraint::DynamicsConstraint(
-  int n_zDDot, int n_featureDot,
-  VectorXd & thetaZDDot,
+  int n_sDDot, int n_featureDot,
+  VectorXd & theta_sDDot,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::string& description):
-  Constraint(n_zDDot,
-             2 * n_zDDot + 1,
-             VectorXd::Zero(n_zDDot),
-             VectorXd::Zero(n_zDDot),
+  Constraint(n_sDDot,
+             2 * n_sDDot + 1,
+             VectorXd::Zero(n_sDDot),
+             VectorXd::Zero(n_sDDot),
              description),
   plant_(plant),
-  n_zDDot_(n_zDDot),
-  n_featureZDDot_(n_featureDot),
-  thetaZDDot_(thetaZDDot),
-  expression_object_(DynamicsExpression(n_zDDot, n_featureDot)) {
+  n_sDDot_(n_sDDot),
+  n_feature_sDDot_(n_featureDot),
+  theta_sDDot_(theta_sDDot),
+  expression_object_(DynamicsExpression(n_sDDot, n_featureDot)) {
 
   // Check the theta size
-  DRAKE_DEMAND(n_zDDot * n_featureDot == thetaZDDot.size());
+  DRAKE_DEMAND(n_sDDot * n_featureDot == theta_sDDot.size());
 
   // Check the feature size implemented in the model expression
-  VectorXd z_temp = VectorXd::Zero(n_zDDot);
+  VectorXd z_temp = VectorXd::Zero(n_sDDot);
   DRAKE_DEMAND(n_featureDot == expression_object_.getFeature(z_temp).size());
 }
 
@@ -40,11 +40,11 @@ void DynamicsConstraint::DoEval(const
 void DynamicsConstraint::DoEval(const
                                 Eigen::Ref<const AutoDiffVecXd>& q,
                                 AutoDiffVecXd* y) const {
-  const AutoDiffVecXd z_i = q.head(n_zDDot_);
-  const AutoDiffVecXd z_iplus1 = q.segment(n_zDDot_, n_zDDot_);
+  const AutoDiffVecXd z_i = q.head(n_sDDot_);
+  const AutoDiffVecXd z_iplus1 = q.segment(n_sDDot_, n_sDDot_);
   const AutoDiffVecXd timestep_i = q.tail(1);
 
-  *y = getDynamicsConstraint(z_i, z_iplus1, timestep_i, thetaZDDot_);
+  *y = getDynamicsConstraint(z_i, z_iplus1, timestep_i, theta_sDDot_);
 }
 
 void DynamicsConstraint::DoEval(const
@@ -58,9 +58,9 @@ void DynamicsConstraint::DoEval(const
 VectorXd DynamicsConstraint::getGradientWrtTheta(
   const VectorXd & z_i, const VectorXd & z_iplus1,
   const VectorXd & timestep_i) const {
-  VectorXd gradient(n_featureZDDot_);
-  for (int i = 0; i < n_featureZDDot_; i++) {
-    VectorXd theta_unit = VectorXd::Zero(thetaZDDot_.size());
+  VectorXd gradient(n_feature_sDDot_);
+  for (int i = 0; i < n_feature_sDDot_; i++) {
+    VectorXd theta_unit = VectorXd::Zero(theta_sDDot_.size());
     theta_unit(i) = 1;
     gradient(i) = getDynamicsConstraint(z_i, z_iplus1, timestep_i,
                                         theta_unit)(0) - z_iplus1(0) + z_i(0);
@@ -75,7 +75,7 @@ AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
   const AutoDiffVecXd & z_i, const AutoDiffVecXd & z_iplus1,
   const AutoDiffVecXd & timestep_i, const VectorXd & theta) const {
 
-  // Let the dynamics be dzdt = h(z;thetaZDDot) = h(z).
+  // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
   AutoDiffVecXd h_of_z_i = expression_object_.getExpression(theta,
                            z_i);
   AutoDiffVecXd h_of_z_iplus1 = expression_object_.getExpression(theta,
@@ -95,7 +95,7 @@ VectorXd DynamicsConstraint::getDynamicsConstraint(
   const VectorXd & z_i, const VectorXd & z_iplus1,
   const VectorXd & timestep_i, const VectorXd & theta) const {
 
-  // Let the dynamics be dzdt = h(z;thetaZDDot) = h(z).
+  // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
   VectorXd h_of_z_i =  expression_object_.getExpression(theta,
                        z_i);
   VectorXd h_of_z_iplus1 = expression_object_.getExpression(theta,

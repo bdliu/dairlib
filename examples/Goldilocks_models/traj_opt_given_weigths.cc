@@ -77,8 +77,8 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDot,
-                         Eigen::VectorXd & thetaZ, Eigen::VectorXd & thetaZDDot,
+void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sDDot,
+                         Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
                          double stride_length, double duration, int max_iter,
                          string directory,
                          string init_file, std::string output_prefix,
@@ -341,7 +341,7 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-    n_z, n_zDDot, n_featureZ, n_featureZDDot, thetaZ, thetaZDDot,
+    n_s, n_sDDot, n_feature_s, n_feature_sDDot, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, num_time_samples);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
@@ -387,7 +387,7 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
   }
 
   for(int i = 0; i<N ; i++){
-      auto z_k = gm_traj_opt.reduced_model_state(i, n_z);
+      auto z_k = gm_traj_opt.reduced_model_state(i, n_s);
       VectorXd z_k_sol = result.GetSolution(z_k);
       cout << "z_"<< i <<"_sol = " << z_k_sol.transpose() << endl;
   }*/
@@ -413,9 +413,9 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
         gm_traj_opt.dircon.get(), w_sol, H, b);
 
   // Get matrix B (~get feature vectors)
-  int n_thetaZ = thetaZ.size();
-  int n_thetaZDDot = thetaZDDot.size();
-  MatrixXd B = MatrixXd::Zero(A.rows(), n_thetaZ + n_thetaZDDot);
+  int n_theta_s = theta_s.size();
+  int n_theta_sDDot = theta_sDDot.size();
+  MatrixXd B = MatrixXd::Zero(A.rows(), n_theta_s + n_theta_sDDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   VectorXd ind = systems::trajectory_optimization::getConstraintRows(
@@ -429,10 +429,10 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
       gm_traj_opt.kinematics_constraint->getGradientWrtTheta(xi);
 
     // Fill in B matrix
-    for (int k = 0; k < n_z; k++) {
+    for (int k = 0; k < n_s; k++) {
       for (int j = 0; j < kin_gradient.size(); j++) {
-        B(ind(0) + i * n_z + k, k * kin_gradient.size() + j) = kin_gradient(j);
-        // cout << "ind(0) + i*n_z + k = " << ind(0) + i*n_z + k << endl;
+        B(ind(0) + i * n_s + k, k * kin_gradient.size() + j) = kin_gradient(j);
+        // cout << "ind(0) + i*n_s + k = " << ind(0) + i*n_s + k << endl;
       }
     }
   }
@@ -447,8 +447,8 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
     for (int m = 0; m < num_time_samples[l] - 2 ; m++) {
       int i = N_accum + m;
       // Get the gradient value first
-      auto z_i = gm_traj_opt.reduced_model_state(i, n_z);
-      auto z_iplus1 = gm_traj_opt.reduced_model_state(i + 1, n_z);
+      auto z_i = gm_traj_opt.reduced_model_state(i, n_s);
+      auto z_iplus1 = gm_traj_opt.reduced_model_state(i + 1, n_s);
       auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
       VectorXd z_i_sol = result.GetSolution(z_i);
       VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
@@ -460,11 +460,11 @@ void trajOptGivenWeights(int n_z, int n_zDDot, int n_featureZ, int n_featureZDDo
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
       // Fill in B matrix
-      for (int k = 0; k < n_zDDot; k++) {
+      for (int k = 0; k < n_sDDot; k++) {
         for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p * n_zDDot + k, n_thetaZ + k * dyn_gradient.size() + j) =
+          B(ind(0) + p * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
             dyn_gradient(j);
-          // cout << "ind(0) + p*n_zDDot + k = " << ind(0) + p*n_zDDot + k << endl;
+          // cout << "ind(0) + p*n_sDDot + k = " << ind(0) + p*n_sDDot + k << endl;
         }
       }
       p++;

@@ -36,13 +36,13 @@ int main() {
 
   ////////////////////////////// Test 1 ////////////////////////////////////////
 /*
-  int n_z = 3;
+  int n_s = 3;
   int n_x = 2;
   int n_feature = 5;
   dairlib::goldilocks_models::KinematicsExpression<double> expr_double(
-    n_z, n_feature);
+    n_s, n_feature);
   dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(
-    n_z, n_feature);
+    n_s, n_feature);
 
   VectorXd x(n_x);
   // Matrix<double, Dynamic, 1> x(n_x);
@@ -63,11 +63,11 @@ int main() {
   // cout << "num_feature_autoDiff = \n" << n_feature_autoDiff << "\n\n";
 
   ///// getExpression() //////
-  VectorXd theta = VectorXd::Zero(n_z * n_feature);
+  VectorXd theta = VectorXd::Zero(n_s * n_feature);
   theta << 1, 1, 0, 0, 0,
            0, 0, 1, 0, 0,
            0, 0, 0, 1, 1;
-  DRAKE_DEMAND(n_z * n_feature == theta.size());
+  DRAKE_DEMAND(n_s * n_feature == theta.size());
   // Features implemented in KinematicsExpression should be:
   // feature << x(0),
   //            x(1)*x(1)*x(1),
@@ -113,13 +113,13 @@ int main() {
 
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
-  int n_z = 2; // Doesn't matter here
+  int n_s = 2; // Doesn't matter here
   int n_x = plant_autoDiff.num_positions() + plant_autoDiff.num_velocities() ;
   int n_feature = 3; // Doesn't matter here either actually
   dairlib::goldilocks_models::KinematicsExpression<double> expr_double(
-    n_z, n_feature, &plant);
+    n_s, n_feature, &plant);
   dairlib::goldilocks_models::KinematicsExpression<AutoDiffXd> expr(
-    n_z, n_feature, &plant_autoDiff);
+    n_s, n_feature, &plant_autoDiff);
 
   // Matrix<double, Dynamic, 1> x(n_x);
   VectorXd x = VectorXd::Zero(n_x);
