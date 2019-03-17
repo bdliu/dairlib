@@ -90,7 +90,7 @@ class GoldilcocksModelTrajOpt {
   std::vector<Binding<Constraint>> kinematics_constraint_bindings;
   std::shared_ptr<DynamicsConstraintAtHead>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
-  std::shared_ptr<DynamicsConstraintAtTail>  dynamics_constraint_at_tail;
+  std::shared_ptr<DynamicsConstraintAtHead>  dynamics_constraint_at_tail;
   std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
 
 

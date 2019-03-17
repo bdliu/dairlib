@@ -55,6 +55,7 @@ class DynamicsConstraintAtHead : public Constraint {
   DynamicsConstraintAtHead(int n_sDDot, int n_feature_sDDot,
                      const VectorXd & theta_sDDot,
                      const MultibodyPlant<AutoDiffXd> * plant,
+                     bool is_head,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
@@ -69,20 +70,15 @@ class DynamicsConstraintAtHead : public Constraint {
       const VectorXd & s_i, const VectorXd & s_iplus1,
       const VectorXd & timestep_i) const;
 
-  AutoDiffVecXd getDynamicsConstraint(
-      const AutoDiffVecXd & s_i, const AutoDiffVecXd & s_iplus1,
-      const AutoDiffVecXd & timestep_i, const VectorXd & theta) const;
-  VectorXd getDynamicsConstraint(
-      const VectorXd & s_i, const VectorXd & s_iplus1,
-      const VectorXd & timestep_i, const VectorXd & theta) const;
-
-
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;
+  int n_q_;
+  int n_v_;
   int n_sDDot_;
   int n_feature_sDDot_;
   VectorXd theta_sDDot_;
   DynamicsExpression expression_object_;
+  bool is_head_;
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib
