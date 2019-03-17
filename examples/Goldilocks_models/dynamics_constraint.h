@@ -72,7 +72,7 @@ class DynamicsConstraint : public Constraint {
   void getSAndSDot(VectorXd x_i,
                    VectorXd & s_i, VectorXd & ds_i, int i_start) const;
   void getSAndSDot(AutoDiffVecXd x_i,
-                   AutoDiffVecXd s_i, AutoDiffVecXd ds_i, int i_start) const;
+                   AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
   AutoDiffVecXd getS(AutoDiffVecXd x, int i_start) const;
   AutoDiffVecXd getSDot(AutoDiffVecXd x, int i_start) const;
 
