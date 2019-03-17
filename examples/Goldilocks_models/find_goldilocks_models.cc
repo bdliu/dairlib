@@ -37,6 +37,7 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 void findGoldilocksModels() {
   string directory = "examples/Goldilocks_models/data/";
   string init_file = "";
+  // string init_file = "w0.csv";
   // string init_file = "w0_with_z.csv";
   string output_prefix = "";
 

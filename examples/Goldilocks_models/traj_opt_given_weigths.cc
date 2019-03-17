@@ -787,7 +787,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
 
 
   // visualizer
-  /*const PiecewisePolynomial<double> pp_xtraj =
+  const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
@@ -797,7 +797,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }*/
+  }
 
   return ;
 }

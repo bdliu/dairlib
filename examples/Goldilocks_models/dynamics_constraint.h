@@ -73,8 +73,6 @@ class DynamicsConstraint : public Constraint {
                    VectorXd & s_i, VectorXd & ds_i, int i_start) const;
   void getSAndSDot(AutoDiffVecXd x_i,
                    AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
-  AutoDiffVecXd getS(AutoDiffVecXd x, int i_start) const;
-  AutoDiffVecXd getSDot(AutoDiffVecXd x, int i_start) const;
 
   VectorXd getGradientWrtTheta(
     const VectorXd & s_i, const VectorXd & s_iplus1,
@@ -94,7 +92,6 @@ class DynamicsConstraint : public Constraint {
   DynamicsExpression dyn_expression_;
   bool is_head_;
   double dx_ = 1e-8;
-  std::vector<int> i_start_vec_;
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib
