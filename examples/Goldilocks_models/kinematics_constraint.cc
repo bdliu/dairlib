@@ -14,7 +14,7 @@ KinematicsConstraint::KinematicsConstraint(
              VectorXd::Zero(n_s),
              description),
   expression_double(KinematicsExpression<double>(n_s, n_feature)),
-  expression_autoDiff_(KinematicsExpression<AutoDiffXd>(n_s, n_feature)),
+  expression_autoDiff(KinematicsExpression<AutoDiffXd>(n_s, n_feature)),
   plant_(plant),
   n_constraint_(n_s),
   n_feature_(n_feature),
@@ -66,7 +66,7 @@ VectorXd KinematicsConstraint::getGradientWrtTheta(const VectorXd & q){
 
 AutoDiffVecXd KinematicsConstraint::getKinematicsConstraint(
   const AutoDiffVecXd & s, const AutoDiffVecXd & q, const VectorXd & theta) const{
-  return s - expression_autoDiff_.getExpression(theta, q);
+  return s - expression_autoDiff.getExpression(theta, q);
 }
 VectorXd KinematicsConstraint::getKinematicsConstraint(
   const VectorXd & s, const VectorXd & q, const VectorXd & theta) const{

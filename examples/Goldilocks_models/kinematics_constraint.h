@@ -72,7 +72,7 @@ class KinematicsConstraint : public Constraint {
     const VectorXd & q, const VectorXd & theta) const;
 
   KinematicsExpression<double> expression_double;
-  KinematicsExpression<AutoDiffXd> expression_autoDiff_;
+  KinematicsExpression<AutoDiffXd> expression_autoDiff;
 
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;

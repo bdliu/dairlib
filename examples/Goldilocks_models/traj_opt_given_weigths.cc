@@ -443,8 +443,9 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
           gm_traj_opt.dynamics_constraint_bindings[0]);
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
+             // TODO(yminchen): it does now. Need to modify this.
   for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l] - 2 ; m++) {
+    for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
       int i = N_accum + m;
       // Get the gradient value first
       auto z_i = gm_traj_opt.reduced_model_position(i, n_s);

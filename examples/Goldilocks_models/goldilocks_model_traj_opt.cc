@@ -53,13 +53,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   for (unsigned int i = 0; i < num_time_samples.size() ; i++) {
     // cout << "i = " << i << endl;
     // cout << "N_accum = " << N_accum << endl;
-    for (int j = 0; j < num_time_samples[i]-2 ; j++) {
-        // -2 because we do not add constraint for the last segment because of
-        // discrete dynamics involved
-        // TODO(yminchen): can I fix this?
-
+    for (int j = 0; j < num_time_samples[i]-1 ; j++) {
       // cout << "    j = " << j << endl;
-
       auto s_at_knot_k = reduced_model_position(N_accum+j, n_s);
       auto s_at_knot_kplus1 = reduced_model_position(N_accum+j+1, n_s);
       auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
