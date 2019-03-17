@@ -9,6 +9,7 @@
 #include "multibody/multibody_utils.h"
 
 #include "drake/common/drake_assert.h"
+#include "examples/Goldilocks_models/kinematics_expression.h"
 #include "examples/Goldilocks_models/dynamics_expression.h"
 
 using std::map;
@@ -52,11 +53,13 @@ namespace goldilocks_models {
 
 class DynamicsConstraint : public Constraint {
  public:
-  DynamicsConstraint(int n_sDDot, int n_feature_sDDot,
-                           const VectorXd & theta_sDDot,
-                           const MultibodyPlant<AutoDiffXd> * plant,
-                           bool is_head,
-                           const std::string& description = "");
+  DynamicsConstraint(int n_s, int n_feature_s,
+                     const VectorXd & theta_s,
+                     int n_sDDot, int n_feature_sDDot,
+                     const VectorXd & theta_sDDot,
+                     const MultibodyPlant<AutoDiffXd> * plant,
+                     bool is_head,
+                     const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
@@ -66,10 +69,10 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
-  void get_s_ds(const VectorXd & q_i, const VectorXd & dq_i,
-                VectorXd & s_i, VectorXd & ds_i) const;
-  void get_s_ds(const AutoDiffVecXd & q_i, const AutoDiffVecXd & dq_i,
-                AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i) const;
+  void getSAndSDot(const VectorXd & q_i, const VectorXd & dq_i,
+                   VectorXd & s_i, VectorXd & ds_i) const;
+  void getSAndSDot(const AutoDiffVecXd & q_i, const AutoDiffVecXd & dq_i,
+                   AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i) const;
 
   VectorXd getGradientWrtTheta(
     const VectorXd & s_i, const VectorXd & s_iplus1,
@@ -79,10 +82,14 @@ class DynamicsConstraint : public Constraint {
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_q_;
   int n_v_;
+  int n_s_;
+  int n_feature_s_;
+  VectorXd theta_s_;
   int n_sDDot_;
   int n_feature_sDDot_;
   VectorXd theta_sDDot_;
-  DynamicsExpression expression_object_;
+  KinematicsExpression<AutoDiffXd> kin_expression_;
+  DynamicsExpression dyn_expression_;
   bool is_head_;
 };
 }  // namespace goldilocks_models

@@ -287,11 +287,11 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
 // Instantiation
 
-// class KinematicsExpression
+// class KinematicsExpression //////////////////////////////////////////////////
 template class KinematicsExpression<double>;
 template class KinematicsExpression<AutoDiffXd>;
 
-// method getExpression
+// method getExpression ////////////////////////////////////////////////////////
 template VectorX<double> KinematicsExpression<double>::getExpression(
   const VectorX<double> &, const VectorX<double> &) const;
 
@@ -299,12 +299,15 @@ template VectorX<double> KinematicsExpression<double>::getExpression(
 //   const VectorX<double> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
   const VectorX<double> &, const VectorX<AutoDiffXd> &) const;
-// template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
-//   const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
-  const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
+  const VectorX<AutoDiffXd> &, const VectorX<double> &) const;
 
-// method getFeature
+// Seems that the case when theta and q are both autoDiff doesn't work. (I
+// tested with an example.)
+// template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpression(
+//   const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
+
+// method getFeature ///////////////////////////////////////////////////////////
 template VectorX<double> KinematicsExpression<double>::getFeature(
   const VectorX<double> &) const;
 
