@@ -374,11 +374,11 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   cout << "timestep = " << h_0_sol << endl << endl;*/
 
   // Testing: print out the vertical pos
-  for(int i = 0; i<N ; i++){
+  /*for(int i = 0; i<N ; i++){
     auto x_i = gm_traj_opt.dircon->state(i);
     VectorXd x_i_sol = result.GetSolution(x_i);
     cout << "x1_"<< i <<"_sol = " << x_i_sol(1) << endl;
-  }
+  }*/
 
   // Testing: see what are the decision varaibles
   // cout << "\nAll decision variable:\n"
@@ -762,7 +762,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
 
 
   // visualizer
-  const PiecewisePolynomial<double> pp_xtraj =
+  /*const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
@@ -772,7 +772,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }
+  }*/
 
   return ;
 }

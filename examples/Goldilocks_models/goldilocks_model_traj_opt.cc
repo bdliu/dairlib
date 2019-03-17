@@ -29,25 +29,13 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // Create decision variables
   // s_vars_ = dircon->NewContinuousVariables(n_s * N, "s");
 
-  // Create kinematics/dynamics constraint (pointer)
-  // kinematics_constraint = make_shared<KinematicsConstraint>(
-  //                                n_s, n_feature_s, theta_s, plant);
+  // Create dynamics constraint (pointer)
   dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
                                  n_s, n_feature_s, theta_s,
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant, true);
   dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
                                  n_s, n_feature_s, theta_s,
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant, false);
-
-  /*// Add kinematics constraint for all knots
-  // TODO(yminchen): check if kinematics constraint is implemented correctly
-  int n_q = plant->num_positions();
-  for (int i = 0; i < N ; i++) {
-    auto s_at_knot_i = reduced_model_position(i, n_s);
-    auto x_at_knot_i = dircon->state(i);
-    kinematics_constraint_bindings.push_back(dircon->AddConstraint(
-      kinematics_constraint,{s_at_knot_i, x_at_knot_i.head(n_q)}));
-  }*/
 
   // Add dynamics constraint for all segments (between knots)
   // // Dynamics constraint waw tested with fix height acceleration.

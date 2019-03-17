@@ -82,26 +82,22 @@ class GoldilcocksModelTrajOpt {
   // Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_position(
   //     int index, int n_s) const;
 
-
   std::unique_ptr<HybridDircon<double>> dircon;
 
-  // std::shared_ptr<KinematicsConstraint>  kinematics_constraint;
-  // std::vector<Binding<Constraint>> kinematics_constraint_bindings;
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
   std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
 
-
  private:
   int num_knots_;
-  // VectorXDecisionVariable s_vars_;
   int n_s_;
   int n_sDDot_;
   int n_feature_s_;
   int n_feature_sDDot_;
   VectorXd theta_s_;
   VectorXd theta_sDDot_;
+  // VectorXDecisionVariable s_vars_;
 };
 
 }  // namespace goldilocks_models
