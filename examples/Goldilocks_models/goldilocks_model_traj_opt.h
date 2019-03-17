@@ -79,14 +79,14 @@ class GoldilcocksModelTrajOpt {
       const MultibodyPlant<AutoDiffXd> * plant,
       const std::vector<int>& num_time_samples);
 
-  Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_position(
-      int index, int n_s) const;
+  // Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_position(
+  //     int index, int n_s) const;
 
 
   std::unique_ptr<HybridDircon<double>> dircon;
 
-  std::shared_ptr<KinematicsConstraint>  kinematics_constraint;
-  std::vector<Binding<Constraint>> kinematics_constraint_bindings;
+  // std::shared_ptr<KinematicsConstraint>  kinematics_constraint;
+  // std::vector<Binding<Constraint>> kinematics_constraint_bindings;
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
@@ -95,7 +95,7 @@ class GoldilcocksModelTrajOpt {
 
  private:
   int num_knots_;
-  VectorXDecisionVariable s_vars_;
+  // VectorXDecisionVariable s_vars_;
   int n_s_;
   int n_sDDot_;
   int n_feature_s_;

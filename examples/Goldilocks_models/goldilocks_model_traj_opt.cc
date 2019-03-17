@@ -27,11 +27,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // Create decision variables
-  s_vars_ = dircon->NewContinuousVariables(n_s * N, "s");
+  // s_vars_ = dircon->NewContinuousVariables(n_s * N, "s");
 
   // Create kinematics/dynamics constraint (pointer)
-  kinematics_constraint = make_shared<KinematicsConstraint>(
-                                 n_s, n_feature_s, theta_s, plant);
+  // kinematics_constraint = make_shared<KinematicsConstraint>(
+  //                                n_s, n_feature_s, theta_s, plant);
   dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
                                  n_s, n_feature_s, theta_s,
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant, true);
@@ -39,7 +39,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
                                  n_s, n_feature_s, theta_s,
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant, false);
 
-  // Add kinematics constraint for all knots
+  /*// Add kinematics constraint for all knots
   // TODO(yminchen): check if kinematics constraint is implemented correctly
   int n_q = plant->num_positions();
   for (int i = 0; i < N ; i++) {
@@ -47,7 +47,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     auto x_at_knot_i = dircon->state(i);
     kinematics_constraint_bindings.push_back(dircon->AddConstraint(
       kinematics_constraint,{s_at_knot_i, x_at_knot_i.head(n_q)}));
-  }
+  }*/
 
   // Add dynamics constraint for all segments (between knots) except the last
   // segment of each mode
@@ -75,11 +75,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 }  // end of constructor
 
 
-Eigen::VectorBlock<const VectorXDecisionVariable>
-GoldilcocksModelTrajOpt::reduced_model_position(int index, int n_s) const {
-  DRAKE_DEMAND(index >= 0 && index < num_knots_);
-  return s_vars_.segment(index * n_s, n_s);
-}
+// Eigen::VectorBlock<const VectorXDecisionVariable>
+// GoldilcocksModelTrajOpt::reduced_model_position(int index, int n_s) const {
+//   DRAKE_DEMAND(index >= 0 && index < num_knots_);
+//   return s_vars_.segment(index * n_s, n_s);
+// }
 
 
 }  // namespace goldilocks_models

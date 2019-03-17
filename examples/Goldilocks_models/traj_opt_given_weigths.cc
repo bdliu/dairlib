@@ -421,7 +421,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   MatrixXd B = MatrixXd::Zero(A.rows(), n_theta_s + n_theta_sDDot);
   ///////////////////////// Kinematics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
-  VectorXd ind = systems::trajectory_optimization::getConstraintRows(
+  /*VectorXd ind = systems::trajectory_optimization::getConstraintRows(
                    gm_traj_opt.dircon.get(),
                    gm_traj_opt.kinematics_constraint_bindings[0]);
   for (int i = 0; i < N; i++) {
@@ -438,11 +438,11 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
         // cout << "ind(0) + i*n_s + k = " << ind(0) + i*n_s + k << endl;
       }
     }
-  }
+  }*/
   cout << "here\n";
   /////////////////////////// Dynamics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
-  ind = systems::trajectory_optimization::getConstraintRows(
+  VectorXd ind = systems::trajectory_optimization::getConstraintRows(
           gm_traj_opt.dircon.get(),
           gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
   int N_accum = 0;
@@ -452,14 +452,14 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
     for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
       int i = N_accum + m;
       // Get the gradient value first
-      auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
+      /*auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
       auto z_iplus1 = gm_traj_opt.reduced_model_position(i + 1, n_s);
       auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
       VectorXd z_i_sol = result.GetSolution(z_i);
       VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
       VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
 
-      /*VectorXd dyn_gradient =
+      VectorXd dyn_gradient =
         gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
           z_i_sol, z_iplus1_sol, h);
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
