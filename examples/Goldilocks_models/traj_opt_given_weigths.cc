@@ -397,11 +397,12 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   //   << gm_traj_opt.dircon->decision_variables() << endl;
 
 
-
+  cout << "here\n";
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
 
+  cout << "here\n";
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
   MatrixXd A, H;
@@ -409,8 +410,10 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   double c;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
+  cout << "here\n";
   c = systems::trajectory_optimization::secondOrderCost(
         gm_traj_opt.dircon.get(), w_sol, H, b);
+  cout << "here\n";
 
   // Get matrix B (~get feature vectors)
   int n_theta_s = theta_s.size();
@@ -436,6 +439,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
       }
     }
   }
+  cout << "here\n";
   /////////////////////////// Dynamics Constraints /////////////////////////////
   // Get the row index of B matrix where kinematics constraint starts
   ind = systems::trajectory_optimization::getConstraintRows(

@@ -69,10 +69,10 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
-  void getSAndSDot(const VectorXd & q_i, const VectorXd & dq_i,
-                   VectorXd & s_i, VectorXd & ds_i) const;
-  void getSAndSDot(const AutoDiffVecXd & q_i, const AutoDiffVecXd & dq_i,
-                   AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i) const;
+  void getSAndSDot(VectorXd x_i,
+                   VectorXd & s_i, VectorXd & ds_i, int i_start) const;
+  void getSAndSDot(AutoDiffVecXd x_i,
+                   AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
 
   VectorXd getGradientWrtTheta(
     const VectorXd & s_i, const VectorXd & s_iplus1,
@@ -91,6 +91,7 @@ class DynamicsConstraint : public Constraint {
   KinematicsExpression<AutoDiffXd> kin_expression_;
   DynamicsExpression dyn_expression_;
   bool is_head_;
+  double dx_ = 1e-8;
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib

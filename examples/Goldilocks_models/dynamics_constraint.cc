@@ -50,20 +50,22 @@ DynamicsConstraint::DynamicsConstraint(
 
 
 void DynamicsConstraint::DoEval(const
-                                      Eigen::Ref<const Eigen::VectorXd>& q,
-                                      Eigen::VectorXd* y) const {
+                                Eigen::Ref<const Eigen::VectorXd>& q,
+                                Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
   Eval(initializeAutoDiff(q), &y_t);
   *y = autoDiffToValueMatrix(y_t);
 }
 
 void DynamicsConstraint::DoEval(const
-                                      Eigen::Ref<const AutoDiffVecXd>& q,
-                                      AutoDiffVecXd* y) const {
-  const AutoDiffVecXd q_i = q.head(n_q_);
-  const AutoDiffVecXd v_i = q.segment(n_q_, n_v_);
-  const AutoDiffVecXd q_iplus1 = q.segment(n_q_ + n_v_, n_q_);
-  const AutoDiffVecXd v_iplus1 = q.segment(2 * n_q_ + n_v_, n_v_);
+                                Eigen::Ref<const AutoDiffVecXd>& q,
+                                AutoDiffVecXd* y) const {
+  // const AutoDiffVecXd q_i = q.head(n_q_);
+  // const AutoDiffVecXd v_i = q.segment(n_q_, n_v_);
+  AutoDiffVecXd x_i = q.head(n_q_+n_v_);
+  // const AutoDiffVecXd q_iplus1 = q.segment(n_q_ + n_v_, n_q_);
+  // const AutoDiffVecXd v_iplus1 = q.segment(2 * n_q_ + n_v_, n_v_);
+  AutoDiffVecXd x_iplus1 = q.segment(n_q_ + n_v_, n_q_ + n_v_);
   const AutoDiffVecXd timestep_i = q.tail(1);
 
   // Write a function getSAndSDot() that gives you s_i, s_iplus1, ds_i, ds_iplus1
@@ -76,12 +78,13 @@ void DynamicsConstraint::DoEval(const
   // Maybe I should combine the two dynamics constraints into one, by a flag
   // difference, so that you don't have the duplicate getSAndSDot() code.
 
-  AutoDiffVecXd s_i;
-  AutoDiffVecXd ds_i;
-  AutoDiffVecXd s_iplus1;
-  AutoDiffVecXd ds_iplus1;
-  getSAndSDot(q_i, v_i, s_i, ds_i);
-  getSAndSDot(q_iplus1, v_iplus1, s_iplus1, ds_iplus1);
+  // VectorX<T> s_i(n_s_);
+  AutoDiffVecXd s_i = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd ds_i = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd s_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd ds_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
+  getSAndSDot(x_i, s_i, ds_i, 0);
+  getSAndSDot(x_iplus1, s_iplus1, ds_iplus1, n_q_ + n_v_);
 
 
 
@@ -89,15 +92,15 @@ void DynamicsConstraint::DoEval(const
 }
 
 void DynamicsConstraint::DoEval(const
-                                      Eigen::Ref<const VectorX<Variable>>& x,
-                                      VectorX<Expression>*y) const {
+                                Eigen::Ref<const VectorX<Variable>>& x,
+                                VectorX<Expression>*y) const {
   throw std::logic_error(
     "This constraint class does not support symbolic evaluation.");
 }
 
 void DynamicsConstraint::getSAndSDot(
-  const VectorXd & q_i, const VectorXd & dq_i,
-  VectorXd & s_i, VectorXd & ds_i) const {
+  VectorXd x,
+  VectorXd & s, VectorXd & ds, int i_start) const {
   // This is jsut for getting the double s_i and ds_i. (e.g. you want to record
   // it, etc.)
 
@@ -107,11 +110,57 @@ void DynamicsConstraint::getSAndSDot(
   // 3. discard the autodiff part
 }
 void DynamicsConstraint::getSAndSDot(
-  const AutoDiffVecXd & q_i, const AutoDiffVecXd & dq_i,
-  AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i) const {
+  AutoDiffVecXd x,
+  AutoDiffVecXd & s, AutoDiffVecXd & ds, int i_start) const {
+  AutoDiffVecXd q = x.head(n_q_);
+  AutoDiffVecXd v = x.tail(n_v_);
+  // s
+  s = kin_expression_.getExpression(theta_s_, q);
 
-  // AutoDiffVecXd h_of_z_i = dyn_expression_.getExpression(theta_sDDot_,
-  //     z_i);
+  // ds
+  MatrixXd d_phi0_d_q = autoDiffToGradientMatrix(
+      kin_expression_.getFeature(q)).block(
+          0, i_start, n_feature_s_, n_q_);
+  VectorXd v0_val = DiscardGradient(x.tail(n_v_));
+  VectorXd dphi0_dt = d_phi0_d_q * v0_val;
+
+  MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2*(n_q_+n_v_)+1);
+  for(int i = i_start; i<i_start+n_q_+n_v_; i++){
+    x(i) += dx_;
+    AutoDiffVecXd q = x.head(n_q_);
+
+    MatrixXd d_phii_d_q = autoDiffToGradientMatrix(
+        kin_expression_.getFeature(q)).block(
+            0, i_start, n_feature_s_, n_q_);
+    VectorXd vi_val = DiscardGradient(x.tail(n_v_));
+    VectorXd dphii_dt = d_phii_d_q * vi_val;
+    grad_dphidt.col(i) = (dphii_dt-dphi0_dt)/dx_;
+
+    x(i) -= dx_;
+  }
+
+  cout << "dphi0_dt = \n" << dphi0_dt << endl;
+  cout << "grad_dphidt = \n" << grad_dphidt << endl;
+
+  AutoDiffVecXd dphi_dt = initializeAutoDiff(dphi0_dt);
+  // VectorX<AutoDiffXd> dphi_dt(n_feature_s_);
+  cout << "dphi_dt = " << dphi_dt << endl;
+  cout << "autoDiffToGradientMatrix(dphi_dt) = " << autoDiffToGradientMatrix(dphi_dt) << endl;
+  drake::math::initializeAutoDiffGivenGradientMatrix(dphi0_dt, grad_dphidt, dphi_dt);
+  cout << "dphi_dt = " << dphi_dt<< endl;
+  cout << "autoDiffToGradientMatrix(dphi_dt) = " << autoDiffToGradientMatrix(dphi_dt) << endl;
+
+  for (int i = 0; i < n_s_ ; i++){
+    // cout << "i = " << i <<endl;
+    // cout << "theta_s_ = " << theta_s_.transpose() << endl;
+    // cout << "n_feature_s_ = " << n_feature_s_ << endl;
+    // cout << "theta_s_.segment(0, n_feature_s_) = " << theta_s_.segment(0, n_feature_s_) << endl;
+    ds(i) = theta_s_.segment(i * n_feature_s_, n_feature_s_).dot(dphi_dt);
+    // cout << "here\n";
+  }
+  cout << "ds = " << ds.transpose() << endl;
+
+  cout << "outside for loop\n";
 }
 
 VectorXd DynamicsConstraint::getGradientWrtTheta(
