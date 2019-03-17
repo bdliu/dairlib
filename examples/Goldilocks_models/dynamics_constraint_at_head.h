@@ -50,9 +50,10 @@ using drake::multibody::MultibodyPlant;
 namespace dairlib {
 namespace goldilocks_models {
 
-class DynamicsConstraint : public Constraint {
+class DynamicsConstraintAtHead : public Constraint {
  public:
-  DynamicsConstraint(int n_sDDot, int n_feature_sDDot, VectorXd & theta_sDDot,
+  DynamicsConstraintAtHead(int n_sDDot, int n_feature_sDDot,
+                     const VectorXd & theta_sDDot,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,

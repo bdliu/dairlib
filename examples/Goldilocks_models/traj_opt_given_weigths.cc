@@ -440,7 +440,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   // Get the row index of B matrix where kinematics constraint starts
   ind = systems::trajectory_optimization::getConstraintRows(
           gm_traj_opt.dircon.get(),
-          gm_traj_opt.dynamics_constraint_bindings[0]);
+          gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
   int N_accum = 0;
   int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
              // TODO(yminchen): it does now. Need to modify this.
@@ -456,7 +456,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
       VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
 
       VectorXd dyn_gradient =
-        gm_traj_opt.dynamics_constraint->getGradientWrtTheta(
+        gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
           z_i_sol, z_iplus1_sol, h);
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 

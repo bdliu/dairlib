@@ -32,7 +32,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // Create kinematics/dynamics constraint (pointer)
   kinematics_constraint = make_shared<KinematicsConstraint>(
                                  n_s, n_feature_s, theta_s, plant);
-  dynamics_constraint = make_shared<DynamicsConstraint>(
+  dynamics_constraint_at_head = make_shared<DynamicsConstraintAtHead>(
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant);
 
   // Add kinematics constraint for all knots
@@ -58,8 +58,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
       auto s_at_knot_k = reduced_model_position(N_accum+j, n_s);
       auto s_at_knot_kplus1 = reduced_model_position(N_accum+j+1, n_s);
       auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
-      dynamics_constraint_bindings.push_back(dircon->AddConstraint(
-        dynamics_constraint, {s_at_knot_k, s_at_knot_kplus1,
+      dynamics_constraint_at_head_bindings.push_back(dircon->AddConstraint(
+        dynamics_constraint_at_head, {s_at_knot_k, s_at_knot_kplus1,
           h_btwn_knot_k_iplus1}));
     }
 

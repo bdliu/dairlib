@@ -93,7 +93,7 @@ cc_library(
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
 	":kinematics_constraint",
-	":dynamics_constraint",
+	":dynamics_constraint_at_head",
     ],
 )
 
@@ -172,12 +172,12 @@ cc_library(
 
 
 cc_library(
-    name = "dynamics_constraint",
+    name = "dynamics_constraint_at_head",
     srcs = [
-        "dynamics_constraint.cc",
+        "dynamics_constraint_at_head.cc",
     ],
     hdrs = [
-        "dynamics_constraint.h"
+        "dynamics_constraint_at_head.h"
     ],
     deps = [
         "@drake//solvers:mathematical_program",

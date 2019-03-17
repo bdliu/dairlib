@@ -1,12 +1,12 @@
-#include "examples/Goldilocks_models/dynamics_constraint.h"
+#include "examples/Goldilocks_models/dynamics_constraint_at_head.h"
 
 
 namespace dairlib {
 namespace goldilocks_models {
 
-DynamicsConstraint::DynamicsConstraint(
+DynamicsConstraintAtHead::DynamicsConstraintAtHead(
   int n_sDDot, int n_feature_sDDot,
-  VectorXd & theta_sDDot,
+  const VectorXd & theta_sDDot,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::string& description):
   Constraint(n_sDDot,
@@ -31,7 +31,7 @@ DynamicsConstraint::DynamicsConstraint(
 }
 
 
-void DynamicsConstraint::DoEval(const
+void DynamicsConstraintAtHead::DoEval(const
                                 Eigen::Ref<const Eigen::VectorXd>& q,
                                 Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
@@ -39,7 +39,7 @@ void DynamicsConstraint::DoEval(const
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void DynamicsConstraint::DoEval(const
+void DynamicsConstraintAtHead::DoEval(const
                                 Eigen::Ref<const AutoDiffVecXd>& q,
                                 AutoDiffVecXd* y) const {
   const AutoDiffVecXd s_i = q.head(n_sDDot_);
@@ -49,7 +49,7 @@ void DynamicsConstraint::DoEval(const
   *y = getDynamicsConstraint(s_i, s_iplus1, timestep_i, theta_sDDot_);
 }
 
-void DynamicsConstraint::DoEval(const
+void DynamicsConstraintAtHead::DoEval(const
                                 Eigen::Ref<const VectorX<Variable>>& x,
                                 VectorX<Expression>*y) const {
   throw std::logic_error(
@@ -57,7 +57,7 @@ void DynamicsConstraint::DoEval(const
 }
 
 
-VectorXd DynamicsConstraint::getGradientWrtTheta(
+VectorXd DynamicsConstraintAtHead::getGradientWrtTheta(
   const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i) const {
   VectorXd gradient(n_feature_sDDot_);
@@ -73,7 +73,7 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
 
 
 
-AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
+AutoDiffVecXd DynamicsConstraintAtHead::getDynamicsConstraint(
   const AutoDiffVecXd & s_i, const AutoDiffVecXd & s_iplus1,
   const AutoDiffVecXd & timestep_i, const VectorXd & theta) const {
   //TODO: the implementation here needs to be updated
@@ -94,7 +94,7 @@ AutoDiffVecXd DynamicsConstraint::getDynamicsConstraint(
   return (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
          h_of_s_iplus1) / 6;
 }
-VectorXd DynamicsConstraint::getDynamicsConstraint(
+VectorXd DynamicsConstraintAtHead::getDynamicsConstraint(
   const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i, const VectorXd & theta) const {
   //TODO: the implementation here needs to be updated

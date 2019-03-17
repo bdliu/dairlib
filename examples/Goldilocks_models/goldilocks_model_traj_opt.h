@@ -32,7 +32,7 @@
 #include "systems/goldilocks_models/file_utils.h"
 
 #include "examples/Goldilocks_models/kinematics_constraint.h"
-#include "examples/Goldilocks_models/dynamics_constraint.h"
+#include "examples/Goldilocks_models/dynamics_constraint_at_head.h"
 
 using Eigen::Vector3d;
 using Eigen::VectorXd;
@@ -86,9 +86,9 @@ class GoldilcocksModelTrajOpt {
   std::unique_ptr<HybridDircon<double>> dircon;
 
   std::shared_ptr<KinematicsConstraint>  kinematics_constraint;
-  std::shared_ptr<DynamicsConstraint>  dynamics_constraint;
+  std::shared_ptr<DynamicsConstraintAtHead>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> kinematics_constraint_bindings;
-  std::vector<Binding<Constraint>> dynamics_constraint_bindings;
+  std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
 
 
  private:
