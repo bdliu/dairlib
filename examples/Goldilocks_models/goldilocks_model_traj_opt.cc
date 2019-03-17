@@ -61,9 +61,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
       auto x_at_knot_k = dircon->state(N_accum+j);
       auto x_at_knot_kplus1 = dircon->state(N_accum+j+1);
       auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
-      dynamics_constraint_at_head_bindings.push_back(dircon->AddConstraint(
-        dynamics_constraint_at_head, {x_at_knot_k, x_at_knot_kplus1,
-          h_btwn_knot_k_iplus1}));
+      // dynamics_constraint_at_head_bindings.push_back(dircon->AddConstraint(
+      //   dynamics_constraint_at_head, {x_at_knot_k, x_at_knot_kplus1,
+      //     h_btwn_knot_k_iplus1}));
     }
 
     N_accum += num_time_samples[i];
@@ -82,9 +82,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
       auto x_at_knot_k = dircon->state(N_accum+j);
       auto x_at_knot_kplus1 = dircon->state(N_accum+j+1);
       auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
-      dynamics_constraint_at_tail_bindings.push_back(dircon->AddConstraint(
-        dynamics_constraint_at_tail, {x_at_knot_k, x_at_knot_kplus1,
-          h_btwn_knot_k_iplus1}));
+      // dynamics_constraint_at_tail_bindings.push_back(dircon->AddConstraint(
+      //   dynamics_constraint_at_tail, {x_at_knot_k, x_at_knot_kplus1,
+      //     h_btwn_knot_k_iplus1}));
     }
 
     N_accum += num_time_samples[i];

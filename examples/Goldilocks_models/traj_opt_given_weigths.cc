@@ -332,12 +332,6 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
     trajopt->SetInitialGuessForAllVariables(w0);
   }
 
-
-
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
-
-
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
@@ -397,12 +391,10 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   //   << gm_traj_opt.dircon->decision_variables() << endl;
 
 
-  cout << "here\n";
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
 
-  cout << "here\n";
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
   MatrixXd A, H;
@@ -410,10 +402,8 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   double c;
   systems::trajectory_optimization::linearizeConstraints(
     gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-  cout << "here\n";
   c = systems::trajectory_optimization::secondOrderCost(
         gm_traj_opt.dircon.get(), w_sol, H, b);
-  cout << "here\n";
 
   // Get matrix B (~get feature vectors)
   int n_theta_s = theta_s.size();
@@ -439,87 +429,86 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
       }
     }
   }*/
-  cout << "here\n";
   ///////////////////// Dynamics Constraints at head ///////////////////////////
-  // Get the row index of B matrix where kinematics constraint starts
-  VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-          gm_traj_opt.dircon.get(),
-          gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
-  cout << "ind = " << ind << endl;
-  int N_accum = 0;
-  int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
-             // TODO(yminchen): it does now. Need to modify this.
-  for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
-      int i = N_accum + m;
-      // Get the gradient value first
-      /*auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
-      auto z_iplus1 = gm_traj_opt.reduced_model_position(i + 1, n_s);
-      auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-      VectorXd z_i_sol = result.GetSolution(z_i);
-      VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
-      VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
+  // // Get the row index of B matrix where kinematics constraint starts
+  // VectorXd ind = systems::trajectory_optimization::getConstraintRows(
+  //         gm_traj_opt.dircon.get(),
+  //         gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
+  // cout << "ind = " << ind << endl;
+  // int N_accum = 0;
+  // int p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
+  //            // TODO(yminchen): it does now. Need to modify this.
+  // for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+  //   for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+  //     int i = N_accum + m;
+  //     // Get the gradient value first
+  //     /*auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
+  //     auto z_iplus1 = gm_traj_opt.reduced_model_position(i + 1, n_s);
+  //     auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+  //     VectorXd z_i_sol = result.GetSolution(z_i);
+  //     VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
+  //     VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
 
-      VectorXd dyn_gradient =
-        gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-          z_i_sol, z_iplus1_sol, h);
-      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
+  //     VectorXd dyn_gradient =
+  //       gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
+  //         z_i_sol, z_iplus1_sol, h);
+  //     // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
 
-      // Fill in B matrix
-      for (int k = 0; k < n_sDDot; k++) {
-        for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
-            dyn_gradient(j);
-          // cout << "ind(0) + p*n_sDDot + k = " << ind(0) + p*n_sDDot + k << endl;
-        }
-      }*/
-
-
-      p++;
-    }
-    N_accum += num_time_samples[l];
-    N_accum -= 1;  // due to overlaps between modes
-  }
-  ///////////////////// Dynamics Constraints at tail ///////////////////////////
-  // Get the row index of B matrix where kinematics constraint starts
-  ind = systems::trajectory_optimization::getConstraintRows(
-          gm_traj_opt.dircon.get(),
-          gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
-  cout << "ind = " << ind << endl;
-  N_accum = 0;
-  p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
-             // TODO(yminchen): it does now. Need to modify this.
-  for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
-      int i = N_accum + m;
-      // Get the gradient value first
-      /*auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
-      auto z_iplus1 = gm_traj_opt.reduced_model_position(i + 1, n_s);
-      auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-      VectorXd z_i_sol = result.GetSolution(z_i);
-      VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
-      VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
-
-      VectorXd dyn_gradient =
-        gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-          z_i_sol, z_iplus1_sol, h);
-      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
-
-      // Fill in B matrix
-      for (int k = 0; k < n_sDDot; k++) {
-        for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + p * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
-            dyn_gradient(j);
-          // cout << "ind(0) + p*n_sDDot + k = " << ind(0) + p*n_sDDot + k << endl;
-        }
-      }*/
+  //     // Fill in B matrix
+  //     for (int k = 0; k < n_sDDot; k++) {
+  //       for (int j = 0; j < dyn_gradient.size(); j++) {
+  //         B(ind(0) + p * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
+  //           dyn_gradient(j);
+  //         // cout << "ind(0) + p*n_sDDot + k = " << ind(0) + p*n_sDDot + k << endl;
+  //       }
+  //     }*/
 
 
-      p++;
-    }
-    N_accum += num_time_samples[l];
-    N_accum -= 1;  // due to overlaps between modes
-  }
+  //     p++;
+  //   }
+  //   N_accum += num_time_samples[l];
+  //   N_accum -= 1;  // due to overlaps between modes
+  // }
+  // ///////////////////// Dynamics Constraints at tail ///////////////////////////
+  // // Get the row index of B matrix where kinematics constraint starts
+  // ind = systems::trajectory_optimization::getConstraintRows(
+  //         gm_traj_opt.dircon.get(),
+  //         gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
+  // cout << "ind = " << ind << endl;
+  // N_accum = 0;
+  // p = 0; // because we skip the last segment of each mode, so "i" doesn't count from 1 to ...
+  //            // TODO(yminchen): it does now. Need to modify this.
+  // for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+  //   for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+  //     int i = N_accum + m;
+  //     // Get the gradient value first
+  //     /*auto z_i = gm_traj_opt.reduced_model_position(i, n_s);
+  //     auto z_iplus1 = gm_traj_opt.reduced_model_position(i + 1, n_s);
+  //     auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+  //     VectorXd z_i_sol = result.GetSolution(z_i);
+  //     VectorXd z_iplus1_sol = result.GetSolution(z_iplus1);
+  //     VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
+
+  //     VectorXd dyn_gradient =
+  //       gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+  //         z_i_sol, z_iplus1_sol, h);
+  //     // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
+
+  //     // Fill in B matrix
+  //     for (int k = 0; k < n_sDDot; k++) {
+  //       for (int j = 0; j < dyn_gradient.size(); j++) {
+  //         B(ind(0) + p * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
+  //           dyn_gradient(j);
+  //         // cout << "ind(0) + p*n_sDDot + k = " << ind(0) + p*n_sDDot + k << endl;
+  //       }
+  //     }*/
+
+
+  //     p++;
+  //   }
+  //   N_accum += num_time_samples[l];
+  //   N_accum -= 1;  // due to overlaps between modes
+  // }
 
 
 
@@ -787,7 +776,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
 
 
   // visualizer
-  const PiecewisePolynomial<double> pp_xtraj =
+  /*const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
@@ -797,7 +786,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }
+  }*/
 
   return ;
 }
