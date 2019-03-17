@@ -93,8 +93,7 @@ cc_library(
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
 	":kinematics_constraint",
-	":dynamics_constraint_at_head",
-	":dynamics_constraint_at_tail",
+	":dynamics_constraint",
     ],
 )
 
@@ -173,29 +172,12 @@ cc_library(
 
 
 cc_library(
-    name = "dynamics_constraint_at_head",
+    name = "dynamics_constraint",
     srcs = [
-        "dynamics_constraint_at_head.cc",
+        "dynamics_constraint.cc",
     ],
     hdrs = [
-        "dynamics_constraint_at_head.h"
-    ],
-    deps = [
-        "@drake//solvers:mathematical_program",
-        "@drake//solvers:constraint",
-        "@drake//manipulation/util",
-        "//multibody:utils",
-        "@drake//math:gradient",
-	":dynamics_expression",
-    ],
-)
-cc_library(
-    name = "dynamics_constraint_at_tail",
-    srcs = [
-        "dynamics_constraint_at_tail.cc",
-    ],
-    hdrs = [
-        "dynamics_constraint_at_tail.h"
+        "dynamics_constraint.h"
     ],
     deps = [
         "@drake//solvers:mathematical_program",

@@ -1,17 +1,17 @@
-#include "examples/Goldilocks_models/dynamics_constraint_at_head.h"
+#include "examples/Goldilocks_models/dynamics_constraint.h"
 
 
 namespace dairlib {
 namespace goldilocks_models {
 
-DynamicsConstraintAtHead::DynamicsConstraintAtHead(
+DynamicsConstraint::DynamicsConstraint(
   int n_sDDot, int n_feature_sDDot,
   const VectorXd & theta_sDDot,
   const MultibodyPlant<AutoDiffXd> * plant,
   bool is_head,
   const std::string& description):
   Constraint(n_sDDot,
-             2 * n_sDDot + 1,
+             2 * (plant->num_positions() + plant->num_velocities()) + 1,
              VectorXd::Zero(n_sDDot),
              VectorXd::Zero(n_sDDot),
              description),
@@ -35,7 +35,7 @@ DynamicsConstraintAtHead::DynamicsConstraintAtHead(
 }
 
 
-void DynamicsConstraintAtHead::DoEval(const
+void DynamicsConstraint::DoEval(const
                                       Eigen::Ref<const Eigen::VectorXd>& q,
                                       Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
@@ -43,11 +43,13 @@ void DynamicsConstraintAtHead::DoEval(const
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void DynamicsConstraintAtHead::DoEval(const
+void DynamicsConstraint::DoEval(const
                                       Eigen::Ref<const AutoDiffVecXd>& q,
                                       AutoDiffVecXd* y) const {
-  const AutoDiffVecXd s_i = q.head(n_sDDot_);
-  const AutoDiffVecXd s_iplus1 = q.segment(n_sDDot_, n_sDDot_);
+  const AutoDiffVecXd q_i = q.head(n_q_);
+  const AutoDiffVecXd v_i = q.segment(n_q_, n_v_);
+  const AutoDiffVecXd q_iplus1 = q.segment(n_q_ + n_v_, n_q_);
+  const AutoDiffVecXd v_iplus1 = q.segment(2 * n_q_ + n_v_, n_v_);
   const AutoDiffVecXd timestep_i = q.tail(1);
 
   // Write a function get_s_ds() that gives you s_i, s_iplus1, ds_i, ds_iplus1
@@ -60,40 +62,55 @@ void DynamicsConstraintAtHead::DoEval(const
   // Maybe I should combine the two dynamics constraints into one, by a flag
   // difference, so that you don't have the duplicate get_s_ds() code.
 
-  // AutoDiffVecXd hs_i = expression_object_
+  AutoDiffVecXd s_i;
+  AutoDiffVecXd ds_i;
+  AutoDiffVecXd s_iplus1;
+  AutoDiffVecXd ds_iplus1;
+  get_s_ds(q_i, v_i, s_i, ds_i);
+  get_s_ds(q_iplus1, v_iplus1, s_iplus1, ds_iplus1);
 
 
 
-  // Let the dynamics be dzdt = h(z;theta_sDDot) = h(z).
-  AutoDiffVecXd h_of_s_i = expression_object_.getExpression(theta_sDDot_,
-                           s_i, s_i);
-  AutoDiffVecXd h_of_s_iplus1 = expression_object_.getExpression(theta_sDDot_,
-                                s_iplus1, s_iplus1);
-
-  // Collocation point
-  AutoDiffVecXd z_collocation = (s_i + s_iplus1) / 2 +
-                                (h_of_s_i - h_of_s_iplus1) * timestep_i(0) / 8;
-
-  AutoDiffVecXd h_of_colloc_pt = expression_object_.getExpression(theta_sDDot_,
-                                 z_collocation, z_collocation);
-
-  *y = (s_iplus1 - s_i) - timestep_i(0) * (h_of_s_i + 4 * h_of_colloc_pt +
-       h_of_s_iplus1) / 6;
+  *y = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
 }
 
-void DynamicsConstraintAtHead::DoEval(const
+void DynamicsConstraint::DoEval(const
                                       Eigen::Ref<const VectorX<Variable>>& x,
                                       VectorX<Expression>*y) const {
   throw std::logic_error(
     "This constraint class does not support symbolic evaluation.");
 }
 
-VectorXd DynamicsConstraintAtHead::getGradientWrtTheta(
+void DynamicsConstraint::get_s_ds(
+  const VectorXd & q_i, const VectorXd & dq_i,
+  VectorXd & s_i, VectorXd & ds_i) const {
+  // This is jsut for getting the double s_i and ds_i. (e.g. you want to record
+  // it, etc.)
+
+  // 1. initialize the autodiff yourself, so that it matches the format of the
+  //      autodiffversion of get_s_ds.
+  // 2. call the autodiffversion of get_s_ds
+  // 3. discard the autodiff part
+}
+void DynamicsConstraint::get_s_ds(
+  const AutoDiffVecXd & q_i, const AutoDiffVecXd & dq_i,
+  AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i) const {
+
+  // AutoDiffVecXd h_of_z_i = expression_object_.getExpression(theta_sDDot_,
+  //     z_i);
+}
+
+VectorXd DynamicsConstraint::getGradientWrtTheta(
   const VectorXd & s_i, const VectorXd & s_iplus1,
   const VectorXd & timestep_i) const {
-  // Just give back the feature.
-  // You'll need to create autoDiff yourself, cause you need to jacobian to get ds.
+  // TODO(yminchen): You need to use autoDiff to get the gradient here, because
+  // it's a nonlinear function in theta.
+  // The calculation here will not be the same as the one in eval(), because
+  // we have totally different autodiff, and the second autodiff requires
+  // costumization.
 
+  // You'll need to create autoDiff yourself first, cause the input is double
+  // and you need to jacobian to get ds.
   VectorXd gradient(n_feature_sDDot_);
   for (int i = 0; i < n_feature_sDDot_; i++) {
     VectorXd theta_unit = VectorXd::Zero(theta_sDDot_.size());
@@ -102,7 +119,6 @@ VectorXd DynamicsConstraintAtHead::getGradientWrtTheta(
     // gradient(i) = getDynamicsConstraint(
     //   s_i, s_iplus1, timestep_i, theta_unit)(0) - s_iplus1(0) + s_i(0);
   }
-  // TODO(yminchen): You can also use autoDiff to get the gradient herre.
   return gradient;
 }
 
