@@ -91,7 +91,7 @@ void DynamicsConstraint::DoEval(const
     AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
     for (int i = 0; i < n_sDDot_; i++)
       rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
-            dyn_expression_.getFeature(s_i, ds_i));
+                 dyn_expression_.getFeature(s_i, ds_i));
 
     *y = lhs - rhs;
   }
@@ -105,7 +105,7 @@ void DynamicsConstraint::DoEval(const
     AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
     for (int i = 0; i < n_sDDot_; i++)
       rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
-            dyn_expression_.getFeature(s_iplus1, ds_iplus1));
+                 dyn_expression_.getFeature(s_iplus1, ds_iplus1));
 
     *y = lhs - rhs;
   }
@@ -130,31 +130,31 @@ void DynamicsConstraint::getSAndSDot(
 
   // ds
   MatrixXd d_phi0_d_q = autoDiffToGradientMatrix(
-      kin_expression_.getFeature(q)).block(
-          0, i_start, n_feature_s_, n_q_);
+                          kin_expression_.getFeature(q)).block(
+                          0, i_start, n_feature_s_, n_q_);
   VectorXd v0_val = DiscardGradient(x.tail(n_v_));
   VectorXd dphi0_dt = d_phi0_d_q * v0_val;
 
-  MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2*(n_q_+n_v_)+1);
-  for(int i = 0; i<n_q_+n_v_; i++){
+  MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
+  for (int i = 0; i < n_q_ + n_v_; i++) {
     x(i) += dx_;
     AutoDiffVecXd q = x.head(n_q_);
 
     MatrixXd d_phii_d_q = autoDiffToGradientMatrix(
-        kin_expression_.getFeature(q)).block(
-            0, i_start, n_feature_s_, n_q_);
+                            kin_expression_.getFeature(q)).block(
+                            0, i_start, n_feature_s_, n_q_);
     VectorXd vi_val = DiscardGradient(x.tail(n_v_));
     VectorXd dphii_dt = d_phii_d_q * vi_val;
-    grad_dphidt.col(i_start+i) = (dphii_dt-dphi0_dt)/dx_;
+    grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / dx_;
 
     x(i) -= dx_;
   }
 
   AutoDiffVecXd dphi_dt = initializeAutoDiff(dphi0_dt);
   drake::math::initializeAutoDiffGivenGradientMatrix(
-      dphi0_dt, grad_dphidt, dphi_dt);
+    dphi0_dt, grad_dphidt, dphi_dt);
 
-  for (int i = 0; i < n_s_ ; i++){
+  for (int i = 0; i < n_s_ ; i++) {
     ds(i) = theta_s_.segment(i * n_feature_s_, n_feature_s_).dot(dphi_dt);
   }
 }
