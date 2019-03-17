@@ -34,6 +34,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
                                  n_s, n_feature_s, theta_s, plant);
   dynamics_constraint_at_head = make_shared<DynamicsConstraintAtHead>(
                                  n_sDDot, n_feature_sDDot, theta_sDDot, plant);
+  dynamics_constraint_at_tail = make_shared<DynamicsConstraintAtTail>(
+                                 n_sDDot, n_feature_sDDot, theta_sDDot, plant);
 
   // Add kinematics constraint for all knots
   // TODO(yminchen): check if kinematics constraint is implemented correctly
