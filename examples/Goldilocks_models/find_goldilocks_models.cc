@@ -59,7 +59,7 @@ void findGoldilocksModels() {
   double epsilon = 1e-4;
 
   // Reduced order model parameters
-  int n_s = 2; //2
+  int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_feature_s = 1;//113    // n_feature should match with the dim of the feature,
   int n_feature_sDDot = 1;//21 // since we are hard coding it now. (same below)
@@ -72,9 +72,10 @@ void findGoldilocksModels() {
   VectorXd theta_s(n_theta_s);
   VectorXd theta_sDDot(n_theta_sDDot);
   theta_s = VectorXd::Zero(n_theta_s);
-  // theta_s(0) = 1;
+  theta_s(0) = 1;
   // theta_s(3) = 1;
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
+  theta_sDDot(0) = 1;
   // Testing intial theta
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);

@@ -8,7 +8,6 @@ template <typename T>
 KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature) {
   n_feature_ = n_feature;
   n_s_ = n_s;
-  DRAKE_DEMAND(n_s > 1);
 }
 
 template <typename T>
@@ -20,7 +19,6 @@ KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature,
 
   mass_disp_ << 0, 0, -0.25;
   foot_disp_ << 0, 0, -0.5;
-  DRAKE_DEMAND(n_s > 1);
 }
 
 template <typename T>
