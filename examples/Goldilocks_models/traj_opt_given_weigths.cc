@@ -77,7 +77,8 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sDDot,
+void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
+                         int n_feature_sDDot,
                          Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
                          double stride_length, double duration, int max_iter,
                          string directory,
@@ -402,101 +403,57 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s, int n_feature_sD
   // Get matrix B (~get feature vectors)
   int n_theta_s = theta_s.size();
   int n_theta_sDDot = theta_sDDot.size();
-  MatrixXd B = MatrixXd::Zero(A.rows(), n_theta_s + n_theta_sDDot);
-  ///////////////////////// Kinematics Constraints /////////////////////////////
-  // Get the row index of B matrix where kinematics constraint starts
-  /*VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-                   gm_traj_opt.dircon.get(),
-                   gm_traj_opt.kinematics_constraint_bindings[0]);
-  for (int i = 0; i < N; i++) {
-    // Get the gradient value first
-    VectorXd xi = result.GetSolution(
-                    gm_traj_opt.dircon->state(i));
-    VectorXd kin_gradient =
-      gm_traj_opt.kinematics_constraint->getGradientWrtTheta(xi.head(n_q));
-
-    // Fill in B matrix
-    for (int k = 0; k < n_s; k++) {
-      for (int j = 0; j < kin_gradient.size(); j++) {
-        B(ind(0) + i * n_s + k, k * kin_gradient.size() + j) = kin_gradient(j);
-        // cout << "ind(0) + i*n_s + k = " << ind(0) + i*n_s + k << endl;
-      }
-    }
-  }*/
-  ///////////////////// Dynamics Constraints at head ///////////////////////////
-  // Get the row index of B matrix where kinematics constraint starts
-  VectorXd ind = systems::trajectory_optimization::getConstraintRows(
-          gm_traj_opt.dircon.get(),
-          gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
-  cout << "ind = " << ind << endl;
+  int n_theta = n_theta_s + n_theta_sDDot;
+  cout << "n_theta = " << n_theta << endl;
+  MatrixXd B = MatrixXd::Zero(A.rows(), n_theta);
+  // Get the row index of B matrix where dynamics constraint starts
+  VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
+                        gm_traj_opt.dircon.get(),
+                        gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
+  // cout << "ind_head = " << ind_head(0) << endl;
+  VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
+                        gm_traj_opt.dircon.get(),
+                        gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
+  // cout << "ind_tail = " << ind_tail(0) << endl;
   int N_accum = 0;
   for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
     for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
       int i = N_accum + m;
+      // cout << "i = " << i << endl;
       // Get the gradient value first
-      auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l,m);
-      auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l,m+1);
+      auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+      auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
       auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
       VectorXd x_i_sol = result.GetSolution(x_i);
       VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
-      VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
+      VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
 
-      /*VectorXd dyn_gradient =
+      VectorXd dyn_gradient_head =
         gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-          z_i_sol, z_iplus1_sol, h);
-      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
-
-      // Fill in B matrix
-      for (int k = 0; k < n_sDDot; k++) {
-        for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + i * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
-            dyn_gradient(j);
-          // cout << "ind(0) + i*n_sDDot + k = " << ind(0) + i*n_sDDot + k << endl;
-        }
-      }*/
-
-    }
-    N_accum += num_time_samples[l];
-    N_accum -= 1;  // due to overlaps between modes
-  }
-  ///////////////////// Dynamics Constraints at tail ///////////////////////////
-  // Get the row index of B matrix where kinematics constraint starts
-  ind = systems::trajectory_optimization::getConstraintRows(
-          gm_traj_opt.dircon.get(),
-          gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
-  cout << "ind = " << ind << endl;
-  N_accum = 0;
-  for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
-      int i = N_accum + m;
-      // Get the gradient value first
-      auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l,m);
-      auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l,m+1);
-      auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-      VectorXd x_i_sol = result.GetSolution(x_i);
-      VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
-      VectorXd h = result.GetSolution(h_btwn_knot_i_iplus1);
-
-      /*VectorXd dyn_gradient =
+          theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+      VectorXd dyn_gradient_tail =
         gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-          z_i_sol, z_iplus1_sol, h);
-      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient = " << dyn_gradient.transpose() << endl;
+          theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient_head = " <<
+      //   dyn_gradient_head.transpose() << endl;
+      cout << "dyn_gradient_head.rows() = " << dyn_gradient_head.rows() << endl;
+      cout << "dyn_gradient_head.cols() = " << dyn_gradient_head.cols() << endl;
+      cout << "dyn_gradient_head = \n" << dyn_gradient_head << "\n";
+      cout << "dyn_gradient_tail = \n" << dyn_gradient_tail << "\n";
 
       // Fill in B matrix
-      for (int k = 0; k < n_sDDot; k++) {
-        for (int j = 0; j < dyn_gradient.size(); j++) {
-          B(ind(0) + i * n_sDDot + k, n_theta_s + k * dyn_gradient.size() + j) =
-            dyn_gradient(j);
-          // cout << "ind(0) + i*n_sDDot + k = " << ind(0) + i*n_sDDot + k << endl;
-        }
-      }*/
+      B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+        = dyn_gradient_head;
+      B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+        = dyn_gradient_tail;
+      // cout << "row " << ind_head(0) + i * 2 * n_sDDot << endl;
+      // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl;
 
+      cout << endl;
     }
     N_accum += num_time_samples[l];
     N_accum -= 1;  // due to overlaps between modes
   }
-
-
 
 
   // Push the solution to the vector

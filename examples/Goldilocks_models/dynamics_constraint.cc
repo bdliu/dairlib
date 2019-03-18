@@ -176,9 +176,9 @@ void DynamicsConstraint::getSAndSDot(
 
 
 VectorXd DynamicsConstraint::getGradientWrtTheta(
-  VectorXd theta_s, VectorXd theta_sDDot,
-  const VectorXd & x_i, const VectorXd & x_iplus1,
-  const VectorXd & h_i, bool is_head) const {
+    VectorXd theta_s, VectorXd theta_sDDot,
+    const VectorXd & x_i, const VectorXd & x_iplus1,
+    const VectorXd & h_i) const {
   // TODO(yminchen): You need to use autoDiff to get the gradient here, because
   // it's a nonlinear function in theta.
   // The calculation here will not be the same as the one in eval(), because
@@ -208,7 +208,7 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
   VectorXd ds_iplus1 = autoDiffToGradientMatrix(s_iplus1_ad) * v_iplus1;
   // Get constraint value
   VectorXd y_0;
-  if (is_head) {
+  if (is_head_) {
     y_0 =
       2 * (-3 * (s_i - s_iplus1 ) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
       (h_i(0) * h_i(0)) -
@@ -223,6 +223,7 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
 
   // Get the gradient wrt theta_s and theta_sDDot
   VectorXd theta(n_theta_s_ + n_theta_sDDot_);
+  // cout <<"n_theta_s_ + n_theta_sDDot_ = " << endl;
   theta << theta_s, theta_sDDot;
   MatrixXd gradWrtTheta(n_s_, theta.size());
   for (int k = 0; k < theta.size(); k++) {
@@ -242,7 +243,7 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
     VectorXd ds_iplus1 = autoDiffToGradientMatrix(s_iplus1_ad) * v_iplus1;
     // Get constraint value
     VectorXd y_1;
-    if (is_head) {
+    if (is_head_) {
       y_1 =
         2 * (-3 * (s_i - s_iplus1 ) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
         (h_i(0) * h_i(0)) -

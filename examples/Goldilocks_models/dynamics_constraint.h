@@ -77,7 +77,7 @@ class DynamicsConstraint : public Constraint {
   VectorXd getGradientWrtTheta(
   VectorXd theta_s, VectorXd theta_sDDot,
   const VectorXd & x_i, const VectorXd & x_iplus1,
-  const VectorXd & h_i, bool is_head) const;
+  const VectorXd & h_i) const;
 
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;
