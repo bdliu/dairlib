@@ -1,21 +1,19 @@
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
 
-//Debugging
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/solve.h"
-using drake::solvers::MathematicalProgram;
 
-
+using std::cout;
+using std::endl;
+using std::vector;
+using std::string;
+using std::to_string;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::VectorXcd;
-using std::string;
-using std::to_string;
-using std::vector;
-using std::cout;
-using std::endl;
+using drake::solvers::MathematicalProgram;
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -41,8 +39,7 @@ void findGoldilocksModels() {
   // init_file = "";
   init_file = "w0.csv";
   // init_file = "w0_with_z.csv";
-  string output_prefix = "";
-  bool is_with_prefix = true;//false;
+  string prefix = "";
 
   // Parametres for tasks
   int n_batch = 5;//1;
@@ -54,9 +51,9 @@ void findGoldilocksModels() {
     delta_stride_length_vec.push_back(i * delta_stride_length);
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 20;
+  int max_outer_iter = 200;
   double threshold = 1e-4;
-  double h_step = 1e-2;
+  double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
 
   // Paramters for the inner loop optimization
@@ -86,23 +83,24 @@ void findGoldilocksModels() {
   // // Testing intial theta
   theta_s = VectorXd::Random(n_theta_s);
   theta_sDDot = VectorXd::Random(n_theta_sDDot);
-  // MatrixXd theta_s_mat = readCSV(directory + string("10_theta_s.csv"));
-  // MatrixXd theta_sDDot_mat = readCSV(directory + string("10_theta_sDDot.csv"));
+  // MatrixXd theta_s_mat = readCSV(directory + string("101_theta_s.csv"));
+  // MatrixXd theta_sDDot_mat = readCSV(directory + string("101_theta_sDDot.csv"));
   // theta_s = theta_s_mat.col(0);
   // theta_sDDot = theta_sDDot_mat.col(0);
 
   // Vectors/Matrices for the outer loop
-  vector<MatrixXd> A_vec;
-  vector<MatrixXd> B_vec;
+  vector<VectorXd> w_sol_vec;
   vector<MatrixXd> H_vec;
+  vector<VectorXd> b_vec;
+  vector<VectorXd> c_vec;
+  vector<MatrixXd> A_vec;
   vector<MatrixXd> A_active_vec;
-  vector<MatrixXd> B_active_vec;
   vector<VectorXd> lb_vec;
   vector<VectorXd> ub_vec;
   vector<VectorXd> y_vec;
   vector<VectorXd> y_active_vec;
-  vector<VectorXd> b_vec;
-  vector<VectorXd> w_sol_vec;
+  vector<MatrixXd> B_vec;
+  vector<MatrixXd> B_active_vec;
 
   // Start the gradient descent
   int n_theta = n_theta_s + n_theta_sDDot;
@@ -117,11 +115,12 @@ void findGoldilocksModels() {
     int current_batch = is_get_nominal ? 1 : n_batch;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
 
-    // store parameter values
-    if (is_with_prefix)
-      output_prefix = to_string(iter) +  "_";
-    writeCSV(directory + output_prefix + string("theta_s.csv"), theta_s);
-    writeCSV(directory + output_prefix + string("theta_sDDot.csv"), theta_sDDot);
+    // store initial parameter values
+    if (is_get_nominal) {
+      prefix = to_string(iter) +  "_";
+      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+    }
 
     // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
@@ -134,6 +133,7 @@ void findGoldilocksModels() {
     y_vec.clear();
     y_active_vec.clear();
     b_vec.clear();
+    c_vec.clear();
     w_sol_vec.clear();
 
     // Run trajectory optimization for different tasks first
@@ -142,37 +142,39 @@ void findGoldilocksModels() {
       double stride_length = is_get_nominal ? stride_length_0 :
                              stride_length_0 + delta_stride_length_vec[batch];
       cout << "stride_length = " << stride_length << endl;
-      if (is_with_prefix)
-        output_prefix = to_string(iter) +  "_" + to_string(batch) + "_";
+      prefix = to_string(iter) +  "_" + to_string(batch) + "_";
       string init_file_pass_in;
       if (is_get_nominal)
         init_file_pass_in = init_file;
       else if (iter == 1)
         init_file_pass_in = string("0_0_w.csv");
-      else {
+      else
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
-      }
 
       // Trajectory optimization with fixed model paramters
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
                           theta_s, theta_sDDot,
                           stride_length, duration, max_inner_iter_pass_in,
-                          directory, init_file_pass_in, output_prefix,
+                          directory, init_file_pass_in, prefix,
                           w_sol_vec, A_vec, H_vec,
-                          y_vec, lb_vec, ub_vec, b_vec, B_vec,
+                          y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
                           Q_double, R,
                           eps_regularization,
                           is_get_nominal);
     }
+    double total_cost = 0;
+    for (int batch = 0; batch < current_batch; batch++)
+      total_cost += c_vec[batch](0) / current_batch;
+    cout << "total_cost = " << total_cost << endl << endl;
 
     // Then do outer loop optimization given the solution w
     if (!is_get_nominal) {
-      // Construct vectors/matrices for the problem (get the active constraints)
+      // Extract active and independent constraints
+      cout << "Extracting active and independent rows of A\n";
       vector<double> nw_vec;  // size of decision var of traj opt for all tasks
       vector<double> nl_vec;  // # of rows of active constraints for all tasks
       int nw = 0;  // sum of size of decision variables for all task
-      int nt = 0;  // size of parameters theta
       int nl = 0;  // sum of # of rows of active constraints for all tasks
       for (int batch = 0; batch < current_batch; batch++) {
         DRAKE_ASSERT(b_vec[batch].cols() == 1);
@@ -287,7 +289,7 @@ void findGoldilocksModels() {
         }*/
 
         // Only add the rows that are linearly independent
-        cout << "Start extracting independent rows of A\n";
+        // cout << "Start extracting independent rows of A\n";
         std::vector<int> full_row_rank_idx;
         full_row_rank_idx.push_back(0);
         for (int i = 1; i < nl_i; i++) {
@@ -307,7 +309,7 @@ void findGoldilocksModels() {
             full_row_rank_idx.push_back(i);
           }
         }
-        cout << "Finished extracting independent rows of A\n\n";
+        // cout << "Finished extracting independent rows of A\n\n";
 
         nl_i = full_row_rank_idx.size();
         nl_vec.push_back(nl_i);
@@ -326,16 +328,9 @@ void findGoldilocksModels() {
         A_active_vec.push_back(A_full_row_rank);
         B_active_vec.push_back(B_full_row_rank);
         y_active_vec.push_back(y_full_row_rank);
-
-        if (batch == 0) {
-          nt = nt_i;
-        } else {
-          DRAKE_ASSERT(nt == nt_i);
-        }
-      }
+      }  // end extracting active and independent constraints
 
       // cout << "nw = " << nw << endl;
-      // cout << "nt = " << nt << endl;
       // cout << "nl = " << nl << endl;
 
       // Reference for solving a sparse linear system
@@ -347,7 +342,8 @@ void findGoldilocksModels() {
       // However, H turned out not to be psd, since we have timestep h as decision
       // variable. (It came from running cost. ~h*u'*R*u, etc)
       // Fixed it by adding running cost by hand (but the timestep is fixed now).
-      cout << "Checking if H is pd and symmetric\n";
+      // Now H is always pd because we also added a regularization term.
+      /*cout << "Checking if H is pd and symmetric\n";
       for (int batch = 0; batch < current_batch; batch++) {
         // Check if H is symmetric
         VectorXd One_w = VectorXd::Ones(nw_vec[batch]);
@@ -363,13 +359,15 @@ void findGoldilocksModels() {
                  << eivals_real(i) << ")\n";
         }
       }
-      cout << "Finished checking\n";
+      cout << "Finished checking\n\n";*/
 
 
       // Get w in terms of theta (Get P_i and q_i where w = P_i * theta + q_i)
       vector<MatrixXd> P_vec;
       vector<VectorXd> q_vec;
-      cout << "Getting P matrix and q vecotr\n";
+      P_vec.clear();
+      q_vec.clear();
+      // cout << "Getting P matrix and q vecotr\n";
       // Method 1: use optimization program to solve it???
 
       // Method 2: use schur complement (see notes)
@@ -541,14 +539,34 @@ void findGoldilocksModels() {
       cout << "Calculating gradient\n";
       VectorXd costGradient = VectorXd::Zero(theta.size());
       for (int batch = 0; batch < current_batch; batch++) {
-        costGradient += P_vec[batch].transpose() * b_vec[batch];
+        costGradient += P_vec[batch].transpose() * b_vec[batch] / current_batch;
         // costGradient +=
         // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
       }
-      costGradient = costGradient / current_batch;
       // cout << "costGradient = \n" << costGradient;
-      P_vec.clear();
-      q_vec.clear();
+
+      // Newton's method (not exactly the same, cause Q_theta is not pd but psd)
+      // See your IOE611 lecture notes on page 7-17 to page 7-20
+      cout << "Getting Newton step\n";
+      MatrixXd Q_theta = MatrixXd::Zero(n_theta, n_theta);
+      for (int batch = 0; batch < current_batch; batch++) {
+        Q_theta +=
+          P_vec[batch].transpose() * H_vec[batch] * P_vec[batch] / current_batch;
+      }
+      MathematicalProgram qp_newton;
+      auto theta_var = qp_newton.NewContinuousVariables(theta.size(), "theta");
+      qp_newton.AddQuadraticCost(Q_theta, costGradient, theta_var);
+      const auto qp_result = Solve(qp_newton);
+      auto solution_qp_result = qp_result.get_solution_result();
+      cout << solution_qp_result << endl;
+      VectorXd newton_step =
+        qp_result.GetSolution(qp_newton.decision_variables());
+
+      // Newton decrement
+      double lambda_square = -costGradient.transpose()*newton_step;
+
+
+
 
 
 
@@ -557,10 +575,20 @@ void findGoldilocksModels() {
 
 
 
-      // Gradient descent and assign theta_s and theta_sDDot
-      theta -= h_step * costGradient;
+
+
+
+      // Gradient descent
+      // theta += h_step * (-costGradient);
+      theta += h_step * newton_step;
+
+      // Assign theta_s and theta_sDDot
       theta_s = theta.head(n_theta_s);
       theta_sDDot = theta.tail(n_theta_sDDot);
+      // store parameter values
+      prefix = to_string(iter + 1) +  "_";
+      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
       // Check optimality
       cout << "costGradient norm: " << costGradient.norm() << endl << endl;

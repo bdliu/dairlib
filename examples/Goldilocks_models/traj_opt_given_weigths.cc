@@ -82,12 +82,13 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
                          Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
                          double stride_length, double duration, int max_iter,
                          string directory,
-                         string init_file, std::string output_prefix,
+                         string init_file, std::string prefix,
                          vector<VectorXd> & w_sol_vec,
                          vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
                          vector<VectorXd> & y_vec,
                          vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
                          vector<VectorXd> & b_vec,
+                         vector<VectorXd> & c_vec,
                          vector<MatrixXd> & B_vec,
                          const double & Q_double, const double & R_double,
                          double eps_reg,
@@ -355,9 +356,9 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  cout << "Solve time:" << elapsed.count() << endl;
+  cout << "Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
-  cout << solution_result << endl;
+  cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() << endl << endl;
 
   // The following line gives seg fault
@@ -390,21 +391,54 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
+
+
+  /*// Store the time, state, and input at knot points
+  VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
+  MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
+  MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
+  writeCSV(directory + prefix + string("time_at_knots.csv"), time_at_knots);
+  writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
+  writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
+  cout << "time_at_knots = " << time_at_knots << endl;*/
+
+
+  /*// visualizer
+  int n_loops = 1;
+  const PiecewisePolynomial<double> pp_xtraj =
+    gm_traj_opt.dircon->ReconstructStateTrajectory(result);
+  multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
+                                         pp_xtraj);
+  auto diagram = builder.Build();
+  while(true)
+    for (int i=0; i<n_loops; i++) {
+      drake::systems::Simulator<double> simulator(*diagram);
+      simulator.set_target_realtime_rate(.1);
+      simulator.Initialize();
+      simulator.StepTo(pp_xtraj.end_time());
+    }*/
+
+
+
+
+
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
-  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
+  writeCSV(directory + prefix + string("w.csv"), w_sol);
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
   if(!is_get_nominal){
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
-    double c;
+    double c_double;
     systems::trajectory_optimization::linearizeConstraints(
       gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-    c = systems::trajectory_optimization::secondOrderCost(
+    c_double = systems::trajectory_optimization::secondOrderCost(
           gm_traj_opt.dircon.get(), w_sol, H, b);
+    VectorXd c(1);
+    c << c_double;
 
     // Get matrix B (~get feature vectors)
     int n_theta_s = theta_s.size();
@@ -454,24 +488,26 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
     // Push the solution to the vector
     w_sol_vec.push_back(w_sol);
-    A_vec.push_back(A);
     H_vec.push_back(H);
+    b_vec.push_back(b);
+    c_vec.push_back(c);
+    A_vec.push_back(A);
     lb_vec.push_back(lb);
     ub_vec.push_back(ub);
     y_vec.push_back(y);
-    b_vec.push_back(b);
     B_vec.push_back(B);
 
     // Store the vectors and matrices
     // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
     // string iter_prefix = std::to_string(iter-1) + "_";
-    writeCSV(directory + output_prefix + string("A.csv"), A);
-    writeCSV(directory + output_prefix + string("y.csv"), y);
-    writeCSV(directory + output_prefix + string("lb.csv"), lb);
-    writeCSV(directory + output_prefix + string("ub.csv"), ub);
-    writeCSV(directory + output_prefix + string("H.csv"), H);
-    writeCSV(directory + output_prefix + string("b.csv"), b);
-    writeCSV(directory + output_prefix + string("B.csv"), B);
+    // writeCSV(directory + prefix + string("H.csv"), H);
+    // writeCSV(directory + prefix + string("b.csv"), b);
+    writeCSV(directory + prefix + string("c.csv"), c);
+    // writeCSV(directory + prefix + string("A.csv"), A);
+    // writeCSV(directory + prefix + string("lb.csv"), lb);
+    // writeCSV(directory + prefix + string("ub.csv"), ub);
+    // writeCSV(directory + prefix + string("y.csv"), y);
+    // writeCSV(directory + prefix + string("B.csv"), B);
 
 
 
@@ -702,33 +738,6 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       }
     }*/
   }
-
-
-
-
-
-  /*// Store the time, state, and input at knot points
-  VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
-  MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
-  MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
-  writeCSV(directory + output_prefix + string("time_at_knots.csv"), time_at_knots);
-  writeCSV(directory + output_prefix + string("state_at_knots.csv"), state_at_knots);
-  writeCSV(directory + output_prefix + string("input_at_knots.csv"), input_at_knots);
-  cout << "time_at_knots = " << time_at_knots << endl;*/
-
-
-  /*// visualizer
-  const PiecewisePolynomial<double> pp_xtraj =
-    gm_traj_opt.dircon->ReconstructStateTrajectory(result);
-  multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
-                                         pp_xtraj);
-  auto diagram = builder.Build();
-  while (true) {
-    drake::systems::Simulator<double> simulator(*diagram);
-    simulator.set_target_realtime_rate(.1);
-    simulator.Initialize();
-    simulator.StepTo(pp_xtraj.end_time());
-  }*/
 
 
 
