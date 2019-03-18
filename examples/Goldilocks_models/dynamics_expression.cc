@@ -44,8 +44,8 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   //            sqrt(s(1));
 
   // Version 2: testing
-  T feature(1);
-  feature << 0;
+  // T feature(1);
+  // feature << 0;
 
   // Version 3: testing
   // T feature(1);
@@ -56,7 +56,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   // feature << s(0), s(1);
 
   // Version 5: nz = 4, all combinations until quadratic
-  /*T feature(21);
+  T feature(21);
   feature << 1,     // constant
              s(0),  // linear
              s(1),
@@ -77,7 +77,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
              s(0) * ds(1),
              s(1) * ds(1),
              ds(0) * ds(1),
-             ds(1) * ds(1);*/
+             ds(1) * ds(1);
 
 
   return feature;

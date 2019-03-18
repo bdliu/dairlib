@@ -434,12 +434,6 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       MatrixXd dyn_gradient_tail =
         gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
           theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
-      // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient_head = " <<
-      //   dyn_gradient_head.transpose() << endl;
-      cout << "dyn_gradient_head.rows() = " << dyn_gradient_head.rows() << endl;
-      cout << "dyn_gradient_head.cols() = " << dyn_gradient_head.cols() << endl;
-      cout << "dyn_gradient_head = \n" << dyn_gradient_head << "\n";
-      cout << "dyn_gradient_tail = \n" << dyn_gradient_tail << "\n";
 
       // Fill in B matrix
       B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
@@ -719,7 +713,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
   // visualizer
-  /*const PiecewisePolynomial<double> pp_xtraj =
+  const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
@@ -729,7 +723,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }*/
+  }
 
   return ;
 }
