@@ -42,9 +42,9 @@ void findGoldilocksModels() {
   string output_prefix = "";
 
   // Parametres for tasks
-  int n_batch = 1;
-  double stride_length = 0.3;
-  //double delta_stride_length = 0.03;
+  int n_batch = 5;
+  double delta_stride_length = 0.03;
+  double stride_length_0 = 0.3 - delta_stride_length * (n_batch - 1) / 2;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the inner loop optimization
@@ -53,7 +53,7 @@ void findGoldilocksModels() {
   double Q_double = 10; // Cost on velocity
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 1;
+  int max_outer_iter = 20;
   double threshold = 1e-4;
   double h_step = 1e-2;
   double epsilon = 1e-4;
@@ -61,8 +61,10 @@ void findGoldilocksModels() {
   // Reduced order model parameters
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_feature_s = 113;//1;//113    // n_feature should match with the dim of the feature,
-  int n_feature_sDDot = 7;//1;//21 // since we are hard coding it now. (same below)
+  int n_feature_s =
+    113;//1;//113    // n_feature should match with the dim of the feature,
+  int n_feature_sDDot =
+    7;//1;//21 // since we are hard coding it now. (same below)
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   // Assuming position and velocity has the same dimension
@@ -102,6 +104,7 @@ void findGoldilocksModels() {
     cout << "*********** Iteration " << iter << " *************" << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
 
+    output_prefix = std::to_string(iter) +  "_";
     writeCSV(directory + output_prefix + string("theta_s.csv"), theta_s);
     writeCSV(directory + output_prefix + string("theta_sDDot.csv"), theta_sDDot);
 
@@ -121,11 +124,12 @@ void findGoldilocksModels() {
 
     // Run trajectory optimization for different tasks first
     for (int batch = 0; batch < current_batch; batch++) {
-
       /// some setup for each batch
-
+      double stride_length = stride_length_0 + batch * delta_stride_length;
+      output_prefix = std::to_string(iter) +  "_" + std::to_string(batch) + "_";
 
       // Trajectory optimization with fixed model paramters
+      cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
                           theta_s, theta_sDDot,
                           stride_length, duration, max_inner_iter,
@@ -135,7 +139,6 @@ void findGoldilocksModels() {
                           Q_double, R,
                           epsilon);
       theta_vec.push_back(theta);
-
     }
 
     // Then do outer loop optimization given the solution w
@@ -492,7 +495,7 @@ void findGoldilocksModels() {
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
       // costGradient +=
-        // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
+      // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
       costGradient += P_vec[batch].transpose() * b_vec[batch];
     }
     // cout << "costGradient = \n" << costGradient;

@@ -404,7 +404,6 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   int n_theta_s = theta_s.size();
   int n_theta_sDDot = theta_sDDot.size();
   int n_theta = n_theta_s + n_theta_sDDot;
-  cout << "n_theta = " << n_theta << endl;
   MatrixXd B = MatrixXd::Zero(A.rows(), n_theta);
   // Get the row index of B matrix where dynamics constraint starts
   VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
@@ -441,9 +440,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
         = dyn_gradient_tail;
       // cout << "row " << ind_head(0) + i * 2 * n_sDDot << endl;
-      // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl;
-
-      cout << endl;
+      // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl << endl;
     }
     N_accum += num_time_samples[l];
     N_accum -= 1;  // due to overlaps between modes
@@ -712,7 +709,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   cout << "time_at_knots = " << time_at_knots << endl;*/
 
 
-  // visualizer
+  /*// visualizer
   const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
@@ -723,7 +720,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
-  }
+  }*/
 
   return ;
 }
