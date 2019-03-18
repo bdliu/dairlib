@@ -75,8 +75,9 @@ class DynamicsConstraint : public Constraint {
                    AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
 
   VectorXd getGradientWrtTheta(
-    const VectorXd & s_i, const VectorXd & s_iplus1,
-    const VectorXd & timestep_i) const;
+  VectorXd theta_s, VectorXd theta_sDDot,
+  const VectorXd & x_i, const VectorXd & x_iplus1,
+  const VectorXd & h_i, bool is_head) const;
 
  private:
   const MultibodyPlant<AutoDiffXd> * plant_;
@@ -84,14 +85,16 @@ class DynamicsConstraint : public Constraint {
   int n_v_;
   int n_s_;
   int n_feature_s_;
+  int n_theta_s_;
   VectorXd theta_s_;
   int n_sDDot_;
   int n_feature_sDDot_;
+  int n_theta_sDDot_;
   VectorXd theta_sDDot_;
   KinematicsExpression<AutoDiffXd> kin_expression_;
   DynamicsExpression dyn_expression_;
   bool is_head_;
-  double dx_ = 1e-8;
+  double eps_ = 1e-8;
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib
