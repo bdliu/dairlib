@@ -81,7 +81,10 @@ void findGoldilocksModels() {
   // Testing intial theta
   theta_s = VectorXd::Random(n_theta_s);
   theta_sDDot = VectorXd::Random(n_theta_sDDot);
-
+  // MatrixXd theta_s_mat = readCSV(directory + string("10_theta_s.csv"));
+  // MatrixXd theta_sDDot_mat = readCSV(directory + string("10_theta_sDDot.csv"));
+  // theta_s = theta_s_mat.col(0);
+  // theta_sDDot = theta_sDDot_mat.col(0);
 
   // Vectors/Matrices for the outer loop
   vector<MatrixXd> A_vec;
