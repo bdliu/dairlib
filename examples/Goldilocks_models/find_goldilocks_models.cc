@@ -102,6 +102,7 @@ void findGoldilocksModels() {
   theta << theta_s, theta_sDDot;
   for (int iter = 1; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
+    cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
     int current_batch = iter == 1 ? 1 : n_batch;
 
     output_prefix = std::to_string(iter) +  "_";
@@ -129,7 +130,6 @@ void findGoldilocksModels() {
       output_prefix = std::to_string(iter) +  "_" + std::to_string(batch) + "_";
 
       // Trajectory optimization with fixed model paramters
-      cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
                           theta_s, theta_sDDot,
                           stride_length, duration, max_inner_iter,
@@ -262,7 +262,7 @@ void findGoldilocksModels() {
       }*/
 
       // Only add the rows that are linearly independent
-      cout << "\nStart extracting independent rows of A\n";
+      cout << "Start extracting independent rows of A\n";
       std::vector<int> full_row_rank_idx;
       full_row_rank_idx.push_back(0);
       for (int i = 1; i < nl_i; i++) {
@@ -395,19 +395,13 @@ void findGoldilocksModels() {
       MatrixXd inv_H_ext = H_ext.inverse();
       cout << "Finsihed inverting the matrix.\n\n";
 
-      // Check if the inverse is correct
-      cout << "trace = " << (inv_H_ext * H_ext - MatrixXd::Identity(nw_i + nl_i,
-                             nw_i + nl_i)).trace() << endl;
-
-
       MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
       MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
 
       MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
       VectorXd qi = -inv_H_ext11 * b_vec[batch];
 
-
-      MatrixXd abs_Pi = Pi.cwiseAbs();
+      /*MatrixXd abs_Pi = Pi.cwiseAbs();
       VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
       VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
       cout << "sum-abs-Pi: " <<
@@ -422,7 +416,7 @@ void findGoldilocksModels() {
         }
       cout << "max element of abs-Pi = " << max_Pi_element << endl;
       cout << "qi norm (this number should be close to 0) = "
-           << qi.norm() << endl;
+           << qi.norm() << endl;*/
 
       P_vec.push_back(Pi);
       q_vec.push_back(qi);
@@ -494,13 +488,21 @@ void findGoldilocksModels() {
     cout << "\nCalculating gradient\n";
     VectorXd costGradient = VectorXd::Zero(theta_vec[0].size());
     for (int batch = 0; batch < current_batch; batch++) {
+      costGradient += P_vec[batch].transpose() * b_vec[batch];
       // costGradient +=
       // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
-      costGradient += P_vec[batch].transpose() * b_vec[batch];
     }
+    costGradient = costGradient / current_batch;
     // cout << "costGradient = \n" << costGradient;
     P_vec.clear();
     q_vec.clear();
+
+
+
+    // TODO(yminchen): only add the cost that has a optimal traj opt solution
+    // Terminate the optimization if more than have samples don't have sol.
+
+
 
     // Gradient descent and assign theta_s and theta_sDDot
     theta -= h_step * costGradient;
@@ -508,9 +510,9 @@ void findGoldilocksModels() {
     theta_sDDot = theta.tail(n_theta_sDDot);
 
     // Check optimality
-    cout << "costGradient norm: " << costGradient.norm() << endl;
+    cout << "costGradient norm: " << costGradient.norm() << endl << endl;
     if (costGradient.norm() < threshold) {
-      cout << "Found optimal theta.\n";
+      cout << "Found optimal theta.\n\n";
       break;
     }
   }
