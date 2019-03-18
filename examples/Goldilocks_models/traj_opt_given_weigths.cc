@@ -428,10 +428,10 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
       VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
 
-      VectorXd dyn_gradient_head =
+      MatrixXd dyn_gradient_head =
         gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
           theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
-      VectorXd dyn_gradient_tail =
+      MatrixXd dyn_gradient_tail =
         gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
           theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
       // cout<< "("<< l<< ", "<< m<<  "): dyn_gradient_head = " <<

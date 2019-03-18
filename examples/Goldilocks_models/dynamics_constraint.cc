@@ -175,7 +175,7 @@ void DynamicsConstraint::getSAndSDot(
 }
 
 
-VectorXd DynamicsConstraint::getGradientWrtTheta(
+MatrixXd DynamicsConstraint::getGradientWrtTheta(
     VectorXd theta_s, VectorXd theta_sDDot,
     const VectorXd & x_i, const VectorXd & x_iplus1,
     const VectorXd & h_i) const {
@@ -223,7 +223,6 @@ VectorXd DynamicsConstraint::getGradientWrtTheta(
 
   // Get the gradient wrt theta_s and theta_sDDot
   VectorXd theta(n_theta_s_ + n_theta_sDDot_);
-  // cout <<"n_theta_s_ + n_theta_sDDot_ = " << endl;
   theta << theta_s, theta_sDDot;
   MatrixXd gradWrtTheta(n_s_, theta.size());
   for (int k = 0; k < theta.size(); k++) {

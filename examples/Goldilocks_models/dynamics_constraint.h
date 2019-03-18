@@ -74,7 +74,7 @@ class DynamicsConstraint : public Constraint {
   void getSAndSDot(AutoDiffVecXd x_i,
                    AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
 
-  VectorXd getGradientWrtTheta(
+  MatrixXd getGradientWrtTheta(
   VectorXd theta_s, VectorXd theta_sDDot,
   const VectorXd & x_i, const VectorXd & x_iplus1,
   const VectorXd & h_i) const;
