@@ -81,12 +81,12 @@ void findGoldilocksModels() {
   // theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  theta_s = VectorXd::Random(n_theta_s);
-  theta_sDDot = VectorXd::Random(n_theta_sDDot);
-  // MatrixXd theta_s_mat = readCSV(directory + string("101_theta_s.csv"));
-  // MatrixXd theta_sDDot_mat = readCSV(directory + string("101_theta_sDDot.csv"));
-  // theta_s = theta_s_mat.col(0);
-  // theta_sDDot = theta_sDDot_mat.col(0);
+  // theta_s = VectorXd::Random(n_theta_s);
+  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  MatrixXd theta_s_mat = readCSV(directory + string("133_theta_s.csv"));
+  MatrixXd theta_sDDot_mat = readCSV(directory + string("133_theta_sDDot.csv"));
+  theta_s = theta_s_mat.col(0);
+  theta_sDDot = theta_sDDot_mat.col(0);
 
   // Vectors/Matrices for the outer loop
   vector<VectorXd> w_sol_vec;
@@ -106,7 +106,7 @@ void findGoldilocksModels() {
   int n_theta = n_theta_s + n_theta_sDDot;
   VectorXd theta(n_theta);
   theta << theta_s, theta_sDDot;
-  for (int iter = 0; iter <= max_outer_iter; iter++)  {
+  for (int iter = 133; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
@@ -329,6 +329,7 @@ void findGoldilocksModels() {
         B_active_vec.push_back(B_full_row_rank);
         y_active_vec.push_back(y_full_row_rank);
       }  // end extracting active and independent constraints
+      cout << endl;
 
       // cout << "nw = " << nw << endl;
       // cout << "nl = " << nl << endl;
@@ -444,7 +445,6 @@ void findGoldilocksModels() {
         P_vec.push_back(Pi);
         q_vec.push_back(qi);
       }
-      cout << endl;
 
 
 
@@ -547,7 +547,7 @@ void findGoldilocksModels() {
 
       // Newton's method (not exactly the same, cause Q_theta is not pd but psd)
       // See your IOE611 lecture notes on page 7-17 to page 7-20
-      cout << "Getting Newton step\n";
+      /*cout << "Getting Newton step\n";
       MatrixXd Q_theta = MatrixXd::Zero(n_theta, n_theta);
       for (int batch = 0; batch < current_batch; batch++) {
         Q_theta +=
@@ -563,7 +563,7 @@ void findGoldilocksModels() {
         qp_result.GetSolution(qp_newton.decision_variables());
 
       // Newton decrement
-      double lambda_square = -costGradient.transpose()*newton_step;
+      double lambda_square = -costGradient.transpose()*newton_step;*/
 
 
 
@@ -579,8 +579,8 @@ void findGoldilocksModels() {
 
 
       // Gradient descent
-      // theta += h_step * (-costGradient);
-      theta += h_step * newton_step;
+      theta += h_step * (-costGradient);
+      // theta += h_step * newton_step;
 
       // Assign theta_s and theta_sDDot
       theta_s = theta.head(n_theta_s);
