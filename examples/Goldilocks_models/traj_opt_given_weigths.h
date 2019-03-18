@@ -23,7 +23,8 @@ void trajOptGivenWeights(
     vector<VectorXd> & b_vec,
     vector<MatrixXd> & B_vec,
     const double & Q_double, const double & R_double,
-    double epsilon);
+    double eps_reg,
+    bool is_get_nominal);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib

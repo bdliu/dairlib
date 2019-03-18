@@ -90,7 +90,8 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
                          vector<VectorXd> & b_vec,
                          vector<MatrixXd> & B_vec,
                          const double & Q_double, const double & R_double,
-                         double epsilon) {
+                         double eps_reg,
+                         bool is_get_nominal) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -207,8 +208,8 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   // However, we need it now, since we add the running cost by hand
   trajopt->AddDurationBounds(duration, duration);
 
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Print file", "snopt.out");
+  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  //                          "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", max_iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
@@ -319,12 +320,12 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
   // Actually, Hessian still has zero eigen value because of h_var and z_var
-  /*trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),x0);
+  /*trajopt->AddQuadraticCost(eps_reg*I_x*timestep/2,VectorXd::Zero(n_x),x0);
   for(int i=1; i<=N-2; i++){
     auto xi = trajopt->state(i);
-    trajopt->AddQuadraticCost(epsilon*I_x*timestep,VectorXd::Zero(n_x),xi);
+    trajopt->AddQuadraticCost(eps_reg*I_x*timestep,VectorXd::Zero(n_x),xi);
   }
-  trajopt->AddQuadraticCost(epsilon*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
+  trajopt->AddQuadraticCost(eps_reg*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
 
 
   // initial guess if the file exists
@@ -337,15 +338,16 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
     n_s, n_sDDot, n_feature_s, n_feature_sDDot, theta_s, theta_sDDot,
-    std::move(trajopt), &plant_autoDiff, num_time_samples);
+    std::move(trajopt), &plant_autoDiff, num_time_samples, is_get_nominal);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
   // TODO(yminchen): should I add to all decision variable? or just state?
-  auto w = gm_traj_opt.dircon->decision_variables();
-  for (int i = 0; i < w.size(); i++)
-    gm_traj_opt.dircon->AddQuadraticCost(epsilon * w(i)*w(i));
-
+  if(!is_get_nominal){
+    auto w = gm_traj_opt.dircon->decision_variables();
+    for (int i = 0; i < w.size(); i++)
+      gm_traj_opt.dircon->AddQuadraticCost(eps_reg * w(i)*w(i));
+  }
 
   cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -386,318 +388,324 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   //   << gm_traj_opt.dircon->decision_variables() << endl;
 
 
+
+
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
+  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
-  MatrixXd A, H;
-  VectorXd y, lb, ub, b;
-  double c;
-  systems::trajectory_optimization::linearizeConstraints(
-    gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-  c = systems::trajectory_optimization::secondOrderCost(
-        gm_traj_opt.dircon.get(), w_sol, H, b);
+  if(!is_get_nominal){
+    MatrixXd A, H;
+    VectorXd y, lb, ub, b;
+    double c;
+    systems::trajectory_optimization::linearizeConstraints(
+      gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
+    c = systems::trajectory_optimization::secondOrderCost(
+          gm_traj_opt.dircon.get(), w_sol, H, b);
 
-  // Get matrix B (~get feature vectors)
-  int n_theta_s = theta_s.size();
-  int n_theta_sDDot = theta_sDDot.size();
-  int n_theta = n_theta_s + n_theta_sDDot;
-  MatrixXd B = MatrixXd::Zero(A.rows(), n_theta);
-  // Get the row index of B matrix where dynamics constraint starts
-  VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
-                        gm_traj_opt.dircon.get(),
-                        gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
-  // cout << "ind_head = " << ind_head(0) << endl;
-  VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
-                        gm_traj_opt.dircon.get(),
-                        gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
-  // cout << "ind_tail = " << ind_tail(0) << endl;
-  int N_accum = 0;
-  for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-    for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
-      int i = N_accum + m;
-      // cout << "i = " << i << endl;
-      // Get the gradient value first
-      auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
-      auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
-      auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-      VectorXd x_i_sol = result.GetSolution(x_i);
-      VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
-      VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+    // Get matrix B (~get feature vectors)
+    int n_theta_s = theta_s.size();
+    int n_theta_sDDot = theta_sDDot.size();
+    int n_theta = n_theta_s + n_theta_sDDot;
+    MatrixXd B = MatrixXd::Zero(A.rows(), n_theta);
+    // Get the row index of B matrix where dynamics constraint starts
+    VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
+                          gm_traj_opt.dircon.get(),
+                          gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
+    // cout << "ind_head = " << ind_head(0) << endl;
+    VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
+                          gm_traj_opt.dircon.get(),
+                          gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
+    // cout << "ind_tail = " << ind_tail(0) << endl;
+    int N_accum = 0;
+    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+        int i = N_accum + m;
+        // cout << "i = " << i << endl;
+        // Get the gradient value first
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
 
-      MatrixXd dyn_gradient_head =
-        gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-          theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
-      MatrixXd dyn_gradient_tail =
-        gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-          theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+        MatrixXd dyn_gradient_head =
+          gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
+            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+        MatrixXd dyn_gradient_tail =
+          gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
 
-      // Fill in B matrix
-      B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
-        = dyn_gradient_head;
-      B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
-        = dyn_gradient_tail;
-      // cout << "row " << ind_head(0) + i * 2 * n_sDDot << endl;
-      // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl << endl;
-    }
-    N_accum += num_time_samples[l];
-    N_accum -= 1;  // due to overlaps between modes
-  }
-
-
-  // Push the solution to the vector
-  w_sol_vec.push_back(w_sol);
-  A_vec.push_back(A);
-  H_vec.push_back(H);
-  lb_vec.push_back(lb);
-  ub_vec.push_back(ub);
-  y_vec.push_back(y);
-  b_vec.push_back(b);
-  B_vec.push_back(B);
-
-
-
-
-  /*cout << "\ncheck if H is diagonal: \n";
-  MatrixXd H_test = H;
-  int nw = H_test.rows();
-  for (int i = 0; i < nw; i++) {
-    H_test(i, i) = 0;
-  }
-  if (VectorXd::Ones(nw).transpose()*H_test * VectorXd::Ones(nw) == 0)
-    cout << "H is diagonal" << endl;
-
-  cout << "checking b\n";
-  cout << "b.norm() = " << b.norm() << endl;
-
-
-
-  cout << "norm of y = " << y.norm() << endl;
-
-
-
-
-
-  // Get the index of the rows of active constraints
-  vector<int> active_eq_row_idx;
-  vector<int> ub_active_ineq_row_idx;
-  vector<int> lb_active_ineq_row_idx;
-  double tol = 1e-8; //1e-4
-  for (int i = 0; i < y.rows(); i++) {
-    if (ub(i) == lb(i))
-      active_eq_row_idx.push_back(i);
-    else if (y(i) >= ub(i) - tol)
-      ub_active_ineq_row_idx.push_back(i);
-    else if (y(i) <= lb(i) + tol)
-      lb_active_ineq_row_idx.push_back(i);
-  }
-  unsigned int n_ae = active_eq_row_idx.size();
-  unsigned int n_aub = ub_active_ineq_row_idx.size();
-  unsigned int n_alb = lb_active_ineq_row_idx.size();
-  cout << "n_ae = " << n_ae << endl;
-  cout << "n_aub = " << n_aub << endl;
-  cout << "n_alb = " << n_alb << endl;
-
-
-
-
-  cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
-  int nl_i = A.rows();
-  int nw_i = A.cols();
-  MathematicalProgram quadprog;
-  auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
-  quadprog.AddLinearConstraint( A,
-                                lb - y,
-                                ub - y,
-                                dw);
-  quadprog.AddQuadraticCost(H, b, dw);
-  quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
-  quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
-  const auto result2 = Solve(quadprog);
-  auto solution_result2 = result2.get_solution_result();
-  cout << solution_result2 << endl;
-  cout << "Cost:" << result2.get_optimal_cost() << endl;
-  VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
-  cout << "w_sol norm:" << dw_sol.norm() << endl;
-  // cout << "dw_sol = \n" << dw_sol << endl;
-  cout << "Finished traj opt\n\n";
-
-  // vector<double> w_sol_sort;
-  // for(int i=0; i<dw_sol.size(); i++){
-  //   w_sol_sort.push_back(dw_sol(i));
-  // }
-  // std::sort(w_sol_sort.begin(), w_sol_sort.end());
-  // for(double w_sol_sort_ele : w_sol_sort)
-  //   cout << w_sol_sort_ele << endl;
-
-  // Check if dw=0 violates any constraint
-  VectorXd QP_ub = ub-y;
-  VectorXd QP_lb = lb-y;
-  for(int i=0; i<nl_i; i++){
-    if(QP_ub(i)<0)
-      cout<< "row " << i << ": upper bound is smaller than 0 by " << QP_ub(i) << endl;
-    if(QP_lb(i)>0)
-      cout<< "row " << i << ": lower bound is larger than 0 by " << QP_lb(i) << endl;
-  }
-  cout << endl;
-  // Check if dw* to the QP violates any constraint
-  VectorXd QP_constraint_val = A*dw_sol;
-  for(int i=0; i<nl_i; i++){
-    if(QP_ub(i) < QP_constraint_val(i))
-      cout<< "row " << i << ": upper bound constraint violation by " << QP_constraint_val(i) - QP_ub(i) << endl;
-    if(QP_lb(i) > QP_constraint_val(i))
-      cout<< "row " << i << ": lower bound constraint violation by " << QP_constraint_val(i) - QP_lb(i) << endl;
-  }
-  cout << endl;
-
-
-
-
-  // Plug back and check the cost and constraints of nonlinear programming
-  double eps = 1e-1;
-  unsigned int n_show = 10;  // number of rows of constraints you want to show
-  // cost
-  cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
-  for (int i = 0; i < 10 ; i++) {
-    VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-    MatrixXd H2;
-    VectorXd b2;
-    double c_nonlinear;
-    c_nonlinear = systems::trajectory_optimization::secondOrderCost(
-                    gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c;
-    cout << "i = " << i << endl;
-    cout << "  c_nonlinear = " << c_nonlinear << endl;
-    VectorXd dw_sol_test = i * eps * dw_sol;
-    double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
-                           dw_sol_test) + c - c;
-    cout << "  c_aquadprog = " << c_aquadprog << endl;
-    cout << "  c_aquadprog - c_nonlinear = " << c_aquadprog - c_nonlinear << endl;
-  }
-  // constraint
-  if (n_ae) {
-    cout << "\nchecking the equality constraints of the original nonlinear programming and the approximated quadratic programming\n";
-    // pick constraint violation row index
-    std::vector<int> constraint_vio_row_idx;
-    for (unsigned int i = 0; i < 10 ; i++) {
-      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-      MatrixXd A2;
-      VectorXd y2, lb2, ub2;
-      systems::trajectory_optimization::linearizeConstraints(
-        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      unsigned int k = 0;
-      for (unsigned int j = 0; j < n_ae; j++) {
-        double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
-        if (abs(violation) > 1e-8) {
-          constraint_vio_row_idx.push_back(j);
-          k++;
-          if (k == n_show)
-            break;
-        }
-        if (i == n_show-1 && j == n_ae - 1 && k < n_show) {
-          cout << "There are only " << k << " # of violations\n";
-        }
+        // Fill in B matrix
+        B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+          = dyn_gradient_head;
+        B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+          = dyn_gradient_tail;
+        // cout << "row " << ind_head(0) + i * 2 * n_sDDot << endl;
+        // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl << endl;
       }
-      if(constraint_vio_row_idx.size()>=n_show)
-        break;
-      else if (i != 10-1)
-        constraint_vio_row_idx.clear();
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
     }
-    cout << "  Row index of violation = ";
-    for(int j : constraint_vio_row_idx){
-      cout << j << ", ";
+
+    // Push the solution to the vector
+    w_sol_vec.push_back(w_sol);
+    A_vec.push_back(A);
+    H_vec.push_back(H);
+    lb_vec.push_back(lb);
+    ub_vec.push_back(ub);
+    y_vec.push_back(y);
+    b_vec.push_back(b);
+    B_vec.push_back(B);
+
+    // Store the vectors and matrices
+    // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
+    // string iter_prefix = std::to_string(iter-1) + "_";
+    writeCSV(directory + output_prefix + string("A.csv"), A);
+    writeCSV(directory + output_prefix + string("y.csv"), y);
+    writeCSV(directory + output_prefix + string("lb.csv"), lb);
+    writeCSV(directory + output_prefix + string("ub.csv"), ub);
+    writeCSV(directory + output_prefix + string("H.csv"), H);
+    writeCSV(directory + output_prefix + string("b.csv"), b);
+    writeCSV(directory + output_prefix + string("B.csv"), B);
+
+
+
+
+
+
+
+
+
+
+    /*cout << "\ncheck if H is diagonal: \n";
+    MatrixXd H_test = H;
+    int nw = H_test.rows();
+    for (int i = 0; i < nw; i++) {
+      H_test(i, i) = 0;
+    }
+    if (VectorXd::Ones(nw).transpose()*H_test * VectorXd::Ones(nw) == 0)
+      cout << "H is diagonal" << endl;
+
+    cout << "checking b\n";
+    cout << "b.norm() = " << b.norm() << endl;
+
+
+
+    cout << "norm of y = " << y.norm() << endl;
+
+
+
+
+
+    // Get the index of the rows of active constraints
+    vector<int> active_eq_row_idx;
+    vector<int> ub_active_ineq_row_idx;
+    vector<int> lb_active_ineq_row_idx;
+    double tol = 1e-8; //1e-4
+    for (int i = 0; i < y.rows(); i++) {
+      if (ub(i) == lb(i))
+        active_eq_row_idx.push_back(i);
+      else if (y(i) >= ub(i) - tol)
+        ub_active_ineq_row_idx.push_back(i);
+      else if (y(i) <= lb(i) + tol)
+        lb_active_ineq_row_idx.push_back(i);
+    }
+    unsigned int n_ae = active_eq_row_idx.size();
+    unsigned int n_aub = ub_active_ineq_row_idx.size();
+    unsigned int n_alb = lb_active_ineq_row_idx.size();
+    cout << "n_ae = " << n_ae << endl;
+    cout << "n_aub = " << n_aub << endl;
+    cout << "n_alb = " << n_alb << endl;
+
+
+
+
+    cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
+    int nl_i = A.rows();
+    int nw_i = A.cols();
+    MathematicalProgram quadprog;
+    auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
+    quadprog.AddLinearConstraint( A,
+                                  lb - y,
+                                  ub - y,
+                                  dw);
+    quadprog.AddQuadraticCost(H, b, dw);
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
+    const auto result2 = Solve(quadprog);
+    auto solution_result2 = result2.get_solution_result();
+    cout << solution_result2 << endl;
+    cout << "Cost:" << result2.get_optimal_cost() << endl;
+    VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
+    cout << "w_sol norm:" << dw_sol.norm() << endl;
+    // cout << "dw_sol = \n" << dw_sol << endl;
+    cout << "Finished traj opt\n\n";
+
+    // vector<double> w_sol_sort;
+    // for(int i=0; i<dw_sol.size(); i++){
+    //   w_sol_sort.push_back(dw_sol(i));
+    // }
+    // std::sort(w_sol_sort.begin(), w_sol_sort.end());
+    // for(double w_sol_sort_ele : w_sol_sort)
+    //   cout << w_sol_sort_ele << endl;
+
+    // Check if dw=0 violates any constraint
+    VectorXd QP_ub = ub-y;
+    VectorXd QP_lb = lb-y;
+    for(int i=0; i<nl_i; i++){
+      if(QP_ub(i)<0)
+        cout<< "row " << i << ": upper bound is smaller than 0 by " << QP_ub(i) << endl;
+      if(QP_lb(i)>0)
+        cout<< "row " << i << ": lower bound is larger than 0 by " << QP_lb(i) << endl;
     }
     cout << endl;
-    // evaluate the chosen rows
-    for (unsigned int i = 0; i < 10 ; i++) {
-      cout << "i = " << i << endl;
+    // Check if dw* to the QP violates any constraint
+    VectorXd QP_constraint_val = A*dw_sol;
+    for(int i=0; i<nl_i; i++){
+      if(QP_ub(i) < QP_constraint_val(i))
+        cout<< "row " << i << ": upper bound constraint violation by " << QP_constraint_val(i) - QP_ub(i) << endl;
+      if(QP_lb(i) > QP_constraint_val(i))
+        cout<< "row " << i << ": lower bound constraint violation by " << QP_constraint_val(i) - QP_lb(i) << endl;
+    }
+    cout << endl;
+
+
+
+
+    // Plug back and check the cost and constraints of nonlinear programming
+    double eps = 1e-1;
+    unsigned int n_show = 10;  // number of rows of constraints you want to show
+    // cost
+    cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
+    for (int i = 0; i < 10 ; i++) {
       VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-      MatrixXd A2;
-      VectorXd y2, lb2, ub2;
-      systems::trajectory_optimization::linearizeConstraints(
-        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      cout << "  nonlinear_constraint_val = ";
+      MatrixXd H2;
+      VectorXd b2;
+      double c_nonlinear;
+      c_nonlinear = systems::trajectory_optimization::secondOrderCost(
+                      gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c;
+      cout << "i = " << i << endl;
+      cout << "  c_nonlinear = " << c_nonlinear << endl;
+      VectorXd dw_sol_test = i * eps * dw_sol;
+      double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
+                             dw_sol_test) + c - c;
+      cout << "  c_aquadprog = " << c_aquadprog << endl;
+      cout << "  c_aquadprog - c_nonlinear = " << c_aquadprog - c_nonlinear << endl;
+    }
+    // constraint
+    if (n_ae) {
+      cout << "\nchecking the equality constraints of the original nonlinear programming and the approximated quadratic programming\n";
+      // pick constraint violation row index
+      std::vector<int> constraint_vio_row_idx;
+      for (unsigned int i = 0; i < 10 ; i++) {
+        VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+        MatrixXd A2;
+        VectorXd y2, lb2, ub2;
+        systems::trajectory_optimization::linearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        unsigned int k = 0;
+        for (unsigned int j = 0; j < n_ae; j++) {
+          double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
+          if (abs(violation) > 1e-8) {
+            constraint_vio_row_idx.push_back(j);
+            k++;
+            if (k == n_show)
+              break;
+          }
+          if (i == n_show-1 && j == n_ae - 1 && k < n_show) {
+            cout << "There are only " << k << " # of violations\n";
+          }
+        }
+        if(constraint_vio_row_idx.size()>=n_show)
+          break;
+        else if (i != 10-1)
+          constraint_vio_row_idx.clear();
+      }
+      cout << "  Row index of violation = ";
       for(int j : constraint_vio_row_idx){
-        double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
-        cout << violation << ", ";
+        cout << j << ", ";
       }
       cout << endl;
-    }
-  }
-  if (n_aub) {
-    cout << "\nchecking the inequality constraints (active upper bound) of the original nonlinear programming and the approximated quadratic programming\n";
-    for (unsigned int i = 0; i < 10 ; i++) {
-      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-      MatrixXd A2;
-      VectorXd y2, lb2, ub2;
-      systems::trajectory_optimization::linearizeConstraints(
-        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
-      unsigned int k = 0;
-      for (unsigned int j = 0; j < n_aub; j++) {
-        double violation =
-            y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
-        if (violation > 1e-8) {
-          nonlinear_constraint_val(k) = violation;
-          k++;
-          if (k == n_show)
-            break;
+      // evaluate the chosen rows
+      for (unsigned int i = 0; i < 10 ; i++) {
+        cout << "i = " << i << endl;
+        VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+        MatrixXd A2;
+        VectorXd y2, lb2, ub2;
+        systems::trajectory_optimization::linearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        cout << "  nonlinear_constraint_val = ";
+        for(int j : constraint_vio_row_idx){
+          double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
+          cout << violation << ", ";
         }
-        if (j == n_aub - 1 && k < n_show) {
-          cout << "There are only " << k << " # of violations\n";
-        }
+        cout << endl;
       }
-      cout << "  nonlinear_constraint_val = "
-          << nonlinear_constraint_val.transpose() << endl;
     }
-  }
-  if (n_alb) {
-    cout << "\nchecking the inequality constraints (active lower bound) of the original nonlinear programming and the approximated quadratic programming\n";
-    for (unsigned int i = 0; i < 10 ; i++) {
-      VectorXd w_sol_test = w_sol + i * eps * dw_sol;
-      MatrixXd A2;
-      VectorXd y2, lb2, ub2;
-      systems::trajectory_optimization::linearizeConstraints(
-        gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
-      VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
-      unsigned int k = 0;
-      for (unsigned int j = 0; j < n_alb; j++) {
-        double violation =
-            y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
-        if (violation < - 1e-8) {
-          nonlinear_constraint_val(k) = violation;
-          k++;
-          if (k == n_show)
-            break;
+    if (n_aub) {
+      cout << "\nchecking the inequality constraints (active upper bound) of the original nonlinear programming and the approximated quadratic programming\n";
+      for (unsigned int i = 0; i < 10 ; i++) {
+        VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+        MatrixXd A2;
+        VectorXd y2, lb2, ub2;
+        systems::trajectory_optimization::linearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
+        unsigned int k = 0;
+        for (unsigned int j = 0; j < n_aub; j++) {
+          double violation =
+              y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
+          if (violation > 1e-8) {
+            nonlinear_constraint_val(k) = violation;
+            k++;
+            if (k == n_show)
+              break;
+          }
+          if (j == n_aub - 1 && k < n_show) {
+            cout << "There are only " << k << " # of violations\n";
+          }
         }
-        if (j == n_alb - 1 && k < n_show) {
-          cout << "There are only " << k << " # of violations\n";
-        }
+        cout << "  nonlinear_constraint_val = "
+            << nonlinear_constraint_val.transpose() << endl;
       }
-      cout << "  nonlinear_constraint_val = "
-          << nonlinear_constraint_val.transpose() << endl;
     }
-  }*/
+    if (n_alb) {
+      cout << "\nchecking the inequality constraints (active lower bound) of the original nonlinear programming and the approximated quadratic programming\n";
+      for (unsigned int i = 0; i < 10 ; i++) {
+        VectorXd w_sol_test = w_sol + i * eps * dw_sol;
+        MatrixXd A2;
+        VectorXd y2, lb2, ub2;
+        systems::trajectory_optimization::linearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
+        unsigned int k = 0;
+        for (unsigned int j = 0; j < n_alb; j++) {
+          double violation =
+              y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
+          if (violation < - 1e-8) {
+            nonlinear_constraint_val(k) = violation;
+            k++;
+            if (k == n_show)
+              break;
+          }
+          if (j == n_alb - 1 && k < n_show) {
+            cout << "There are only " << k << " # of violations\n";
+          }
+        }
+        cout << "  nonlinear_constraint_val = "
+            << nonlinear_constraint_val.transpose() << endl;
+      }
+    }*/
+  }
 
 
 
 
-
-
-
-
-  // Store the vectors and matrices
-  // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
-  // string iter_prefix = std::to_string(iter-1) + "_";
-  writeCSV(directory + output_prefix + string("w.csv"), w_sol);
-  writeCSV(directory + output_prefix + string("A.csv"), A);
-  writeCSV(directory + output_prefix + string("y.csv"), y);
-  writeCSV(directory + output_prefix + string("lb.csv"), lb);
-  writeCSV(directory + output_prefix + string("ub.csv"), ub);
-  writeCSV(directory + output_prefix + string("H.csv"), H);
-  writeCSV(directory + output_prefix + string("b.csv"), b);
-  writeCSV(directory + output_prefix + string("B.csv"), B);
 
   /*// Store the time, state, and input at knot points
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
@@ -721,6 +729,11 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
   }*/
+
+
+
+
+
 
   return ;
 }

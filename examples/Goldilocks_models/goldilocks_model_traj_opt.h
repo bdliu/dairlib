@@ -77,7 +77,8 @@ class GoldilcocksModelTrajOpt {
       VectorXd & theta_s_, VectorXd & theta_sDDot_,
       std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,
-      const std::vector<int>& num_time_samples);
+      const std::vector<int>& num_time_samples,
+      bool is_get_nominal);
 
   // Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_position(
   //     int index, int n_s) const;
