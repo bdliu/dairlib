@@ -58,7 +58,7 @@ void findGoldilocksModels() {
   double Q_double = 10; // Cost on velocity
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 20;
+  int max_outer_iter = 0;
   double threshold = 1e-4;
   double h_step = 1e-2;
   double eps_regularization = 1e-4;
@@ -109,16 +109,12 @@ void findGoldilocksModels() {
   theta << theta_s, theta_sDDot;
   for (int iter = 0; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
+    if(iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
     int current_batch = is_get_nominal ? 1 : n_batch;
-    VectorXd theta_s_pass_in = is_get_nominal ?
-                               VectorXd::Zero(n_theta_s) : theta_s;
-    VectorXd theta_sDDot_pass_in = is_get_nominal ?
-                                   VectorXd::Zero(n_theta_sDDot) : theta_sDDot;
-    cout << "theta_sDDot = " << theta_sDDot_pass_in.transpose() << endl;
-
+    int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
 
     // store parameter values
     if (is_with_prefix)
@@ -150,8 +146,8 @@ void findGoldilocksModels() {
 
       // Trajectory optimization with fixed model paramters
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
-                          theta_s_pass_in, theta_sDDot_pass_in,
-                          stride_length, duration, max_inner_iter,
+                          theta_s, theta_sDDot,
+                          stride_length, duration, max_inner_iter_pass_in,
                           directory, init_file, output_prefix,
                           w_sol_vec, A_vec, H_vec,
                           y_vec, lb_vec, ub_vec, b_vec, B_vec,
