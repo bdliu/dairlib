@@ -51,10 +51,12 @@ void findGoldilocksModels() {
     delta_stride_length_vec.push_back(i * delta_stride_length);
 
   // Paramters for the outer loop optimization
-  int max_outer_iter = 200;
+  int iter_start = 254;
+  int max_outer_iter = 10000;
   double threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
+  bool is_newton = true;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
@@ -83,8 +85,10 @@ void findGoldilocksModels() {
   // // Testing intial theta
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
-  MatrixXd theta_s_mat = readCSV(directory + string("135_theta_s.csv"));
-  MatrixXd theta_sDDot_mat = readCSV(directory + string("135_theta_sDDot.csv"));
+  MatrixXd theta_s_mat =
+    readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
+  MatrixXd theta_sDDot_mat =
+    readCSV(directory + to_string(iter_start) + string("_theta_sDDot.csv"));
   theta_s = theta_s_mat.col(0);
   theta_sDDot = theta_sDDot_mat.col(0);
 
@@ -102,15 +106,22 @@ void findGoldilocksModels() {
   vector<MatrixXd> B_vec;
   vector<MatrixXd> B_active_vec;
 
+  //
+  double min_so_far = 10000000;
+
   // Start the gradient descent
   int n_theta = n_theta_s + n_theta_sDDot;
   VectorXd theta(n_theta);
   theta << theta_s, theta_sDDot;
-  for (int iter = 135; iter <= max_outer_iter; iter++)  {
+  VectorXd prev_theta = theta;
+  bool is_redo = false;
+  VectorXd step_direction;
+  for (int iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
     // setup for each iteration
+    is_redo = false;
     bool is_get_nominal = iter == 0 ? true : false;
     int current_batch = is_get_nominal ? 1 : n_batch;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
@@ -166,10 +177,32 @@ void findGoldilocksModels() {
     double total_cost = 0;
     for (int batch = 0; batch < current_batch; batch++)
       total_cost += c_vec[batch](0) / current_batch;
-    cout << "total_cost = " << total_cost << endl << endl;
+    if (total_cost <= min_so_far) {
+      min_so_far = total_cost;
+    }
+    cout << "total_cost = " << total_cost << " (min so far: " << min_so_far <<
+         ")\n\n";
+    if (total_cost > min_so_far) {
+      h_step = h_step / 2;
+      cout << "Step size shrinks to " << h_step << ". Redo this iteration.\n\n";
+      iter -= 1;
+      is_redo = true;
+
+      // Descent
+      theta = prev_theta + h_step * step_direction;
+
+      // Assign theta_s and theta_sDDot
+      theta_s = theta.head(n_theta_s);
+      theta_sDDot = theta.tail(n_theta_sDDot);
+      // store parameter values
+      prefix = to_string(iter + 1) +  "_";
+      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+    }
+
 
     // Then do outer loop optimization given the solution w
-    if (!is_get_nominal) {
+    if (!is_get_nominal && !is_redo) {
       // Extract active and independent constraints
       cout << "Extracting active and independent rows of A\n";
       vector<double> nw_vec;  // size of decision var of traj opt for all tasks
@@ -536,7 +569,7 @@ void findGoldilocksModels() {
 
 
       // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
-      cout << "Calculating gradient\n";
+      // cout << "Calculating gradient\n";
       VectorXd costGradient = VectorXd::Zero(theta.size());
       for (int batch = 0; batch < current_batch; batch++) {
         costGradient += P_vec[batch].transpose() * b_vec[batch] / current_batch;
@@ -547,29 +580,31 @@ void findGoldilocksModels() {
 
       // Newton's method (not exactly the same, cause Q_theta is not pd but psd)
       // See your IOE611 lecture notes on page 7-17 to page 7-20
-      cout << "Getting Newton step\n";
+      // cout << "Getting Newton step\n";
       MatrixXd Q_theta = MatrixXd::Zero(n_theta, n_theta);
       for (int batch = 0; batch < current_batch; batch++) {
         Q_theta +=
           P_vec[batch].transpose() * H_vec[batch] * P_vec[batch] / current_batch;
       }
-      double mu = 1e-4;
+      double mu = 1e-4; // 1e-6 caused unstable and might diverge
       MatrixXd inv_Q_theta = (Q_theta + mu * MatrixXd::Identity(n_theta,
                               n_theta)).inverse();
       VectorXd newton_step = -inv_Q_theta * costGradient;
-/*      // Testing
-      Eigen::BDCSVD<MatrixXd> svd(inv_Q_theta);
-      cout << "inv_Q_theta:\n";
-      cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-      cout << "  smallest singular value is "
-              << svd.singularValues().tail(1) << endl;
-      // cout << "singular values are \n" << svd.singularValues() << endl;*/
-
-      // Newton decrement
+      // Testing
+      /*Eigen::BDCSVD<MatrixXd> svd(inv_Q_theta);
+      cout << "inv_Q_theta's smallest and biggest singular value " <<
+           svd.singularValues().tail(1) << ", " <<
+           svd.singularValues()(0) << endl;*/
+      // Newton decrement (can be a criterion to terminate your newton steps)
       double lambda_square = -costGradient.transpose() * newton_step;
 
+      // step_direction
+      step_direction = is_newton ? newton_step : -costGradient;
 
 
+
+      // TODO
+      // If the cost goes up, or the problem is infeasible, just decrease the step size!
 
 
 
@@ -582,8 +617,11 @@ void findGoldilocksModels() {
 
 
       // Gradient descent
-      // theta += h_step * (-costGradient);
-      theta += h_step * newton_step;
+      prev_theta = theta;
+      if(is_newton)
+        theta = theta + h_step * step_direction;
+      else
+        theta = theta + h_step * step_direction;
 
       // Assign theta_s and theta_sDDot
       theta_s = theta.head(n_theta_s);
@@ -594,10 +632,19 @@ void findGoldilocksModels() {
       writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
       // Check optimality
+      cout << "lambda_square = " << lambda_square << endl;
       cout << "costGradient norm: " << costGradient.norm() << endl << endl;
-      if (costGradient.norm() < threshold) {
-        cout << "Found optimal theta.\n\n";
-        break;
+      if(is_newton){
+        if (lambda_square < threshold) {
+          cout << "Found optimal theta.\n\n";
+          break;
+        }
+      }
+      else{
+        if (costGradient.norm() < threshold) {
+          cout << "Found optimal theta.\n\n";
+          break;
+        }
       }
     } // if(!is_get_nominal)
   } // end for
