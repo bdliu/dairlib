@@ -86,9 +86,9 @@ void findGoldilocksModels() {
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_feature_s =
-    113;//1;//113    // n_feature should match with the dim of the feature,
+    68;//1;//113    // n_feature should match with the dim of the feature,
   int n_feature_sDDot =
-    7;//1;//21 // since we are hard coding it now. (same below)
+    6;//1;//21 // since we are hard coding it now. (same below)
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   // Assuming position and velocity has the same dimension

@@ -82,13 +82,12 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
 
   // Version 5: ns = 2, all combinations until quadratic
   DRAKE_DEMAND(n_sDDot_ == 1);
-  T feature(7);
+  T feature(6);
   feature << 1,     // constant
              s(0),  // linear
              ds(0),
              s(0) * s(0),  // quadratic
              ds(0) * s(0),
-             s(0) * ds(0),
              ds(0) * ds(0);
 
 
