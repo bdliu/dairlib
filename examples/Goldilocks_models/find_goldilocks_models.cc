@@ -82,8 +82,8 @@ void findGoldilocksModels() {
   theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  // theta_s = 0.1 * VectorXd::Ones(n_theta_s);
-  // theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
+  theta_s = 0.1 * VectorXd::Ones(n_theta_s);
+  theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
@@ -120,7 +120,8 @@ void findGoldilocksModels() {
   VectorXd prev_theta = theta;
   VectorXd step_direction;
   double current_iter_step_size = h_step;
-  bool previous_is_success = true;
+  bool previous_is_success;
+  previous_is_success = (iter_start==0)? true : false;
 
   // Start the gradient descent
   int iter;

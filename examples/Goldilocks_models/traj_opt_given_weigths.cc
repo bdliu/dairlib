@@ -493,13 +493,13 @@ MathematicalProgramResult trajOptGivenWeights(int n_s, int n_sDDot,
     // Store the vectors and matrices
     writeCSV(directory + prefix + string("c.csv"), c);
 
-    writeCSV(directory + prefix + string("H.csv"), H);
+    /*writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
     writeCSV(directory + prefix + string("y.csv"), y);
-    writeCSV(directory + prefix + string("B.csv"), B);
+    writeCSV(directory + prefix + string("B.csv"), B);*/
 
 
 

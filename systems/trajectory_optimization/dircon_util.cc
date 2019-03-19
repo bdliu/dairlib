@@ -128,17 +128,11 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
     int num_vars = prog->num_vars();
 
     // First, count constraints
-    cout << "num_constraints = " << num_constraints << endl;
     num_constraints += countConstraints(prog, prog->bounding_box_constraints());
-    cout << "num_constraints = " << num_constraints << endl;
     num_constraints += countConstraints(prog, prog->linear_constraints());
-    cout << "num_constraints = " << num_constraints << endl;
     num_constraints += countConstraints(prog, prog->linear_equality_constraints());
-    cout << "num_constraints = " << num_constraints << endl;
     num_constraints += countConstraints(prog, prog->lorentz_cone_constraints());
-    cout << "num_constraints = " << num_constraints << endl;
     num_constraints += countConstraints(prog, prog->generic_constraints());
-    cout << "num_constraints = " << num_constraints << endl;
 
     //Initialize data storage
     lb.resize(num_constraints);
