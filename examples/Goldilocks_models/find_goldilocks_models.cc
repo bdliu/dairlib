@@ -35,6 +35,26 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 // }
 
 void findGoldilocksModels() {
+  // drake::systems::DiagramBuilder<double> builder;
+  // MultibodyPlant<double> plant;
+  // SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
+  // Parser parser(&plant, &scene_graph);
+
+  // std::string full_name = FindResourceOrThrow(
+  //                           "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  // parser.AddModelFromFile(full_name);
+  // plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  //   -9.81 * Eigen::Vector3d::UnitZ());
+  // plant.WeldFrames(
+  //   plant.world_frame(), plant.GetFrameByName("base"),
+  //   drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+  // plant.Finalize();
+
+  // // Create autoDiff version of the plant
+  // MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
+
+
+  // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
   string init_file;
   // init_file = "";
@@ -121,7 +141,7 @@ void findGoldilocksModels() {
   VectorXd step_direction;
   double current_iter_step_size = h_step;
   bool previous_is_success;
-  previous_is_success = (iter_start==0)? true : false;
+  previous_is_success = (iter_start == 0) ? true : false;
 
   // Start the gradient descent
   int iter;
@@ -190,6 +210,20 @@ void findGoldilocksModels() {
                             Q_double, R,
                             eps_regularization,
                             is_get_nominal);
+      /*// visualizer
+      int n_loops = 1;
+      const PiecewisePolynomial<double> pp_xtraj =
+        gm_traj_opt.dircon->ReconstructStateTrajectory(result);
+      multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
+                                             pp_xtraj);
+      auto diagram = builder.Build();
+      while (true)
+        for (int i = 0; i < n_loops; i++) {
+          drake::systems::Simulator<double> simulator(*diagram);
+          simulator.set_target_realtime_rate(1);
+          simulator.Initialize();
+          simulator.StepTo(pp_xtraj.end_time());
+        }*/
       current_is_success = (current_is_success & result.is_success());
       if (iter > 1 && !current_is_success)
         break;
