@@ -20,10 +20,6 @@
 #include "common/find_resource.h"
 #include "systems/primitives/subvector_pass_through.h"
 
-#include "drake/solvers/snopt_solver.h"
-#include "drake/solvers/mathematical_program.h"
-#include "drake/solvers/constraint.h"
-#include "drake/solvers/solve.h"
 #include "systems/trajectory_optimization/dircon_util.h"
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
@@ -61,9 +57,6 @@ using drake::multibody::Body;
 using drake::multibody::Parser;
 using drake::systems::rendering::MultibodyPositionToGeometryPose;
 
-using drake::solvers::MathematicalProgram;
-using drake::solvers::MathematicalProgramResult;
-using drake::solvers::SolutionResult;
 
 // using Isometry3 = Eigen::Transform<Scalar, 3, Eigen::Isometry>
 
@@ -77,22 +70,23 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
-                         int n_feature_sDDot,
-                         Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
-                         double stride_length, double duration, int max_iter,
-                         string directory,
-                         string init_file, std::string prefix,
-                         vector<VectorXd> & w_sol_vec,
-                         vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
-                         vector<VectorXd> & y_vec,
-                         vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
-                         vector<VectorXd> & b_vec,
-                         vector<VectorXd> & c_vec,
-                         vector<MatrixXd> & B_vec,
-                         const double & Q_double, const double & R_double,
-                         double eps_reg,
-                         bool is_get_nominal) {
+MathematicalProgramResult trajOptGivenWeights(int n_s, int n_sDDot,
+    int n_feature_s,
+    int n_feature_sDDot,
+    Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
+    double stride_length, double duration, int max_iter,
+    string directory,
+    string init_file, std::string prefix,
+    vector<VectorXd> & w_sol_vec,
+    vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
+    vector<VectorXd> & y_vec,
+    vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
+    vector<VectorXd> & b_vec,
+    vector<VectorXd> & c_vec,
+    vector<MatrixXd> & B_vec,
+    const double & Q_double, const double & R_double,
+    double eps_reg,
+    bool is_get_nominal) {
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -448,11 +442,11 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
                           gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
-    cout << "ind_head = " << ind_head(0) << endl;
+    // cout << "ind_head = " << ind_head(0) << endl;
     VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
                           gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
-    cout << "ind_tail = " << ind_tail(0) << endl;
+    // cout << "ind_tail = " << ind_tail(0) << endl;
     int N_accum = 0;
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
@@ -513,16 +507,16 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
-    int A_row = A.rows();
-    int A_col = A.cols();
-    cout << "A_row = " << A_row << endl;
-    cout << "A_col = " << A_col << endl;
-    int max_row_col = (A_row > A_col) ? A_row : A_col;
-    Eigen::BDCSVD<MatrixXd> svd_5(A);
-    cout << "A:\n";
-    cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
-    cout << "  smallest singular value is "
-         << svd_5.singularValues()(max_row_col - 1) << endl;
+    // int A_row = A.rows();
+    // int A_col = A.cols();
+    // cout << "A_row = " << A_row << endl;
+    // cout << "A_col = " << A_col << endl;
+    // int max_row_col = (A_row > A_col) ? A_row : A_col;
+    // Eigen::BDCSVD<MatrixXd> svd_5(A);
+    // cout << "A:\n";
+    // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+    // cout << "  smallest singular value is "
+    //      << svd_5.singularValues()(max_row_col - 1) << endl;
 
 
 
@@ -753,7 +747,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
-  return ;
+  return result;
 }
 
 }  // namespace goldilocks_models

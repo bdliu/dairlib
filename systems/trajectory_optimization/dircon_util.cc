@@ -171,10 +171,10 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
 
     int constraint_index = 0;
     auto constraints = prog->GetAllConstraints();
-    cout << "size of constraints = " << constraints.size() << endl;
+    // cout << "size of constraints = " << constraints.size() << endl;
 
-    int count = 0;
-    int current_row = 0;
+    // int count = 0;
+    // int current_row = 0;
     for (auto const& binding : constraints) {
       auto const& c = binding.evaluator();
       int n = c->num_constraints();
@@ -182,11 +182,11 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
       ub.segment(constraint_index, n) = c->upper_bound();
 
       auto variables = binding.variables();
-      cout << "Binding # " << count << " (row # " << current_row << "; # of rows = "
-           << n << "): ";
-      cout << variables.transpose() << endl;
-      count++;
-      current_row += n;
+      // cout << "Binding # " << count << " (row # " << current_row << "; # of rows = "
+      //      << n << "): ";
+      // cout << variables.transpose() << endl;
+      // count++;
+      // current_row += n;
 
       // Initialize AutoDiff vector for result
       AutoDiffVecXd y_val = initializeAutoDiff(

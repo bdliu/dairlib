@@ -14,6 +14,7 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::VectorXcd;
 using drake::solvers::MathematicalProgram;
+using drake::solvers::MathematicalProgramResult;
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -42,17 +43,18 @@ void findGoldilocksModels() {
   string prefix = "";
 
   // Parametres for tasks
-  int n_batch = 1;//1;
+  int n_batch = 5;//1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 1;
+  int iter_start = 0;//265;
   int max_outer_iter = 10000;
-  double threshold = 1e-4;
+  double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
+  double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = true;
 
   // Paramters for the inner loop optimization
@@ -75,13 +77,13 @@ void findGoldilocksModels() {
   // Initial guess of theta
   VectorXd theta_s(n_theta_s);
   VectorXd theta_sDDot(n_theta_sDDot);
-  // theta_s = VectorXd::Zero(n_theta_s);
-  // theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-  // theta_s(0) = 1;
+  theta_s = VectorXd::Zero(n_theta_s);
+  theta_sDDot = VectorXd::Zero(n_theta_sDDot);
+  theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  theta_s = 0.1 * VectorXd::Ones(n_theta_s);
-  theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
+  // theta_s = 0.1 * VectorXd::Ones(n_theta_s);
+  // theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
@@ -118,6 +120,7 @@ void findGoldilocksModels() {
   VectorXd prev_theta = theta;
   VectorXd step_direction;
   double current_iter_step_size = h_step;
+  bool previous_is_success = true;
 
   // Start the gradient descent
   int iter;
@@ -150,6 +153,7 @@ void findGoldilocksModels() {
     w_sol_vec.clear();
 
     // Run trajectory optimization for different tasks first
+    bool current_is_success = true;
     for (int batch = 0; batch < current_batch; batch++) {
       /// setup for each batch
       double stride_length = is_get_nominal ? stride_length_0 :
@@ -157,42 +161,61 @@ void findGoldilocksModels() {
       cout << "stride_length = " << stride_length << endl;
       prefix = to_string(iter) +  "_" + to_string(batch) + "_";
       string init_file_pass_in;
-      if (is_get_nominal)
+      if (is_get_nominal && previous_is_success)
         init_file_pass_in = init_file;
-      else if (iter == 1)
+      else if (is_get_nominal && !previous_is_success)
         init_file_pass_in = string("0_0_w.csv");
+      else if (iter == 1 && previous_is_success)
+        init_file_pass_in = string("0_0_w.csv");
+      else if (iter == 1 && !previous_is_success)
+        init_file_pass_in = to_string(iter) +  "_" +
+                            to_string(batch) + string("_w.csv");
       else
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
       //Testing
       // init_file_pass_in = to_string(iter) +  "_" +
       //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
-      init_file_pass_in = string("1_2_w.csv");
+      // init_file_pass_in = string("1_2_w.csv");
 
       // Trajectory optimization with fixed model paramters
-      trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
-                          theta_s, theta_sDDot,
-                          stride_length, duration, max_inner_iter_pass_in,
-                          directory, init_file_pass_in, prefix,
-                          w_sol_vec, A_vec, H_vec,
-                          y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
-                          Q_double, R,
-                          eps_regularization,
-                          is_get_nominal);
+      MathematicalProgramResult result =
+        trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
+                            theta_s, theta_sDDot,
+                            stride_length, duration, max_inner_iter_pass_in,
+                            directory, init_file_pass_in, prefix,
+                            w_sol_vec, A_vec, H_vec,
+                            y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
+                            Q_double, R,
+                            eps_regularization,
+                            is_get_nominal);
+      current_is_success = (current_is_success & result.is_success());
+      if (iter > 1 && !current_is_success)
+        break;
     }
+    previous_is_success = current_is_success;
 
-    if (!is_get_nominal) {
-      // Get the total cost
+    if (is_get_nominal) {
+      if (!current_is_success)
+        iter -= 1;
+    }
+    else {
+      // Get the total cost if it's successful
       double total_cost = 0;
-      for (int batch = 0; batch < current_batch; batch++)
-        total_cost += c_vec[batch](0) / current_batch;
-      if (total_cost <= min_so_far) min_so_far = total_cost;
-      cout << "total_cost = " << total_cost << " (min so far: " << min_so_far <<
-           ")\n\n";
+      if (current_is_success) {
+        for (int batch = 0; batch < current_batch; batch++)
+          total_cost += c_vec[batch](0) / current_batch;
+        if (total_cost <= min_so_far) min_so_far = total_cost;
+        cout << "total_cost = " << total_cost << " (min so far: " << min_so_far <<
+             ")\n\n";
+      }
 
       // If the cost goes up, shrink the size and redo the traj opt.
       // Otherwise, do outer loop optimization given the solution w.
-      if (total_cost > min_so_far) {
+      if (!current_is_success && iter == 1) {
+        iter -= 1;
+      }
+      else if (!current_is_success || (total_cost > min_so_far)) {
         current_iter_step_size = current_iter_step_size / 2;
         cout << "Step size shrinks to " << current_iter_step_size <<
              ". Redo this iteration.\n\n";
@@ -341,7 +364,7 @@ void findGoldilocksModels() {
             // Perform svd to check rank
             Eigen::BDCSVD<MatrixXd> svd(A_test);
             // double sigular_value = svd.singularValues()(n_current_rows);
-            if (svd.singularValues()(n_current_rows) > 1e-6) {
+            if (svd.singularValues()(n_current_rows) > indpt_row_tol) {
               full_row_rank_idx.push_back(i);
             }
           }
@@ -364,10 +387,12 @@ void findGoldilocksModels() {
           A_active_vec.push_back(A_full_row_rank);
           B_active_vec.push_back(B_full_row_rank);
           y_active_vec.push_back(y_full_row_rank);
+
+          cout << "A active and independent rows = " << A_active_vec[batch].rows() <<
+               endl;
         }  // end extracting active and independent constraints
         cout << endl;
 
-        cout << "A active and independent rows = " << A_active_vec[0].rows() << endl;
 
         // cout << "nw = " << nw << endl;
         // cout << "nl = " << nl << endl;
@@ -454,27 +479,29 @@ void findGoldilocksModels() {
           H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
 
           // Testing
-          Eigen::BDCSVD<MatrixXd> svd(H_vec[batch]);
-          cout << "H:\n";
-          cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-          cout << "  smallest singular value is "
-                  << svd.singularValues().tail(1) << endl;
-          // cout << "singular values are \n" << svd.singularValues() << endl;
-          // Testing
-          Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
-          cout << "H_ext:\n";
-          cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
-          cout << "  smallest singular value is "
-               << svd_3.singularValues().tail(1) << endl;
+          // Eigen::BDCSVD<MatrixXd> svd(H_vec[batch]);
+          // cout << "H:\n";
+          // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+          // cout << "  smallest singular value is "
+          //         << svd.singularValues().tail(1) << endl;
+          // // cout << "singular values are \n" << svd.singularValues() << endl;
+          // // Testing
+          if (batch == 0) {
+            Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
+            cout << "H_ext:\n";
+            cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
+            cout << "  smallest singular value is "
+                 << svd_3.singularValues().tail(1) << endl;
+          }
           // cout << "\nStart inverting the matrix.\n";
           MatrixXd inv_H_ext = H_ext.inverse();
           // cout << "Finsihed inverting the matrix.\n";
           // // Testing
-          Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
-          cout << "inv_H_ext:\n";
-          cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
-          cout << "  smallest singular value is "
-               << svd_5.singularValues().tail(1) << endl;
+          // Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
+          // cout << "inv_H_ext:\n";
+          // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+          // cout << "  smallest singular value is "
+          //      << svd_5.singularValues().tail(1) << endl;
 
           MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
           MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
@@ -488,11 +515,11 @@ void findGoldilocksModels() {
           MatrixXd abs_Pi = Pi.cwiseAbs();
           VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
           VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
-          cout << "sum-abs-Pi: " <<
-               left_one.transpose()*abs_Pi*right_one << endl;
-          cout << "sum-abs-Pi divide by m*n: " <<
-               left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
-               << endl;
+          // cout << "sum-abs-Pi: " <<
+          //      left_one.transpose()*abs_Pi*right_one << endl;
+          // cout << "sum-abs-Pi divide by m*n: " <<
+          //      left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
+          //      << endl;
           double max_Pi_element = abs_Pi(0, 0);
           for (int i = 0; i < abs_Pi.rows(); i++)
             for (int j = 0; j < abs_Pi.cols(); j++) {
@@ -609,8 +636,10 @@ void findGoldilocksModels() {
 
 
         // TODO
-        // If the cost goes up, or the problem is infeasible, just decrease the step size!
+        // If the problem is infeasible, just decrease the step size!
 
+        // If it's infeasible in the first iteration, use the resultant solution
+        // as a initial guess and run it again.
 
 
         // TODO(yminchen): only add the cost that has a optimal traj opt solution
@@ -637,13 +666,13 @@ void findGoldilocksModels() {
         cout << "lambda_square = " << lambda_square << endl;
         cout << "costGradient norm: " << costGradient.norm() << endl << endl;
         if (is_newton) {
-          if (lambda_square < threshold) {
+          if (lambda_square < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
             break;
           }
         }
         else {
-          if (costGradient.norm() < threshold) {
+          if (costGradient.norm() < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
             break;
           }
@@ -654,7 +683,7 @@ void findGoldilocksModels() {
 
   }  // end for
 
-// store parameter values
+  // store parameter values
   prefix = to_string(iter + 1) +  "_";
   writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
   writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);

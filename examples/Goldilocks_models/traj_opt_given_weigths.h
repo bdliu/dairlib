@@ -4,6 +4,14 @@
 #include <Eigen/Dense>
 #include "systems/trajectory_optimization/hybrid_dircon.h"
 
+#include "drake/solvers/snopt_solver.h"
+#include "drake/solvers/mathematical_program.h"
+#include "drake/solvers/constraint.h"
+#include "drake/solvers/solve.h"
+
+using drake::solvers::MathematicalProgram;
+using drake::solvers::MathematicalProgramResult;
+using drake::solvers::SolutionResult;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using std::vector;
@@ -11,7 +19,7 @@ using std::vector;
 namespace dairlib {
 namespace goldilocks_models  {
 
-void trajOptGivenWeights(
+MathematicalProgramResult trajOptGivenWeights(
     int n_s, int n_sDDot, int n_feature_s, int n_feature_sDDot,
     VectorXd & theta_s, VectorXd & theta_sDDot,
     double stride_length, double duration, int max_iter,
