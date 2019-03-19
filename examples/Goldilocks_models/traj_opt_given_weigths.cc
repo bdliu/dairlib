@@ -344,7 +344,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
   // TODO(yminchen): should I add to all decision variable? or just state?
-  if(!is_get_nominal){
+  if (!is_get_nominal) {
     auto w = gm_traj_opt.dircon->decision_variables();
     for (int i = 0; i < w.size(); i++)
       gm_traj_opt.dircon->AddQuadraticCost(eps_reg * w(i)*w(i));
@@ -428,14 +428,14 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
-  if(!is_get_nominal){
+  if (!is_get_nominal) {
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
     double c_double;
     systems::trajectory_optimization::linearizeConstraints(
       gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
     c_double = systems::trajectory_optimization::secondOrderCost(
-          gm_traj_opt.dircon.get(), w_sol, H, b);
+                 gm_traj_opt.dircon.get(), w_sol, H, b);
     VectorXd c(1);
     c << c_double;
 
@@ -448,11 +448,11 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
                           gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
-    // cout << "ind_head = " << ind_head(0) << endl;
+    cout << "ind_head = " << ind_head(0) << endl;
     VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
                           gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
-    // cout << "ind_tail = " << ind_tail(0) << endl;
+    cout << "ind_tail = " << ind_tail(0) << endl;
     int N_accum = 0;
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
@@ -510,6 +510,19 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
+
+
+
+    int A_row = A.rows();
+    int A_col = A.cols();
+    cout << "A_row = " << A_row << endl;
+    cout << "A_col = " << A_col << endl;
+    int max_row_col = (A_row > A_col) ? A_row : A_col;
+    Eigen::BDCSVD<MatrixXd> svd_5(A);
+    cout << "A:\n";
+    cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+         << svd_5.singularValues()(max_row_col - 1) << endl;
 
 
 

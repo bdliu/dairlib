@@ -367,6 +367,8 @@ void findGoldilocksModels() {
         }  // end extracting active and independent constraints
         cout << endl;
 
+        cout << "A active and independent rows = " << A_active_vec[0].rows() << endl;
+
         // cout << "nw = " << nw << endl;
         // cout << "nl = " << nl << endl;
 
@@ -452,6 +454,13 @@ void findGoldilocksModels() {
           H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
 
           // Testing
+          Eigen::BDCSVD<MatrixXd> svd(H_vec[batch]);
+          cout << "H:\n";
+          cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+          cout << "  smallest singular value is "
+                  << svd.singularValues().tail(1) << endl;
+          // cout << "singular values are \n" << svd.singularValues() << endl;
+          // Testing
           Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
           cout << "H_ext:\n";
           cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
@@ -498,13 +507,6 @@ void findGoldilocksModels() {
 
 
 
-        // // Testing
-        // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-        // cout << "H:\n";
-        // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-        // cout << "  smallest singular value is "
-        //         << svd.singularValues().tail(1) << endl;
-        // // cout << "singular values are \n" << svd.singularValues() << endl;
         // // Testing
         // MatrixXd invH = H_vec[0].inverse();
         // Eigen::BDCSVD<MatrixXd> svd_4(invH);
