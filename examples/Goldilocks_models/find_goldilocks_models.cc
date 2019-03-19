@@ -48,7 +48,7 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 0;
+  int iter_start = 1;
   int max_outer_iter = 10000;
   double threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -130,11 +130,9 @@ void findGoldilocksModels() {
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
 
     // store initial parameter values
-    if (is_get_nominal) {
-      prefix = to_string(iter) +  "_";
-      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
-    }
+    prefix = to_string(iter) +  "_";
+    writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+    writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
     // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
@@ -165,6 +163,8 @@ void findGoldilocksModels() {
       else
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
+      //Testing
+      init_file_pass_in = string("1_0_w.csv");
 
       // Trajectory optimization with fixed model paramters
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
@@ -201,10 +201,6 @@ void findGoldilocksModels() {
         // Assign theta_s and theta_sDDot
         theta_s = theta.head(n_theta_s);
         theta_sDDot = theta.tail(n_theta_sDDot);
-        // store parameter values
-        prefix = to_string(iter + 1) +  "_";
-        writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-        writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
       }
       else {
         // Extract active and independent constraints
@@ -631,10 +627,6 @@ void findGoldilocksModels() {
         // Assign theta_s and theta_sDDot
         theta_s = theta.head(n_theta_s);
         theta_sDDot = theta.tail(n_theta_sDDot);
-        // store parameter values
-        prefix = to_string(iter + 1) +  "_";
-        writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-        writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
         // Check optimality
         cout << "lambda_square = " << lambda_square << endl;
@@ -657,7 +649,10 @@ void findGoldilocksModels() {
 
   }  // end for
 
-
+// store parameter values
+prefix = to_string(max_outer_iter + 1) +  "_";
+writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
 }
 }  // namespace goldilocks_models
