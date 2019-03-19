@@ -123,31 +123,63 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
   int num_vars = prog->num_vars();
 
   // First, count constraints
-  num_constraints += countConstraints(prog, prog->bounding_box_constraints());
-  num_constraints += countConstraints(prog, prog->linear_constraints());
-  num_constraints += countConstraints(prog, prog->linear_equality_constraints());
-  num_constraints += countConstraints(prog, prog->lorentz_cone_constraints());
-  num_constraints += countConstraints(prog, prog->generic_constraints());
+  num_constraints += CountConstraintRows(prog);
+  cout <<"num_constraints = " << num_constraints << endl;
 
-  //Initialize data storage
+  // Initialize data storage
   lb.resize(num_constraints);
   ub.resize(num_constraints);
   y.resize(num_constraints);
   A = Eigen::MatrixXd::Zero(num_constraints, num_vars);
 
   int constraint_index = 0;
-  cout << "constraint_index = " << constraint_index << endl;
-  constraint_index = updateConstraints(prog, prog->bounding_box_constraints(), x, y, A, lb, ub, constraint_index);
-  cout << "constraint_index = " << constraint_index << endl;
-  constraint_index = updateConstraints(prog, prog->linear_constraints(), x, y, A, lb, ub, constraint_index);
-  cout << "constraint_index = " << constraint_index << endl;
-  constraint_index = updateConstraints(prog, prog->linear_equality_constraints(), x, y, A, lb, ub, constraint_index);
-  cout << "constraint_index = " << constraint_index << endl;
-  constraint_index = updateConstraints(prog, prog->lorentz_cone_constraints(), x, y, A, lb, ub, constraint_index);
-  cout << "constraint_index = " << constraint_index << endl;
-  constraint_index = updateConstraints(prog, prog->generic_constraints(), x, y, A, lb, ub, constraint_index);
-  cout << "constraint_index = " << constraint_index << endl;
+  auto constraints = prog->GetAllConstraints();
+
+  for (auto const& binding : constraints) {
+    auto const& c = binding.evaluator();
+    int n = c->num_constraints();
+    lb.segment(constraint_index, n) = c->lower_bound();
+    ub.segment(constraint_index, n) = c->upper_bound();
+
+    auto variables = binding.variables();
+
+    // Initialize AutoDiff vector for result
+    AutoDiffVecXd y_val = initializeAutoDiff(
+        VectorXd::Zero(c->num_constraints()), variables.size());
+
+    // Extract subset of decision variable vector
+    VectorXd x_binding(variables.size());
+    for (int i = 0; i < variables.size(); i++) {
+      x_binding(i) = x(prog->FindDecisionVariableIndex(variables(i)));
+    }
+    AutoDiffVecXd x_val = initializeAutoDiff(x_binding);
+
+    // Evaluate constraint and extract gradient
+    binding.evaluator()->Eval(x_val, &y_val);
+    MatrixXd dx = autoDiffToGradientMatrix(y_val);
+
+    y.segment(constraint_index, n) = autoDiffToValueMatrix(y_val);
+    for (int i = 0; i < variables.size(); i++) {
+      A.block(constraint_index,
+          prog->FindDecisionVariableIndex(variables(i)), n, 1) = dx.col(i);
+    }
+
+    constraint_index += n;
+  }
 }
+
+
+int CountConstraintRows(const MathematicalProgram* prog) {
+  int n = 0;
+  auto constraints = prog->GetAllConstraints();
+  for (auto const& binding : constraints) {
+    n += binding.evaluator()->num_constraints();
+  }
+  return n;
+}
+
+
+
 
 VectorXd NVec(int start, int length) {
   VectorXd ret(length);

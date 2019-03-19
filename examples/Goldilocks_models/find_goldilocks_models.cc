@@ -188,9 +188,6 @@ void findGoldilocksModels() {
       cout << "Step size shrinks to " << h_step << ". Redo this iteration.\n\n";
       iter -= 1;
 
-      // testing
-      cout << "previous theta_sDDot = " << prev_theta.tail(n_theta_sDDot).transpose() << endl;
-
       // Descent
       theta = prev_theta + h_step * step_direction;
 
@@ -618,7 +615,6 @@ void findGoldilocksModels() {
 
       // Gradient descent
       prev_theta = theta;
-      cout << "theta_sDDot = " << theta.tail(n_theta_sDDot).transpose() << endl;
       if(is_newton)
         theta = theta + h_step * step_direction;
       else

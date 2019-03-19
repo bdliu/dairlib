@@ -24,6 +24,8 @@ double secondOrderCost(const drake::solvers::MathematicalProgram* prog,
                        Eigen::VectorXd& x, Eigen::MatrixXd& Q,
                        Eigen::VectorXd& w);
 
+int CountConstraintRows(const drake::solvers::MathematicalProgram* prog);
+
 template <typename Derived>
 int countConstraints(const drake::solvers::MathematicalProgram* prog,
     const std::vector<drake::solvers::Binding<Derived>>& constraints);
