@@ -115,6 +115,7 @@ void findGoldilocksModels() {
   theta << theta_s, theta_sDDot;
   VectorXd prev_theta = theta;
   VectorXd step_direction;
+  double current_iter_step_size = h_step;
   for (int iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
@@ -184,12 +185,13 @@ void findGoldilocksModels() {
     // If the cost goes up, shrink the size and redo the traj opt.
     // Otherwise, do outer loop optimization given the solution w.
     if (total_cost > min_so_far) {
-      h_step = h_step / 2;
-      cout << "Step size shrinks to " << h_step << ". Redo this iteration.\n\n";
+      current_iter_step_size = current_iter_step_size / 2;
+      cout << "Step size shrinks to " << current_iter_step_size <<
+           ". Redo this iteration.\n\n";
       iter -= 1;
 
       // Descent
-      theta = prev_theta + h_step * step_direction;
+      theta = prev_theta + current_iter_step_size * step_direction;
 
       // Assign theta_s and theta_sDDot
       theta_s = theta.head(n_theta_s);
@@ -468,9 +470,9 @@ void findGoldilocksModels() {
           for (int j = 0; j < abs_Pi.cols(); j++) {
             if (abs_Pi(i, j) > max_Pi_element) max_Pi_element = abs_Pi(i, j);
           }
-        cout << "max element of abs-Pi = " << max_Pi_element << endl;
+        cout << "max element of abs-Pi = " << max_Pi_element << endl;*/
         cout << "qi norm (this number should be close to 0) = "
-             << qi.norm() << endl;*/
+             << qi.norm() << endl;
 
         P_vec.push_back(Pi);
         q_vec.push_back(qi);
@@ -615,7 +617,8 @@ void findGoldilocksModels() {
 
       // Gradient descent
       prev_theta = theta;
-      if(is_newton)
+      current_iter_step_size = h_step;
+      if (is_newton)
         theta = theta + h_step * step_direction;
       else
         theta = theta + h_step * step_direction;
@@ -631,13 +634,13 @@ void findGoldilocksModels() {
       // Check optimality
       cout << "lambda_square = " << lambda_square << endl;
       cout << "costGradient norm: " << costGradient.norm() << endl << endl;
-      if(is_newton){
+      if (is_newton) {
         if (lambda_square < threshold) {
           cout << "Found optimal theta.\n\n";
           break;
         }
       }
-      else{
+      else {
         if (costGradient.norm() < threshold) {
           cout << "Found optimal theta.\n\n";
           break;

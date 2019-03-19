@@ -118,13 +118,11 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
 void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
   VectorXd& y, MatrixXd& A, VectorXd& lb, VectorXd& ub) {
 
-
   int num_constraints = 0;
   int num_vars = prog->num_vars();
 
   // First, count constraints
   num_constraints += CountConstraintRows(prog);
-  cout <<"num_constraints = " << num_constraints << endl;
 
   // Initialize data storage
   lb.resize(num_constraints);
@@ -167,8 +165,6 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
     constraint_index += n;
   }
 }
-
-
 int CountConstraintRows(const MathematicalProgram* prog) {
   int n = 0;
   auto constraints = prog->GetAllConstraints();
@@ -177,7 +173,6 @@ int CountConstraintRows(const MathematicalProgram* prog) {
   }
   return n;
 }
-
 
 
 
