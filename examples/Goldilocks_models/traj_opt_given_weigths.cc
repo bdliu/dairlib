@@ -350,7 +350,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       gm_traj_opt.dircon->AddQuadraticCost(eps_reg * w(i)*w(i));
   }
 
-  cout << "Solving DIRCON (based on MultipleShooting)\n";
+  // cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
@@ -403,7 +403,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
   // visualizer
-  int n_loops = 1;
+  /*int n_loops = 1;
   const PiecewisePolynomial<double> pp_xtraj =
     gm_traj_opt.dircon->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
@@ -412,10 +412,10 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
   while(true)
     for (int i=0; i<n_loops; i++) {
       drake::systems::Simulator<double> simulator(*diagram);
-      simulator.set_target_realtime_rate(.1);
+      simulator.set_target_realtime_rate(1);
       simulator.Initialize();
       simulator.StepTo(pp_xtraj.end_time());
-    }
+    }*/
 
 
 
@@ -517,7 +517,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
-    cout << "\ncheck if H is diagonal: \n";
+    /*cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -733,8 +733,8 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
         cout << "  nonlinear_constraint_val = "
             << nonlinear_constraint_val.transpose() << endl;
       }
-    }
-  }
+    }*/
+  }  // end of if(!is_get_nominal)
 
 
 
