@@ -136,11 +136,17 @@ void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
   A = Eigen::MatrixXd::Zero(num_constraints, num_vars);
 
   int constraint_index = 0;
+  cout << "constraint_index = " << constraint_index << endl;
   constraint_index = updateConstraints(prog, prog->bounding_box_constraints(), x, y, A, lb, ub, constraint_index);
+  cout << "constraint_index = " << constraint_index << endl;
   constraint_index = updateConstraints(prog, prog->linear_constraints(), x, y, A, lb, ub, constraint_index);
+  cout << "constraint_index = " << constraint_index << endl;
   constraint_index = updateConstraints(prog, prog->linear_equality_constraints(), x, y, A, lb, ub, constraint_index);
+  cout << "constraint_index = " << constraint_index << endl;
   constraint_index = updateConstraints(prog, prog->lorentz_cone_constraints(), x, y, A, lb, ub, constraint_index);
+  cout << "constraint_index = " << constraint_index << endl;
   constraint_index = updateConstraints(prog, prog->generic_constraints(), x, y, A, lb, ub, constraint_index);
+  cout << "constraint_index = " << constraint_index << endl;
 }
 
 VectorXd NVec(int start, int length) {

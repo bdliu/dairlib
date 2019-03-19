@@ -51,7 +51,7 @@ void findGoldilocksModels() {
     delta_stride_length_vec.push_back(i * delta_stride_length);
 
   // Paramters for the outer loop optimization
-  int iter_start = 254;
+  int iter_start = 265;
   int max_outer_iter = 10000;
   double threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -114,14 +114,12 @@ void findGoldilocksModels() {
   VectorXd theta(n_theta);
   theta << theta_s, theta_sDDot;
   VectorXd prev_theta = theta;
-  bool is_redo = false;
   VectorXd step_direction;
   for (int iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
     // setup for each iteration
-    is_redo = false;
     bool is_get_nominal = iter == 0 ? true : false;
     int current_batch = is_get_nominal ? 1 : n_batch;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
@@ -182,11 +180,16 @@ void findGoldilocksModels() {
     }
     cout << "total_cost = " << total_cost << " (min so far: " << min_so_far <<
          ")\n\n";
+
+    // If the cost goes up, shrink the size and redo the traj opt.
+    // Otherwise, do outer loop optimization given the solution w.
     if (total_cost > min_so_far) {
       h_step = h_step / 2;
       cout << "Step size shrinks to " << h_step << ". Redo this iteration.\n\n";
       iter -= 1;
-      is_redo = true;
+
+      // testing
+      cout << "previous theta_sDDot = " << prev_theta.tail(n_theta_sDDot).transpose() << endl;
 
       // Descent
       theta = prev_theta + h_step * step_direction;
@@ -199,10 +202,7 @@ void findGoldilocksModels() {
       writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
       writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
     }
-
-
-    // Then do outer loop optimization given the solution w
-    if (!is_get_nominal && !is_redo) {
+    else if (!is_get_nominal) {
       // Extract active and independent constraints
       cout << "Extracting active and independent rows of A\n";
       vector<double> nw_vec;  // size of decision var of traj opt for all tasks
@@ -618,6 +618,7 @@ void findGoldilocksModels() {
 
       // Gradient descent
       prev_theta = theta;
+      cout << "theta_sDDot = " << theta.tail(n_theta_sDDot).transpose() << endl;
       if(is_newton)
         theta = theta + h_step * step_direction;
       else
