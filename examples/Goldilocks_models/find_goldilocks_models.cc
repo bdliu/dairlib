@@ -42,7 +42,7 @@ void findGoldilocksModels() {
   string prefix = "";
 
   // Parametres for tasks
-  int n_batch = 5;//1;
+  int n_batch = 1;//1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
@@ -120,7 +120,8 @@ void findGoldilocksModels() {
   double current_iter_step_size = h_step;
 
   // Start the gradient descent
-  for (int iter = iter_start; iter <= max_outer_iter; iter++)  {
+  int iter;
+  for (iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
@@ -164,7 +165,9 @@ void findGoldilocksModels() {
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
       //Testing
-      // init_file_pass_in = string("1_0_w.csv");
+      // init_file_pass_in = to_string(iter) +  "_" +
+      //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
+      init_file_pass_in = string("1_2_w.csv");
 
       // Trajectory optimization with fixed model paramters
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
@@ -448,17 +451,32 @@ void findGoldilocksModels() {
           H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[batch];
           H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
 
+          // Testing
+          Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
+          cout << "H_ext:\n";
+          cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
+          cout << "  smallest singular value is "
+               << svd_3.singularValues().tail(1) << endl;
           // cout << "\nStart inverting the matrix.\n";
           MatrixXd inv_H_ext = H_ext.inverse();
           // cout << "Finsihed inverting the matrix.\n";
+          // // Testing
+          Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
+          cout << "inv_H_ext:\n";
+          cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+          cout << "  smallest singular value is "
+               << svd_5.singularValues().tail(1) << endl;
 
           MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
           MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
 
           MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
           VectorXd qi = -inv_H_ext11 * b_vec[batch];
+          P_vec.push_back(Pi);
+          q_vec.push_back(qi);
 
-          /*MatrixXd abs_Pi = Pi.cwiseAbs();
+          // Testing
+          MatrixXd abs_Pi = Pi.cwiseAbs();
           VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
           VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
           cout << "sum-abs-Pi: " <<
@@ -471,52 +489,37 @@ void findGoldilocksModels() {
             for (int j = 0; j < abs_Pi.cols(); j++) {
               if (abs_Pi(i, j) > max_Pi_element) max_Pi_element = abs_Pi(i, j);
             }
-          cout << "max element of abs-Pi = " << max_Pi_element << endl;*/
+          cout << "max element of abs-Pi = " << max_Pi_element << endl;
           cout << "qi norm (this number should be close to 0) = "
                << qi.norm() << endl;
-
-          P_vec.push_back(Pi);
-          q_vec.push_back(qi);
         }
 
 
 
 
 
-        /*// Testing
-        Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
-        cout << "H:\n";
-        cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-        cout << "  smallest singular value is "
-                << svd.singularValues().tail(1) << endl;
-        // cout << "singular values are \n" << svd.singularValues() << endl;
-        // Testing
-        MatrixXd invH = H_vec[0].inverse();
-        Eigen::BDCSVD<MatrixXd> svd_4(invH);
-        cout << "invH:\n";
-        cout << "  biggest singular value is " << svd_4.singularValues()(0) << endl;
-        cout << "  smallest singular value is "
-                << svd_4.singularValues().tail(1) << endl;
-        // Testing
-        Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
-        cout << "A:\n";
-        cout << "  biggest singular value is " << svd_2.singularValues()(0) << endl;
-        cout << "  smallest singular value is "
-                << svd_2.singularValues().tail(1) << endl;
-        // cout << "singular values are \n" << svd_2.singularValues() << endl;
+        // // Testing
+        // Eigen::BDCSVD<MatrixXd> svd(H_vec[0]);
+        // cout << "H:\n";
+        // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+        // cout << "  smallest singular value is "
+        //         << svd.singularValues().tail(1) << endl;
+        // // cout << "singular values are \n" << svd.singularValues() << endl;
+        // // Testing
+        // MatrixXd invH = H_vec[0].inverse();
+        // Eigen::BDCSVD<MatrixXd> svd_4(invH);
+        // cout << "invH:\n";
+        // cout << "  biggest singular value is " << svd_4.singularValues()(0) << endl;
+        // cout << "  smallest singular value is "
+        //         << svd_4.singularValues().tail(1) << endl;
+        // // Testing
+        // Eigen::BDCSVD<MatrixXd> svd_2(A_active_vec[0]);
+        // cout << "A:\n";
+        // cout << "  biggest singular value is " << svd_2.singularValues()(0) << endl;
+        // cout << "  smallest singular value is "
+        //         << svd_2.singularValues().tail(1) << endl;
+        // // cout << "singular values are \n" << svd_2.singularValues() << endl;
 
-        // Testing
-        Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
-        cout << "H_ext:\n";
-        cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
-        cout << "  smallest singular value is "
-                << svd_3.singularValues().tail(1) << endl;
-
-        Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
-        cout << "inv_H_ext:\n";
-        cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
-        cout << "  smallest singular value is "
-                << svd_5.singularValues().tail(1) << endl;*/
 
 
 
@@ -650,9 +653,9 @@ void findGoldilocksModels() {
   }  // end for
 
 // store parameter values
-prefix = to_string(max_outer_iter + 1) +  "_";
-writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+  prefix = to_string(iter + 1) +  "_";
+  writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+  writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
 
 }
 }  // namespace goldilocks_models

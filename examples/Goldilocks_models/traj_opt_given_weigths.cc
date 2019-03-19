@@ -497,16 +497,15 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     B_vec.push_back(B);
 
     // Store the vectors and matrices
-    // string batch_prefix = std::to_string(iter-1) + "_" + std::to_string(batch) + "_";
-    // string iter_prefix = std::to_string(iter-1) + "_";
-    // writeCSV(directory + prefix + string("H.csv"), H);
-    // writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("c.csv"), c);
-    // writeCSV(directory + prefix + string("A.csv"), A);
-    // writeCSV(directory + prefix + string("lb.csv"), lb);
-    // writeCSV(directory + prefix + string("ub.csv"), ub);
-    // writeCSV(directory + prefix + string("y.csv"), y);
-    // writeCSV(directory + prefix + string("B.csv"), B);
+
+    writeCSV(directory + prefix + string("H.csv"), H);
+    writeCSV(directory + prefix + string("b.csv"), b);
+    writeCSV(directory + prefix + string("A.csv"), A);
+    writeCSV(directory + prefix + string("lb.csv"), lb);
+    writeCSV(directory + prefix + string("ub.csv"), ub);
+    writeCSV(directory + prefix + string("y.csv"), y);
+    writeCSV(directory + prefix + string("B.csv"), B);
 
 
 
