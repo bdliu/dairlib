@@ -140,8 +140,7 @@ void findGoldilocksModels() {
   VectorXd prev_theta = theta;
   VectorXd step_direction;
   double current_iter_step_size = h_step;
-  bool previous_is_success;
-  previous_is_success = (iter_start == 0) ? true : false;
+  bool previous_is_success = true;
 
   // Start the gradient descent
   int iter;
