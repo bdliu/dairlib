@@ -5,16 +5,32 @@
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/solve.h"
 
+#include "drake/systems/analysis/simulator.h"
+#include "drake/systems/framework/diagram.h"
+#include "drake/systems/framework/diagram_builder.h"
+#include "drake/systems/primitives/trajectory_source.h"
+#include "drake/multibody/parsing/parser.h"
+
+#include "common/find_resource.h"
+
 using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
 using std::to_string;
-using Eigen::MatrixXd;
+using Eigen::Vector3d;
 using Eigen::VectorXd;
 using Eigen::VectorXcd;
+using Eigen::MatrixXd;
 using drake::solvers::MathematicalProgram;
 using drake::solvers::MathematicalProgramResult;
+
+using drake::geometry::SceneGraph;
+using drake::multibody::MultibodyPlant;
+using drake::multibody::Body;
+using drake::multibody::Parser;
+using drake::AutoDiffXd;
+using dairlib::FindResourceOrThrow;
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -35,23 +51,23 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 // }
 
 void findGoldilocksModels() {
-  // drake::systems::DiagramBuilder<double> builder;
-  // MultibodyPlant<double> plant;
-  // SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
-  // Parser parser(&plant, &scene_graph);
+  drake::systems::DiagramBuilder<double> builder;
+  MultibodyPlant<double> plant;
+  SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
+  Parser parser(&plant, &scene_graph);
 
-  // std::string full_name = FindResourceOrThrow(
-  //                           "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
-  // parser.AddModelFromFile(full_name);
-  // plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
-  //   -9.81 * Eigen::Vector3d::UnitZ());
-  // plant.WeldFrames(
-  //   plant.world_frame(), plant.GetFrameByName("base"),
-  //   drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
-  // plant.Finalize();
+  std::string full_name = FindResourceOrThrow(
+                            "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  parser.AddModelFromFile(full_name);
+  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+    -9.81 * Eigen::Vector3d::UnitZ());
+  plant.WeldFrames(
+    plant.world_frame(), plant.GetFrameByName("base"),
+    drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+  plant.Finalize();
 
-  // // Create autoDiff version of the plant
-  // MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
+  // Create autoDiff version of the plant
+  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
 
   // Files parameters
@@ -200,7 +216,8 @@ void findGoldilocksModels() {
 
       // Trajectory optimization with fixed model paramters
       MathematicalProgramResult result =
-        trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
+        trajOptGivenWeights(plant, plant_autoDiff,
+                            n_s, n_sDDot, n_feature_s, n_feature_sDDot,
                             theta_s, theta_sDDot,
                             stride_length, duration, max_inner_iter_pass_in,
                             directory, init_file_pass_in, prefix,

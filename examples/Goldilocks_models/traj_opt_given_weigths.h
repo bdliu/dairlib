@@ -9,6 +9,8 @@
 #include "drake/solvers/constraint.h"
 #include "drake/solvers/solve.h"
 
+#include "multibody/multibody_utils.h"
+
 using drake::solvers::MathematicalProgram;
 using drake::solvers::MathematicalProgramResult;
 using drake::solvers::SolutionResult;
@@ -16,10 +18,15 @@ using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using std::vector;
 
+using drake::multibody::MultibodyPlant;
+using drake::AutoDiffXd;
+
 namespace dairlib {
 namespace goldilocks_models  {
 
 MathematicalProgramResult trajOptGivenWeights(
+    MultibodyPlant<double> & plant,
+    MultibodyPlant<AutoDiffXd> & plant_autoDiff,
     int n_s, int n_sDDot, int n_feature_s, int n_feature_sDDot,
     VectorXd & theta_s, VectorXd & theta_sDDot,
     double stride_length, double duration, int max_iter,
