@@ -164,7 +164,7 @@ void findGoldilocksModels() {
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
       //Testing
-      init_file_pass_in = string("1_0_w.csv");
+      // init_file_pass_in = string("1_0_w.csv");
 
       // Trajectory optimization with fixed model paramters
       trajOptGivenWeights(n_s, n_sDDot, n_feature_s, n_feature_sDDot,
