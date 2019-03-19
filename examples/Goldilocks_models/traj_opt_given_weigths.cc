@@ -517,7 +517,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
 
 
-    /*cout << "\ncheck if H is diagonal: \n";
+    cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -528,8 +528,6 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
 
     cout << "checking b\n";
     cout << "b.norm() = " << b.norm() << endl;
-
-
 
     cout << "norm of y = " << y.norm() << endl;
 
@@ -570,8 +568,8 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
                                   ub - y,
                                   dw);
     quadprog.AddQuadraticCost(H, b, dw);
-    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
-    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
     const auto result2 = Solve(quadprog);
     auto solution_result2 = result2.get_solution_result();
     cout << solution_result2 << endl;
@@ -589,25 +587,25 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
     // for(double w_sol_sort_ele : w_sol_sort)
     //   cout << w_sol_sort_ele << endl;
 
-    // Check if dw=0 violates any constraint
-    VectorXd QP_ub = ub-y;
-    VectorXd QP_lb = lb-y;
-    for(int i=0; i<nl_i; i++){
-      if(QP_ub(i)<0)
-        cout<< "row " << i << ": upper bound is smaller than 0 by " << QP_ub(i) << endl;
-      if(QP_lb(i)>0)
-        cout<< "row " << i << ": lower bound is larger than 0 by " << QP_lb(i) << endl;
-    }
-    cout << endl;
-    // Check if dw* to the QP violates any constraint
-    VectorXd QP_constraint_val = A*dw_sol;
-    for(int i=0; i<nl_i; i++){
-      if(QP_ub(i) < QP_constraint_val(i))
-        cout<< "row " << i << ": upper bound constraint violation by " << QP_constraint_val(i) - QP_ub(i) << endl;
-      if(QP_lb(i) > QP_constraint_val(i))
-        cout<< "row " << i << ": lower bound constraint violation by " << QP_constraint_val(i) - QP_lb(i) << endl;
-    }
-    cout << endl;
+    // // Check if dw=0 violates any constraint
+    // VectorXd QP_ub = ub-y;
+    // VectorXd QP_lb = lb-y;
+    // for(int i=0; i<nl_i; i++){
+    //   if(QP_ub(i)<0)
+    //     cout<< "row " << i << ": upper bound is smaller than 0 by " << QP_ub(i) << endl;
+    //   if(QP_lb(i)>0)
+    //     cout<< "row " << i << ": lower bound is larger than 0 by " << QP_lb(i) << endl;
+    // }
+    // cout << endl;
+    // // Check if dw* to the QP violates any constraint
+    // VectorXd QP_constraint_val = A*dw_sol;
+    // for(int i=0; i<nl_i; i++){
+    //   if(QP_ub(i) < QP_constraint_val(i))
+    //     cout<< "row " << i << ": upper bound constraint violation by " << QP_constraint_val(i) - QP_ub(i) << endl;
+    //   if(QP_lb(i) > QP_constraint_val(i))
+    //     cout<< "row " << i << ": lower bound constraint violation by " << QP_constraint_val(i) - QP_lb(i) << endl;
+    // }
+    // cout << endl;
 
 
 
@@ -623,12 +621,12 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
       VectorXd b2;
       double c_nonlinear;
       c_nonlinear = systems::trajectory_optimization::secondOrderCost(
-                      gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c;
+                      gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c_double;
       cout << "i = " << i << endl;
       cout << "  c_nonlinear = " << c_nonlinear << endl;
       VectorXd dw_sol_test = i * eps * dw_sol;
       double c_aquadprog = 0.5 * dw_sol_test.transpose() * H * dw_sol_test + b.dot(
-                             dw_sol_test) + c - c;
+                             dw_sol_test) + c_double - c_double;
       cout << "  c_aquadprog = " << c_aquadprog << endl;
       cout << "  c_aquadprog - c_nonlinear = " << c_aquadprog - c_nonlinear << endl;
     }
@@ -735,7 +733,7 @@ void trajOptGivenWeights(int n_s, int n_sDDot, int n_feature_s,
         cout << "  nonlinear_constraint_val = "
             << nonlinear_constraint_val.transpose() << endl;
       }
-    }*/
+    }
   }
 
 
