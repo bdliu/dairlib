@@ -17,6 +17,9 @@ namespace dairlib {
 namespace systems {
 namespace trajectory_optimization {
 
+
+const bool is_old_version = true;
+
 void checkConstraints(const MathematicalProgram* prog,
                       const drake::solvers::MathematicalProgramResult& result) {
   for (auto const& binding : prog->generic_constraints()) {
@@ -119,7 +122,6 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
 void linearizeConstraints(const MathematicalProgram* prog, VectorXd& x,
                           VectorXd& y, MatrixXd& A, VectorXd& lb, VectorXd& ub) {
 
-  bool is_old_version = false;
 
   if (is_old_version) {
     int num_constraints = 0;
@@ -256,7 +258,6 @@ std::pair<int, int> getConstraintStart(const MathematicalProgram* prog,
 
 VectorXd getConstraintRows(const MathematicalProgram* prog,
                            Binding<Constraint>& c) {
-  bool is_old_version = false;
   if (is_old_version) {
     int n = 0;
     auto index = getConstraintStart(prog, prog->bounding_box_constraints(), c);
