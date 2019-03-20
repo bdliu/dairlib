@@ -51,6 +51,7 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 // }
 
 void findGoldilocksModels() {
+  // Create MBP
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
@@ -69,6 +70,9 @@ void findGoldilocksModels() {
   // Create autoDiff version of the plant
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
+  // Random number generator
+  std::random_device randgen;
+  std::default_random_engine e1(randgen());
 
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
@@ -85,14 +89,14 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 81;//265;
+  int iter_start = 0;//265;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = false;
-  is_newton? cout << "Newton method\n" : cout << "Gradient descent method\n";
+  is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
@@ -148,6 +152,8 @@ void findGoldilocksModels() {
 
   // Some setup
   double min_so_far = 10000000;
+  std::uniform_real_distribution<> dist(
+    -delta_stride_length / 2, delta_stride_length / 2);
   vector<double> delta_stride_length_vec;
   for (int i = 0 - n_batch / 2; i < n_batch - n_batch / 2; i++)
     delta_stride_length_vec.push_back(i * delta_stride_length);
@@ -194,7 +200,7 @@ void findGoldilocksModels() {
     for (int batch = 0; batch < current_batch; batch++) {
       /// setup for each batch
       double stride_length = is_get_nominal ? stride_length_0 :
-                             stride_length_0 + delta_stride_length_vec[batch];
+                             stride_length_0 + delta_stride_length_vec[batch] + dist(e1);
       cout << "stride_length = " << stride_length << endl;
       prefix = to_string(iter) +  "_" + to_string(batch) + "_";
       string init_file_pass_in;

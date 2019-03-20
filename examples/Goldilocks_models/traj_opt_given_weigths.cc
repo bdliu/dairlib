@@ -87,24 +87,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     const double & Q_double, const double & R_double,
     double eps_reg,
     bool is_get_nominal) {
-  // drake::systems::DiagramBuilder<double> builder;
-  // MultibodyPlant<double> plant;
-  // SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
-  // Parser parser(&plant, &scene_graph);
-
-  // std::string full_name = FindResourceOrThrow(
-  //                           "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
-  // parser.AddModelFromFile(full_name);
-  // plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
-  //   -9.81 * Eigen::Vector3d::UnitZ());
-  // plant.WeldFrames(
-  //   plant.world_frame(), plant.GetFrameByName("base"),
-  //   drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
-  // plant.Finalize();
-
-  // // Create autoDiff version of the plant
-  // MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
-
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
