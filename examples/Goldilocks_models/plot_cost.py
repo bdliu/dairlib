@@ -4,6 +4,11 @@ import os
 import time
 
 batch_max = 5
+min_dist = 0.24
+delta_dist = 0.03
+
+iter_start = 1
+directory = 'data/'
 
 while 1:
     fig1 = plt.figure(1)
@@ -11,16 +16,16 @@ while 1:
 
     for batch in range(batch_max):
         cost = []
-        iteration = 1
-        while os.path.isfile('data/'+str(iteration)+'_'+str(batch)+'_c.csv'):
-            with open('data/'+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
+        iteration = iter_start
+        while os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_c.csv'):
+            with open(directory+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
                 plots = csv.reader(csvfile, delimiter=',')
                 for row in plots:
                     cost.append(row[0])
             iteration+=1
         length = len(cost)
-        t = range(1,length+1)
-        ax1.plot(t,cost, label='stride length = '+str(0.24+batch*0.03)+' (m)')
+        t = range(iter_start,length+iter_start)
+        ax1.plot(t,cost, label='stride length = '+str(min_dist+batch*delta_dist)+' (m)')
 
     plt.xlabel('iterations')
     plt.ylabel('cost')
