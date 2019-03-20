@@ -74,6 +74,9 @@ void findGoldilocksModels() {
   std::random_device randgen;
   std::default_random_engine e1(randgen());
 
+  //
+  bool is_visualize = true;
+
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
   string init_file;
@@ -236,25 +239,27 @@ void findGoldilocksModels() {
                             Q_double, R,
                             eps_regularization,
                             is_get_nominal);
-      /*// visualizer
-      int n_loops = 1;
-      const PiecewisePolynomial<double> pp_xtraj =
-        gm_traj_opt.dircon->ReconstructStateTrajectory(result);
-      multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
-                                             pp_xtraj);
-      auto diagram = builder.Build();
-      while (true)
-        for (int i = 0; i < n_loops; i++) {
-          drake::systems::Simulator<double> simulator(*diagram);
-          simulator.set_target_realtime_rate(1);
-          simulator.Initialize();
-          simulator.StepTo(pp_xtraj.end_time());
-        }*/
       current_is_success = (current_is_success & result.is_success());
       if (iter > 1 && !current_is_success)
         break;
+
+      // visualizer
+      /*if (is_visualize) {
+        int n_loops = 1;
+        const PiecewisePolynomial<double> pp_xtraj =
+          gm_traj_opt.dircon->ReconstructStateTrajectory(result);
+        multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
+                                               pp_xtraj);
+        auto diagram = builder.Build();
+        while (true)
+          for (int i = 0; i < n_loops; i++) {
+            drake::systems::Simulator<double> simulator(*diagram);
+            simulator.set_target_realtime_rate(1);
+            simulator.Initialize();
+            simulator.StepTo(pp_xtraj.end_time());
+          }
+      }*/
     }
-    previous_is_success = current_is_success;
 
     if (is_get_nominal) {
       if (!current_is_success)
@@ -276,7 +281,8 @@ void findGoldilocksModels() {
       if (!current_is_success && iter == 1) {
         iter -= 1;
       }
-      else if (!current_is_success || (total_cost > min_so_far)) {
+      else if (!current_is_success
+               || (total_cost > min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
         current_iter_step_size = current_iter_step_size / 2;
         // if(current_iter_step_size<1e-5){
         //   cout<<"switch to the other method.";
@@ -745,6 +751,7 @@ void findGoldilocksModels() {
       }  // end if goes goes down
 
     }  // end if(!is_get_nominal)
+    previous_is_success = current_is_success;
 
   }  // end for
 

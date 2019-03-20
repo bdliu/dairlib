@@ -1,7 +1,7 @@
 
 cc_binary(
-    name = "visualize_gait",
-    srcs = ["visualize_gait.cc"],
+    name = "visualize_gait_RBP",
+    srcs = ["visualize_gait_RBP.cc"],
     data = ["PlanarWalkerWithTorso.urdf"],
     deps = [
         "//systems/goldilocks_models",
@@ -17,6 +17,33 @@ cc_binary(
         "@drake//systems/primitives",
         "@drake//systems/trajectory_optimization",
         "@gflags",
+    ],
+)
+
+
+cc_binary(
+    name = "visualize_gait_MBP",
+    srcs = ["visualize_gait_MBP.cc"],
+    data = ["PlanarWalkerWithTorso.urdf"],
+    deps = [
+        "//common",
+        "//systems/primitives",
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "@drake//attic/multibody/parsers",
+        "@drake//common",
+        "@drake//math",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",     
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
     ],
 )
 
