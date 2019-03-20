@@ -369,29 +369,14 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-  /*// Store the time, state, and input at knot points
+  // Store the time, state, and input at knot points
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
   MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
   // MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
   writeCSV(directory + prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
-  // writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);*/
+  // writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
 
-
-  // visualizer
-  /*int n_loops = 1;
-  const PiecewisePolynomial<double> pp_xtraj =
-    gm_traj_opt.dircon->ReconstructStateTrajectory(result);
-  multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
-                                         pp_xtraj);
-  auto diagram = builder.Build();
-  while(true)
-    for (int i=0; i<n_loops; i++) {
-      drake::systems::Simulator<double> simulator(*diagram);
-      simulator.set_target_realtime_rate(1);
-      simulator.Initialize();
-      simulator.StepTo(pp_xtraj.end_time());
-    }*/
 
 
 

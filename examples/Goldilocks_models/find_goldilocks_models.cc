@@ -89,7 +89,7 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 0;//265;
+  int iter_start = 19;//265;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -123,10 +123,10 @@ void findGoldilocksModels() {
   theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  theta_s = 0.1 * VectorXd::Ones(n_theta_s);
-  theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
-  // theta_s = VectorXd::Random(n_theta_s);
-  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  // theta_s = 0.1 * VectorXd::Ones(n_theta_s);
+  // theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
+  theta_s = VectorXd::Random(n_theta_s);
+  theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
     MatrixXd theta_s_mat =
       readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
@@ -200,7 +200,8 @@ void findGoldilocksModels() {
     for (int batch = 0; batch < current_batch; batch++) {
       /// setup for each batch
       double stride_length = is_get_nominal ? stride_length_0 :
-                             stride_length_0 + delta_stride_length_vec[batch] + dist(e1);
+                             stride_length_0 + delta_stride_length_vec[batch]
+                             + dist(e1);
       cout << "stride_length = " << stride_length << endl;
       prefix = to_string(iter) +  "_" + to_string(batch) + "_";
       string init_file_pass_in;
@@ -220,6 +221,8 @@ void findGoldilocksModels() {
       // init_file_pass_in = to_string(iter) +  "_" +
       //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
       // init_file_pass_in = string("1_2_w.csv");
+      // stride_length = 0.3;
+      // init_file_pass_in = string("19_2_w.csv");
 
       // Trajectory optimization with fixed model paramters
       MathematicalProgramResult result =
