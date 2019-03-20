@@ -89,7 +89,7 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 19;//265;
+  int iter_start = 0;//265;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -125,8 +125,8 @@ void findGoldilocksModels() {
   // // Testing intial theta
   // theta_s = 0.1 * VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.1 * VectorXd::Ones(n_theta_sDDot);
-  theta_s = VectorXd::Random(n_theta_s);
-  theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  // theta_s = VectorXd::Random(n_theta_s);
+  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
     MatrixXd theta_s_mat =
       readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
