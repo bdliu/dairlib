@@ -92,7 +92,7 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 0;//265;
+  int iter_start = 18;//265;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -154,7 +154,21 @@ void findGoldilocksModels() {
   vector<MatrixXd> B_active_vec;
 
   // Some setup
-  double min_so_far = 10000000;
+  double min_so_far;
+  if (iter_start > 1) {
+    double old_cost = 0;
+    for (int i = 0; i < n_batch; i++) {
+      MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
+                           to_string(i) + string("_c.csv"));
+      cout << "c = " << endl;
+      old_cost += c(0) / n_batch;
+    }
+    min_so_far = old_cost;
+    cout << "min_so_far = " << endl;
+  }
+  else {
+    min_so_far = 10000000;
+  }
   std::uniform_real_distribution<> dist(
     -delta_stride_length / 2, delta_stride_length / 2);
   vector<double> delta_stride_length_vec;
@@ -282,7 +296,8 @@ void findGoldilocksModels() {
         iter -= 1;
       }
       else if (!current_is_success
-               || (total_cost > min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
+               || (total_cost >
+                   min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
         current_iter_step_size = current_iter_step_size / 2;
         // if(current_iter_step_size<1e-5){
         //   cout<<"switch to the other method.";

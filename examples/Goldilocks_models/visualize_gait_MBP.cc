@@ -48,10 +48,18 @@ using std::vector;
 using std::shared_ptr;
 using std::cout;
 using std::endl;
+using std::string;
+using std::to_string;
 
 namespace dairlib {
 
 void visualizeGait() {
+
+  // parameters
+  const string directory = "examples/Goldilocks_models/data/";
+  int iter = 1;
+  int batch = 2;
+
   // Create MBP
   drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
@@ -68,21 +76,21 @@ void visualizeGait() {
     drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
   plant.Finalize();
 
+  // Read in trajecotry
+  MatrixXd state_mat =
+    goldilocks_models::readCSV(directory + to_string(iter) + string("_") + to_string(batch) + string("_state_at_knots.csv"));
+  VectorXd time_mat =
+    goldilocks_models::readCSV(directory + to_string(iter) + string("_") + to_string(batch) + string("_time_at_knots.csv"));
 
   // Create a testing piecewise polynomial
-  std::vector<double> T_breakpoint = {0, 2};
-  std::vector<MatrixXd> Y(T_breakpoint.size(), MatrixXd::Zero(14, 1));
-
-  MatrixXd x0 = MatrixXd::Zero(14, 1);
-  x0 << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-  MatrixXd x1 = MatrixXd::Zero(14, 1);
-  x1 << 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-
-  Y[0] = x0;
-  Y[1] = x1;
-
+  std::vector<double> T_breakpoint;
+  for(int i=0; i<time_mat.size(); i++)
+    T_breakpoint.push_back(time_mat(i));
+  std::vector<MatrixXd> Y;
+  for(int i=0; i<time_mat.size(); i++)
+    Y.push_back(state_mat.col(i));
   PiecewisePolynomial<double> pp_xtraj =
-      PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
+    PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
 
   // visualizer
   int n_loops = 1;
