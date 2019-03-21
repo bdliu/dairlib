@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import csv
 import os
 import time
@@ -18,10 +19,14 @@ while 1:
         cost = []
         iteration = iter_start
         while os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_c.csv'):
-            with open(directory+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
-                plots = csv.reader(csvfile, delimiter=',')
-                for row in plots:
-                    cost.append(row[0])
+            # way1
+            matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_c.csv', delimiter=",")
+            cost.append(matrix)
+            # way2
+            # with open(directory+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
+            #     plots = csv.reader(csvfile, delimiter=',')
+            #     for row in plots:
+            #         cost.append(row[0])
             iteration+=1
         length = len(cost)
         t = range(iter_start,length+iter_start)

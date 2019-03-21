@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import csv
 import os
 import time
@@ -18,33 +19,23 @@ fig = plt.figure(1)
 
 t = []
 if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_time_at_knots.csv'):
-    with open(directory+str(iteration)+'_'+str(batch)+'_time_at_knots.csv','r') as csvfile:
-        plots = csv.reader(csvfile, delimiter=',')
-        for row in plots:
-            t.append(row[0])
+    matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_time_at_knots.csv', delimiter=",")
+    t = matrix
 
 for iteration in range(iteration_start,iteration_end+1):
     ax = fig.gca()
-    for joint in range(7):
-        joint_angle = []
-        if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_state_at_knots.csv'):
-            with open(directory+str(iteration)+'_'+str(batch)+'_state_at_knots.csv','r') as csvfile:
-                plots = csv.reader(csvfile, delimiter=',')
-                row_num = 0
-                for row in plots:
-                    if row_num == joint:
-                        joint_angle = row;
-                    row_num+=1
-        ax.plot(t,joint_angle, label='q('+str(joint)+')')
-        ax.tick_params(axis='x', labelsize=15)
-        ax.tick_params(axis='y', labelsize=15)
+    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_state_at_knots.csv'):
+        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_state_at_knots.csv', delimiter=",")
+        for joint in range(7):
+            joint_angle = matrix[joint,:]
+            ax.plot(t,joint_angle, label='q('+str(joint)+')')
+            ax.tick_params(axis='x', labelsize=15)
+            ax.tick_params(axis='y', labelsize=15)
 
     cost = []
     if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_c.csv'):
-        with open(directory+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
-            plots = csv.reader(csvfile, delimiter=',')
-            for row in plots:
-                cost.append(row[0])
+        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_c.csv', delimiter=",")
+        cost.append(matrix)
 
     plt.xlabel('t (s)', fontsize=15)
     plt.ylabel('q (m or rad)', fontsize=15)

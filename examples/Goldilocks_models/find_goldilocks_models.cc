@@ -160,11 +160,9 @@ void findGoldilocksModels() {
     for (int i = 0; i < n_batch; i++) {
       MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
                            to_string(i) + string("_c.csv"));
-      cout << "c = " << endl;
-      old_cost += c(0) / n_batch;
+      old_cost += c(0,0) / n_batch;
     }
     min_so_far = old_cost;
-    cout << "min_so_far = " << endl;
   }
   else {
     min_so_far = 10000000;

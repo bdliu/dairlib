@@ -11,7 +11,7 @@ using std::ofstream;
 using std::ifstream;
 using std::cout;
 using std::string;
-using std::cout;
+using std::endl;
 
 const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
                                        Eigen::DontAlignCols, ", ", "\n");
