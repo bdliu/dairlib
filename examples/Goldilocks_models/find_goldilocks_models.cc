@@ -52,11 +52,8 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 
 void findGoldilocksModels() {
   // Create MBP
-  drake::systems::DiagramBuilder<double> builder;
   MultibodyPlant<double> plant;
-  SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
-  Parser parser(&plant, &scene_graph);
-
+  Parser parser(&plant);
   std::string full_name = FindResourceOrThrow(
                             "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
@@ -163,6 +160,7 @@ void findGoldilocksModels() {
       old_cost += c(0,0) / n_batch;
     }
     min_so_far = old_cost;
+    cout << "min_so_far = " << min_so_far << endl;
   }
   else {
     min_so_far = 10000000;
@@ -254,23 +252,6 @@ void findGoldilocksModels() {
       current_is_success = (current_is_success & result.is_success());
       if (iter > 1 && !current_is_success)
         break;
-
-      // visualizer
-      /*if (is_visualize) {
-        int n_loops = 1;
-        const PiecewisePolynomial<double> pp_xtraj =
-          gm_traj_opt.dircon->ReconstructStateTrajectory(result);
-        multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
-                                               pp_xtraj);
-        auto diagram = builder.Build();
-        while (true)
-          for (int i = 0; i < n_loops; i++) {
-            drake::systems::Simulator<double> simulator(*diagram);
-            simulator.set_target_realtime_rate(1);
-            simulator.Initialize();
-            simulator.StepTo(pp_xtraj.end_time());
-          }
-      }*/
     }
 
     if (is_get_nominal) {
