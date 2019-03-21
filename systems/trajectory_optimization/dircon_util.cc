@@ -24,13 +24,13 @@ void checkConstraints(const MathematicalProgram* prog,
                       const drake::solvers::MathematicalProgramResult& result) {
   for (auto const& binding : prog->generic_constraints()) {
     double tol = 1e-6;
-    // Replace with call to Result once Drake #10720 is resolved
-    auto y = prog->EvalBindingAtSolution(binding);
+    auto y = result.EvalBinding(binding);
     auto c = binding.evaluator();
     bool isSatisfied = (y.array() >= c->lower_bound().array() - tol).all() &&
                        (y.array() <= c->upper_bound().array() + tol).all();
     if (!isSatisfied) {
-      std::cout << "Constraint violation: " << c->get_description() << std::endl;
+      std::cout << "Constraint violation: " <<
+          c->get_description() << std::endl;
       MatrixXd tmp(y.size(), 3);
       tmp << c->lower_bound(), y, c->upper_bound();
       std::cout << tmp << std::endl;
@@ -38,11 +38,11 @@ void checkConstraints(const MathematicalProgram* prog,
   }
 }
 
-//form a quadratic approximation of the cost
+// Form a quadratic approximation of the cost
 // cost \approx 1/2 z^T*Q*z + w^T*z + c
 // return value is the constant term (c)
-double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
-                       MatrixXd& Q, VectorXd& w) {
+double secondOrderCost(const MathematicalProgram* prog, const VectorXd& x,
+    MatrixXd& Q, VectorXd& w) {
 
   int num_vars = prog->num_vars();
   Q = Eigen::MatrixXd::Zero(num_vars, num_vars);
@@ -51,7 +51,7 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
 
   int i_binding_num = 0;
   for (auto const& binding : prog->GetAllCosts()) {
-    //evaluate cost
+    // evaluate cost
     auto variables = binding.variables();
     if (variables.size() == 0)
       continue;
@@ -59,7 +59,8 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
     // cout << "    variables = " << variables.transpose() << endl;
     // i_binding_num++;
 
-    AutoDiffVecXd y_val = initializeAutoDiff(VectorXd::Zero(1), variables.size());
+    AutoDiffVecXd y_val =
+        initializeAutoDiff(VectorXd::Zero(1), variables.size());
     VectorXd x_binding(variables.size());
     for (int i = 0; i < variables.size(); i++) {
       x_binding(i) = x(prog->FindDecisionVariableIndex(variables(i)));
@@ -68,16 +69,15 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
     binding.evaluator()->Eval(x_val, &y_val);
     MatrixXd gradient_x = autoDiffToGradientMatrix(y_val);
     VectorXd y = autoDiffToValueMatrix(y_val);
-    c += y(0); //costs are length 1
+    c += y(0);  // costs are length 1
     for (int i = 0; i < variables.size(); i++) {
       w(prog->FindDecisionVariableIndex(variables(i))) += gradient_x(0, i);
     }
 
-
     // forward differencing for Hessian
     double dx = 1e-8;
-    AutoDiffVecXd y_hessian = initializeAutoDiff(VectorXd::Zero(1),
-                              variables.size());
+    AutoDiffVecXd y_hessian =
+        initializeAutoDiff(VectorXd::Zero(1), variables.size());
     for (int i = 0; i < variables.size(); i++) {
       x_val(i) += dx;
       binding.evaluator()->Eval(x_val, &y_hessian);
@@ -87,7 +87,7 @@ double secondOrderCost(const MathematicalProgram* prog, VectorXd& x,
         int ind_i = prog->FindDecisionVariableIndex(variables(i));
         int ind_j = prog->FindDecisionVariableIndex(variables(j));
         Q(ind_i, ind_j) += (gradient_hessian(0, j) - gradient_x(0, j)) / dx;
-        if (ind_j != ind_i)
+        if (ind_i != ind_j)
           Q(ind_j, ind_i) += (gradient_hessian(0, j) - gradient_x(0, j)) / dx;
       }
     }
@@ -223,7 +223,7 @@ int CountConstraintRows(const MathematicalProgram* prog) {
 
 
 VectorXd NVec(int start, int length) {
-  VectorXd ret(length);
+    VectorXd ret(length);
   for (int i = 0; i < length; i++) {
     ret(i) = i + start;
   }
@@ -232,8 +232,7 @@ VectorXd NVec(int start, int length) {
 
 template <typename Derived>
 std::pair<int, int> getConstraintStart(const MathematicalProgram* prog,
-                                       const std::vector<Binding<Derived>>& constraints,
-                                       Binding<Constraint>& c) {
+    const std::vector<Binding<Derived>>& constraints, Binding<Constraint>& c) {
   int start = -1;
   int n = 0;
   bool is_visit = false;
@@ -334,8 +333,8 @@ int updateConstraints(const MathematicalProgram* prog,
 
     //evaluate constraint
     auto variables = binding.variables();
-    AutoDiffVecXd y_val = initializeAutoDiff(VectorXd::Zero(c->num_constraints()),
-                          variables.size());
+    AutoDiffVecXd y_val = initializeAutoDiff(
+        VectorXd::Zero(c->num_constraints()), variables.size());
     VectorXd x_binding(variables.size());
     for (int i = 0; i < variables.size(); i++) {
       x_binding(i) = x(prog->FindDecisionVariableIndex(variables(i)));
@@ -346,8 +345,8 @@ int updateConstraints(const MathematicalProgram* prog,
 
     y.segment(constraint_index, n) = autoDiffToValueMatrix(y_val);
     for (int i = 0; i < variables.size(); i++) {
-      A.block(constraint_index, prog->FindDecisionVariableIndex(variables(i)), n,
-              1) = dx.col(i);
+      A.block(constraint_index,
+          prog->FindDecisionVariableIndex(variables(i)), n, 1) = dx.col(i);
     }
 
     constraint_index += n;
