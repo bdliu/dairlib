@@ -13,6 +13,9 @@
 
 #include "common/find_resource.h"
 
+#include "examples/Goldilocks_models/kinematics_expression.h"
+#include "examples/Goldilocks_models/dynamics_expression.h"
+
 using std::cout;
 using std::endl;
 using std::vector;
@@ -71,9 +74,6 @@ void findGoldilocksModels() {
   std::random_device randgen;
   std::default_random_engine e1(randgen());
 
-  //
-  bool is_visualize = true;
-
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
   string init_file;
@@ -106,18 +106,20 @@ void findGoldilocksModels() {
   // Reduced order model parameters
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_feature_s =
-    68;//1;//113    // n_feature should match with the dim of the feature,
-  int n_feature_sDDot =
-    6;//1;//21 // since we are hard coding it now. (same below)
+
+  // Reduced order model setup
+  KinematicsExpression<double> kin_expression(n_s, 0);
+  DynamicsExpression dyn_expression(n_sDDot, 0);
+  VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
+  VectorXd dummy_s = VectorXd::Zero(n_s);
+  int n_feature_s = kin_expression.getFeature(dummy_q).size();
+  int n_feature_sDDot = dyn_expression.getFeature(dummy_s,dummy_s).size();
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
-  // Assuming position and velocity has the same dimension
-  // for the reduced order model.
-
-  // Initial guess of theta
   VectorXd theta_s(n_theta_s);
   VectorXd theta_sDDot(n_theta_sDDot);
+
+  // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   theta_s(2) = 1;
