@@ -1,3 +1,5 @@
+#include <gflags/gflags.h>
+
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
 
@@ -38,6 +40,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+DEFINE_int32(iter_start, 18, "The starting iteration #");
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -54,7 +57,8 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 //   return X;
 // }
 
-void findGoldilocksModels() {
+void findGoldilocksModels(int argc, char* argv[]) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Create MBP
   MultibodyPlant<double> plant;
@@ -91,7 +95,7 @@ void findGoldilocksModels() {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
-  int iter_start = 18;//265;
+  int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
@@ -762,6 +766,7 @@ void findGoldilocksModels() {
 }  // namespace goldilocks_models
 }  // namespace dairlib
 
-int main() {
-  dairlib::goldilocks_models::findGoldilocksModels();
+int main(int argc, char* argv[]) {
+  dairlib::goldilocks_models::findGoldilocksModels(argc, argv);
+  return 0;
 }
