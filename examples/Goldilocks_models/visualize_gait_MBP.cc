@@ -53,12 +53,14 @@ using std::to_string;
 
 namespace dairlib {
 
-void visualizeGait() {
+DEFINE_int32(iter, 18, "The iter #");
+DEFINE_int32(batch, 0, "The batch #");
+
+void visualizeGait(int argc, char* argv[]) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // parameters
   const string directory = "examples/Goldilocks_models/data/";
-  int iter = 1;
-  int batch = 2;
 
   // Create MBP
   drake::systems::DiagramBuilder<double> builder;
@@ -78,9 +80,11 @@ void visualizeGait() {
 
   // Read in trajecotry
   MatrixXd state_mat =
-    goldilocks_models::readCSV(directory + to_string(iter) + string("_") + to_string(batch) + string("_state_at_knots.csv"));
+    goldilocks_models::readCSV(directory + to_string(FLAGS_iter) + string("_") +
+      to_string(FLAGS_batch) + string("_state_at_knots.csv"));
   VectorXd time_mat =
-    goldilocks_models::readCSV(directory + to_string(iter) + string("_") + to_string(batch) + string("_time_at_knots.csv"));
+    goldilocks_models::readCSV(directory + to_string(FLAGS_iter) + string("_") +
+      to_string(FLAGS_batch) + string("_time_at_knots.csv"));
 
   // Create a testing piecewise polynomial
   std::vector<double> T_breakpoint;
@@ -110,10 +114,9 @@ void visualizeGait() {
 }
 } // dairlib
 
+int main(int argc, char* argv[]) {
 
-int main() {
-
-  dairlib::visualizeGait();
+  dairlib::visualizeGait(argc, argv);
 
   return 0;
 }

@@ -38,6 +38,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
   MatrixXd abs_resid = (A * X - B).cwiseAbs();
@@ -54,6 +55,7 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 // }
 
 void findGoldilocksModels() {
+
   // Create MBP
   MultibodyPlant<double> plant;
   Parser parser(&plant);
