@@ -181,13 +181,19 @@ void DynamicsConstraint::getSAndSDot(
   ds = DiscardGradient(ds_autoDiff);
 }
 
+VectorXd DynamicsConstraint::getSDDot(VectorXd s, VectorXd ds) const{
+  return dyn_expression_.getExpression(theta_sDDot_, s, ds);
+}
+
 
 MatrixXd DynamicsConstraint::getGradientWrtTheta(
   VectorXd theta_s, VectorXd theta_sDDot,
   const VectorXd & x_i, const VectorXd & x_iplus1,
   const VectorXd & h_i) const {
-  // TODO(yminchen): You need to use autoDiff to get the gradient here, because
-  // it's a nonlinear function in theta.
+  // TODO(yminchen): create a function that you can use here and in Eval, so
+  // that you don't duplicate the code.
+
+  // It's a nonlinear function in theta, so we use autoDiff to get the gradient.
   // The calculation here will not be the same as the one in eval(), because
   // we have totally different autodiff, and the second autodiff requires
   // costumization.

@@ -479,25 +479,27 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     cout << "N = " << N << endl;
     N_accum = 0;
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
-      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+      for (int m = 0; m < num_time_samples[l]; m++) {
         int i = N_accum + m;
         cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
-        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
-        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
         VectorXd x_i_sol = result.GetSolution(x_i);
-        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
-        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+        // cout << "  x_i = " << x_i_sol.transpose() << endl;
 
-        // getSAndSDot(
-        //   VectorXd x,
-        //   VectorXd & s, VectorXd & ds)
+        VectorXd s;
+        VectorXd ds;
+        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
+        VectorXd dds = gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds);
+
+        cout << "  s = " << s << endl;
+        cout << "  ds = " << ds << endl;
+        cout << "  dds = " << dds << endl;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
     }
-
+    // TODO: Do the initial s, ds and dds need to match those of post-impact??
 
 
 
