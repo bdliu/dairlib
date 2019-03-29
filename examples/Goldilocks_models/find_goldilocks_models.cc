@@ -40,7 +40,8 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(iter_start, 18, "The starting iteration #");
+DEFINE_int32(iter_start, 35, "The starting iteration #");
+DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -102,7 +103,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double eps_regularization = 1e-4;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = false;
+  bool is_stochastic = FLAGS_is_stochastic;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
+  is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
@@ -221,9 +224,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
     for (int batch = 0; batch < current_batch; batch++) {
       /// setup for each batch
       double stride_length = is_get_nominal ? stride_length_0 :
-                             stride_length_0 + delta_stride_length_vec[batch]
-                             + dist(e1);
+                             stride_length_0 + delta_stride_length_vec[batch];
+      if(!is_get_nominal && is_stochastic) stride_length += dist(e1);
       cout << "stride_length = " << stride_length << endl;
+
       prefix = to_string(iter) +  "_" + to_string(batch) + "_";
       string init_file_pass_in;
       if (is_get_nominal && previous_is_success)
@@ -244,6 +248,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       // init_file_pass_in = string("1_2_w.csv");
       // stride_length = 0.3;
       // init_file_pass_in = string("19_2_w.csv");
+      init_file_pass_in = string("35_0_w.csv");
 
       // Trajectory optimization with fixed model paramters
       MathematicalProgramResult result =

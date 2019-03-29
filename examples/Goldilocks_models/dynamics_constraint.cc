@@ -131,9 +131,8 @@ void DynamicsConstraint::getSAndSDot(
   s = kin_expression_.getExpression(theta_s_, q);
 
   // ds
-  MatrixXd d_phi0_d_q = autoDiffToGradientMatrix(
-                          kin_expression_.getFeature(q)).block(
-                          0, i_start, n_feature_s_, n_q_);
+  MatrixXd d_phi0_d_q = autoDiffToGradientMatrix(kin_expression_.getFeature(q)).
+                        block(0, i_start, n_feature_s_, n_q_);
   VectorXd v0_val = DiscardGradient(x.tail(n_v_));
   VectorXd dphi0_dt = d_phi0_d_q * v0_val;
 
@@ -164,21 +163,29 @@ void DynamicsConstraint::getSAndSDot(
 
 void DynamicsConstraint::getSAndSDot(
   VectorXd x,
-  VectorXd & s, VectorXd & ds, int i_start) const {
-  // This is jsut for getting the double s_i and ds_i. (e.g. you want to record
-  // it, etc.)
-
+  VectorXd & s, VectorXd & ds) const {
+  // This is jsut for getting the double version of s and ds. (e.g. you want
+  // to record it, etc.)
+  // What we are doing here are:
   // 1. initialize the autodiff yourself, so that it matches the format of the
   //      autodiffversion of getSAndSDot.
   // 2. call the autodiffversion of getSAndSDot
   // 3. discard the autodiff part
+
+  AutoDiffVecXd x_autoDiff = initializeAutoDiff(x);
+  AutoDiffVecXd s_autoDiff = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd ds_autoDiff = initializeAutoDiff(VectorXd::Zero(n_s_));
+  getSAndSDot(x_autoDiff, s_autoDiff, ds_autoDiff, 0);
+
+  s = DiscardGradient(s_autoDiff);
+  ds = DiscardGradient(ds_autoDiff);
 }
 
 
 MatrixXd DynamicsConstraint::getGradientWrtTheta(
-    VectorXd theta_s, VectorXd theta_sDDot,
-    const VectorXd & x_i, const VectorXd & x_iplus1,
-    const VectorXd & h_i) const {
+  VectorXd theta_s, VectorXd theta_sDDot,
+  const VectorXd & x_i, const VectorXd & x_iplus1,
+  const VectorXd & h_i) const {
   // TODO(yminchen): You need to use autoDiff to get the gradient here, because
   // it's a nonlinear function in theta.
   // The calculation here will not be the same as the one in eval(), because

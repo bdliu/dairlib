@@ -69,8 +69,8 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
-  void getSAndSDot(VectorXd x_i,
-                   VectorXd & s_i, VectorXd & ds_i, int i_start) const;
+  void getSAndSDot(VectorXd x,
+                   VectorXd & s, VectorXd & ds) const;
   void getSAndSDot(AutoDiffVecXd x_i,
                    AutoDiffVecXd & s_i, AutoDiffVecXd & ds_i, int i_start) const;
 

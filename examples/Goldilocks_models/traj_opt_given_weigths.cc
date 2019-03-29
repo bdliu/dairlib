@@ -471,6 +471,35 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
+    // Below are all for debugging
+
+    std::vector<VectorXd> s;
+    std::vector<VectorXd> ds;
+
+    cout << "N = " << N << endl;
+    N_accum = 0;
+    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+        int i = N_accum + m;
+        cout << "i = " << i << endl;
+        // Get the gradient value first
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+
+        // getSAndSDot(
+        //   VectorXd x,
+        //   VectorXd & s, VectorXd & ds)
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
+    }
+
+
+
 
 
 
