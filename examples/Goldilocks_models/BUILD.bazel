@@ -131,6 +131,7 @@ cc_library(
     srcs = ["traj_opt_given_weigths.cc"],
     hdrs = ["traj_opt_given_weigths.h"],
     deps = [
+        ":debug_tools",
         "//examples/Goldilocks_models:goldilocks_model_traj_opt",
         "//systems/goldilocks_models",
         "//common",
@@ -329,3 +330,18 @@ cc_binary(
     ],
 )
 
+
+cc_library(
+    name = "debug_tools",
+    srcs = [
+        "debug_tools.cc",
+    ],
+    hdrs = [
+        "debug_tools.h"
+    ],
+    deps = [
+        "@drake//common",
+        "@drake//common/trajectories:piecewise_polynomial",
+        "//systems/goldilocks_models",
+    ],
+)

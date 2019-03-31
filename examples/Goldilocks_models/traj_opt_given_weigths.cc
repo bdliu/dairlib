@@ -31,6 +31,8 @@
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
 
+#include "examples/Goldilocks_models/debug_tools.h"
+
 using Eigen::Vector3d;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
@@ -473,15 +475,18 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
     // Below are all for debugging
 
-    std::vector<VectorXd> s;
-    std::vector<VectorXd> ds;
+    std::vector<VectorXd> s_vec;
+    std::vector<VectorXd> ds_vec;
+    std::vector<VectorXd> dds_vec;
+    std::vector<VectorXd> h_vec;
 
-    cout << "N = " << N << endl;
+    // cout << "N = " << N << endl;
     N_accum = 0;
-    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+    // for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l]; m++) {
         int i = N_accum + m;
-        cout << "i = " << i << endl;
+        // cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         VectorXd x_i_sol = result.GetSolution(x_i);
@@ -491,17 +496,26 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd ds;
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
         VectorXd dds = gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds);
+        // cout << "  s = " << s << endl;
+        // cout << "  ds = " << ds << endl;
+        // cout << "  dds = " << dds << endl;
+        s_vec.push_back(s);
+        ds_vec.push_back(ds);
+        dds_vec.push_back(dds);
 
-        cout << "  s = " << s << endl;
-        cout << "  ds = " << ds << endl;
-        cout << "  dds = " << dds << endl;
+        if(m < num_time_samples[l] - 1){
+          auto h_i = gm_traj_opt.dircon->timestep(i);
+          VectorXd h_i_sol = result.GetSolution(h_i);
+          h_vec.push_back(h_i_sol);
+        }
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
     }
-    // TODO: Do the initial s, ds and dds need to match those of post-impact??
-
-
+    PiecewisePolynomial<double> s_spline = createCubicSplineGivenSAndSdot(
+      h_vec, s_vec, ds_vec);
+    storeSplineOfS(h_vec, s_spline, directory, prefix);
+    checkSplineOfS(h_vec, dds_vec, s_spline);
 
 
 
