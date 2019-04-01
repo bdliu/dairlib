@@ -69,18 +69,8 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
-  AutoDiffVecXd getConstraintValueInAutoDiff(
-    const AutoDiffVecXd & x_i, const AutoDiffVecXd & x_iplus1,
-    const AutoDiffVecXd & h_i,
-    const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
-
   void getSAndSDot(const VectorXd & x,
                    VectorXd & s, VectorXd & ds) const;
-  void getSAndSDot(AutoDiffVecXd x_i,
-                   AutoDiffVecXd & s_i,
-                   AutoDiffVecXd & ds_i,
-                   const int & i_start,
-                   const VectorXd & theta_s) const;
 
   VectorXd getSDDot(const VectorXd & s, const VectorXd & ds) const;
 
@@ -92,6 +82,17 @@ class DynamicsConstraint : public Constraint {
 
 
  private:
+  AutoDiffVecXd getConstraintValueInAutoDiff(
+    const AutoDiffVecXd & x_i, const AutoDiffVecXd & x_iplus1,
+    const AutoDiffVecXd & h_i,
+    const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
+
+  void getSAndSDot(AutoDiffVecXd x_i,
+                   AutoDiffVecXd & s_i,
+                   AutoDiffVecXd & ds_i,
+                   const int & i_start,
+                   const VectorXd & theta_s) const;
+
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_q_;
   int n_v_;

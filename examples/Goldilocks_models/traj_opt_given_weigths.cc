@@ -579,12 +579,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           (h_i * h_i) - theta_sDDot(0) * (3 * theta_s(0) *theta_s(0) * y_iplus1 * y_iplus1 * y_iplus1);
 
         // Compare the values
-        cout << "  derived by autoDiff: " << grad_head_autoDiff(0,0) << endl;
-        cout << "  derived by hand: " << grad_head_byHand << endl;
-        cout << "    value of second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_i * y_i) << endl;
-        cout << "  derived by autoDiff: " << grad_tail_autoDiff(0,0) << endl;
-        cout << "  derived by hand: " << grad_tail_byHand << endl;
-        cout << "    value of second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_iplus1 * y_iplus1) << endl;
+        cout << grad_head_autoDiff(0,0) << "  (derived by finite difference)" << endl;
+        cout << grad_head_byHand << "  (derived by hand)" << endl;
+        cout << "    value of the second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_i * y_i) << endl;
+        cout << grad_tail_autoDiff(0,0) << "  (derived by finite difference)" << endl;
+        cout << grad_tail_byHand << "  (derived by hand)" << endl;
+        cout << "    value of the second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_iplus1 * y_iplus1) << endl;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
