@@ -517,32 +517,13 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Checking B
-    // theta_sddot part
-    /*for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
-    N_accum = 0;
-      for (int m = 0; m < num_time_samples[l]; m++) {
-        int i = N_accum + m;
-        cout << "i = " << i << endl;
-        // Get the gradient value first
-        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
-        VectorXd x_i_sol = result.GetSolution(x_i);
-
-        VectorXd s;
-        VectorXd ds;
-        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
-        VectorXd dyn_feature =
-          gm_traj_opt.dynamics_constraint_at_head->getDynFeatures(s, ds);
-        cout << "  dyn_feature = " << dyn_feature.transpose() << endl;
-      }
-      N_accum += num_time_samples[l];
-      N_accum -= 1;  // due to overlaps between modes
-    }*/
-    // theta_s part
     N_accum = 0;
     for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l] - 1; m++) {
         int i = N_accum + m;
         cout << "i = " << i << endl;
+
+        // theta_s part
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
         auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
@@ -551,10 +532,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
         double h_i = h_i_sol(0);
 
-        MatrixXd grad_head_autoDiff =
+        MatrixXd grad_head_byFD =
           gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
             x_i_sol, x_iplus1_sol, h_i_sol);
-        MatrixXd grad_tail_autoDiff =
+        MatrixXd grad_tail_byFD =
           gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
             x_i_sol, x_iplus1_sol, h_i_sol);
 
@@ -573,18 +554,24 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         double dy_iplus1 = x_iplus1_sol(1 + 7);
         double grad_head_byHand =
           (-6 * (y_i - y_iplus1) - 2 * h_i * (2 * dy_i + dy_iplus1)) /
-          (h_i * h_i) - theta_sDDot(0) * (3 * theta_s(0) *theta_s(0) * y_i * y_i * y_i);
+          (h_i * h_i) - theta_sDDot(0) *
+          (3 * theta_s(0) * theta_s(0) * y_i * y_i * y_i);
         double grad_tail_byHand =
           (6 * (y_i - y_iplus1) + 2 * h_i * (dy_i + 2 * dy_iplus1)) /
-          (h_i * h_i) - theta_sDDot(0) * (3 * theta_s(0) *theta_s(0) * y_iplus1 * y_iplus1 * y_iplus1);
+          (h_i * h_i) - theta_sDDot(0) *
+          (3 * theta_s(0) * theta_s(0) * y_iplus1 * y_iplus1 * y_iplus1);
+
+        // theta_sddot part
+        VectorXd dyn_feature_i =
+          gm_traj_opt.dynamics_constraint_at_head->getDynFeatures(s_i, ds_i);
+        VectorXd dyn_feature_iplus1 =
+          gm_traj_opt.dynamics_constraint_at_head->getDynFeatures(s_iplus1, ds_iplus1);
 
         // Compare the values
-        cout << grad_head_autoDiff(0,0) << "  (derived by finite difference)" << endl;
-        cout << grad_head_byHand << "  (derived by hand)" << endl;
-        cout << "    value of the second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_i * y_i) << endl;
-        cout << grad_tail_autoDiff(0,0) << "  (derived by finite difference)" << endl;
-        cout << grad_tail_byHand << "  (derived by hand)" << endl;
-        cout << "    value of the second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_iplus1 * y_iplus1) << endl;
+        cout << grad_head_byFD << " (by finite difference)" << endl;
+        cout << grad_head_byHand << " " << -dyn_feature_i << " (by hand)" << endl;
+        cout << grad_tail_byFD << " (by finite difference)" << endl;
+        cout << grad_tail_byHand << " " << -dyn_feature_iplus1 << " (by hand)" << endl;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
