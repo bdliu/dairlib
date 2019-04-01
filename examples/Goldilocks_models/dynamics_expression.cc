@@ -90,7 +90,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
              ds(0) * s(0),
              ds(0) * ds(0);*/
 
-  // Version 6: testing
+  // Version 6: testing (debug B matrix)
   DRAKE_DEMAND(n_sDDot_ == 1);
   T feature(1);
   feature << s(0)*s(0)*s(0);

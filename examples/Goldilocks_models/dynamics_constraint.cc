@@ -202,8 +202,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   // You'll need to create autoDiff yourself first, cause the input is double
   // and you need to jacobian to get ds.
 
-  // Do forward differencing on theta
-  VectorXd q_i = x_i.head(n_q_);
+  // ////////// V1: Do forward differencing on theta ///////////////////////////
+  /*VectorXd q_i = x_i.head(n_q_);
   VectorXd v_i = x_i.tail(n_v_);
   VectorXd q_iplus1 = x_iplus1.head(n_q_);
   VectorXd v_iplus1 = x_iplus1.tail(n_v_);
@@ -272,7 +272,82 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     gradWrtTheta.col(k) = (y_1 - y_0) / eps_;
 
     theta(k) -= eps_;
+  }*/
+
+
+  // ////////// V2: Do central differencing on theta ///////////////////////////
+  // Get the gradient wrt theta_s and theta_sDDot
+  VectorXd theta(n_theta_s_ + n_theta_sDDot_);
+  theta << theta_s, theta_sDDot;
+  MatrixXd gradWrtTheta(n_s_, theta.size());
+  for (int k = 0; k < theta.size(); k++) {
+    theta(k) += eps_;
+
+    VectorXd theta_s = theta.head(n_theta_s_);
+    VectorXd theta_sDDot = theta.tail(n_theta_sDDot_);
+
+    // Extract q and v
+    VectorXd q_i = x_i.head(n_q_);
+    VectorXd v_i = x_i.tail(n_v_);
+    VectorXd q_iplus1 = x_iplus1.head(n_q_);
+    VectorXd v_iplus1 = x_iplus1.tail(n_v_);
+
+    // Get s_i, ds_i
+    AutoDiffVecXd q_i_ad = initializeAutoDiff(q_i);
+    AutoDiffVecXd s_i_ad = kin_expression_.getExpression(theta_s, q_i_ad);
+    VectorXd s_i = autoDiffToValueMatrix(s_i_ad);
+    VectorXd ds_i = autoDiffToGradientMatrix(s_i_ad) * v_i;
+    // Get s_iplus1, ds_iplus1
+    AutoDiffVecXd q_iplus1_ad = initializeAutoDiff(q_iplus1);
+    AutoDiffVecXd s_iplus1_ad = kin_expression_.getExpression(
+                                  theta_s, q_iplus1_ad);
+    VectorXd s_iplus1 = autoDiffToValueMatrix(s_iplus1_ad);
+    VectorXd ds_iplus1 = autoDiffToGradientMatrix(s_iplus1_ad) * v_iplus1;
+    // Get constraint value
+    VectorXd y_1;
+    if (is_head_) {
+      y_1 =
+        2 * (-3 * (s_i - s_iplus1 ) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
+        (h_i(0) * h_i(0)) -
+        dyn_expression_.getExpression(theta_sDDot, s_i, ds_i);
+    }
+    else {
+      y_1 =
+        (6 * (s_i - s_iplus1 ) + h_i(0) * (4 * ds_iplus1 + 2 * ds_i)) /
+        (h_i(0) * h_i(0)) -
+        dyn_expression_.getExpression(theta_sDDot, s_iplus1, ds_iplus1);
+    }
+
+    // Get gradient
+    gradWrtTheta.col(k) = (y_1 - y_0) / eps_;
+
+    theta(k) -= eps_;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   return gradWrtTheta;
 }
