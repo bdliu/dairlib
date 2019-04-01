@@ -21,18 +21,20 @@ namespace dairlib {
 namespace goldilocks_models  {
 
 // Create cubic splines from s and sdot
-PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(vector<VectorXd> h_vec,
-    vector<VectorXd> s_vec, vector<VectorXd> ds_vec);
+PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(
+  const vector<VectorXd> & h_vec,
+  const vector<VectorXd> & s_vec, const vector<VectorXd> & ds_vec);
 
 // Store splines in csv file for plotting
 // The first row is time, and the rest rows are s
-void storeSplineOfS(vector<VectorXd> h_vec,
-    PiecewisePolynomial<double> s_spline,
-    string directory, string prefix);
+void storeSplineOfS(const vector<VectorXd> & h_vec,
+                    const PiecewisePolynomial<double> & s_spline,
+                    const string & directory, const string & prefix);
 
 // Check whether your cubic spline implemented in dynamics constriant is correct
-void checkSplineOfS(vector<VectorXd> h_vec, vector<VectorXd> dds_vec,
-    PiecewisePolynomial<double> s_spline);
+void checkSplineOfS(const vector<VectorXd> & h_vec,
+                    const vector<VectorXd> & dds_vec,
+                    const PiecewisePolynomial<double> & s_spline);
 
 }  // namespace goldilocks_models
 } // dairlib

@@ -4,7 +4,7 @@ namespace dairlib {
 namespace goldilocks_models  {
 
 // Create time knots for creating cubic splines
-vector<double> createTimeKnotsGivenTimesteps(vector<VectorXd> h_vec) {
+vector<double> createTimeKnotsGivenTimesteps(const vector<VectorXd> & h_vec) {
   vector<double> T_breakpoint;
   double time = 0;
   T_breakpoint.push_back(time);
@@ -17,9 +17,9 @@ vector<double> createTimeKnotsGivenTimesteps(vector<VectorXd> h_vec) {
 
 
 PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(
-  vector<VectorXd> h_vec,
-  vector<VectorXd> s_vec,
-  vector<VectorXd> ds_vec) {
+  const vector<VectorXd> & h_vec,
+  const vector<VectorXd> & s_vec,
+  const vector<VectorXd> & ds_vec) {
   // Create time knots
   vector<double> T_breakpoint = createTimeKnotsGivenTimesteps(h_vec);
 
@@ -36,9 +36,10 @@ PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(
 }
 
 
-void storeSplineOfS(vector<VectorXd> h_vec,
-                    PiecewisePolynomial<double> s_spline,
-                    string directory, string prefix) {
+void storeSplineOfS(const vector<VectorXd> & h_vec,
+                    const PiecewisePolynomial<double> & s_spline,
+                    const string & directory,
+                    const string & prefix) {
   // parameters
   int n_sample_each_seg = 3;
 
@@ -81,8 +82,9 @@ void storeSplineOfS(vector<VectorXd> h_vec,
 }
 
 
-void checkSplineOfS(vector<VectorXd> h_vec, vector<VectorXd> dds_vec,
-                    PiecewisePolynomial<double> s_spline) {
+void checkSplineOfS(const vector<VectorXd> & h_vec,
+                    const vector<VectorXd> & dds_vec,
+                    const PiecewisePolynomial<double> & s_spline) {
   // parameters
   double tol = 1e-4;
 

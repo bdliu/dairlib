@@ -471,34 +471,24 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     writeCSV(directory + prefix + string("B.csv"), B);*/
 
 
-
-
-    // Below are all for debugging
-
+    // Store s, ds and dds into csv files
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;
     std::vector<VectorXd> h_vec;
-
-    // cout << "N = " << N << endl;
     N_accum = 0;
     // for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
     for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l]; m++) {
         int i = N_accum + m;
-        // cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         VectorXd x_i_sol = result.GetSolution(x_i);
-        // cout << "  x_i = " << x_i_sol.transpose() << endl;
 
         VectorXd s;
         VectorXd ds;
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
         VectorXd dds = gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds);
-        // cout << "  s = " << s << endl;
-        // cout << "  ds = " << ds << endl;
-        // cout << "  dds = " << dds << endl;
         s_vec.push_back(s);
         ds_vec.push_back(ds);
         dds_vec.push_back(dds);
@@ -515,7 +505,16 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     PiecewisePolynomial<double> s_spline = createCubicSplineGivenSAndSdot(
       h_vec, s_vec, ds_vec);
     storeSplineOfS(h_vec, s_spline, directory, prefix);
-    checkSplineOfS(h_vec, dds_vec, s_spline);
+    // checkSplineOfS(h_vec, dds_vec, s_spline);
+
+
+
+
+
+
+
+
+    // Below are all for debugging
 
 
 
