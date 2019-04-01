@@ -431,10 +431,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
         MatrixXd dyn_gradient_head =
           gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, x_iplus1_sol, h_i_sol);
         MatrixXd dyn_gradient_tail =
           gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, x_iplus1_sol, h_i_sol);
 
         // Fill in B matrix
         B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
@@ -553,10 +553,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
         MatrixXd grad_head_autoDiff =
           gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, x_iplus1_sol, h_i_sol);
         MatrixXd grad_tail_autoDiff =
           gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, x_iplus1_sol, h_i_sol);
 
         VectorXd s_i;
         VectorXd ds_i;
