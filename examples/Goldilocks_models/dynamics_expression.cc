@@ -80,16 +80,20 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   //            ds(0) * ds(1),
   //            ds(1) * ds(1);
 
-  // Version 5: ns = 2, all combinations until quadratic
-  DRAKE_DEMAND(n_sDDot_ == 1);
+  // Version 5: ns = 1, all combinations until quadratic
+  /*DRAKE_DEMAND(n_sDDot_ == 1);
   T feature(6);
   feature << 1,     // constant
              s(0),  // linear
              ds(0),
              s(0) * s(0),  // quadratic
              ds(0) * s(0),
-             ds(0) * ds(0);
+             ds(0) * ds(0);*/
 
+  // Version 6: testing
+  DRAKE_DEMAND(n_sDDot_ == 1);
+  T feature(1);
+  feature << s(0)*s(0)*s(0);
 
   return feature;
 }

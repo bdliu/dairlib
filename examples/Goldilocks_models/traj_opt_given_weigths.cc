@@ -512,8 +512,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-
-
     // Below are all for debugging
 
 
@@ -521,6 +519,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // Checking B
     // theta_sddot part
     /*for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+    N_accum = 0;
       for (int m = 0; m < num_time_samples[l]; m++) {
         int i = N_accum + m;
         cout << "i = " << i << endl;
@@ -538,6 +537,60 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
     }*/
+    // theta_s part
+    N_accum = 0;
+    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+      for (int m = 0; m < num_time_samples[l] - 1; m++) {
+        int i = N_accum + m;
+        cout << "i = " << i << endl;
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+        double h_i = h_i_sol(0);
+
+        MatrixXd grad_head_autoDiff =
+          gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
+            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+        MatrixXd grad_tail_autoDiff =
+          gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+            theta_s, theta_sDDot, x_i_sol, x_iplus1_sol, h_i_sol);
+
+        VectorXd s_i;
+        VectorXd ds_i;
+        VectorXd s_iplus1;
+        VectorXd ds_iplus1;
+        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
+          x_i_sol, s_i, ds_i);
+        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
+          x_iplus1_sol, s_iplus1, ds_iplus1);
+
+        double y_i = x_i_sol(1);
+        double dy_i = x_i_sol(1 + 7);
+        double y_iplus1 = x_iplus1_sol(1);
+        double dy_iplus1 = x_iplus1_sol(1 + 7);
+        double grad_head_byHand =
+          (-6 * (y_i - y_iplus1) - 2 * h_i * (2 * dy_i + dy_iplus1)) /
+          (h_i * h_i) - theta_sDDot(0) * (3 * theta_s(0) *theta_s(0) * y_i * y_i * y_i);
+        double grad_tail_byHand =
+          (6 * (y_i - y_iplus1) + 2 * h_i * (dy_i + 2 * dy_iplus1)) /
+          (h_i * h_i) - theta_sDDot(0) * (3 * theta_s(0) *theta_s(0) * y_iplus1 * y_iplus1 * y_iplus1);
+
+        // Compare the values
+        cout << "  derived by autoDiff: " << grad_head_autoDiff(0,0) << endl;
+        cout << "  derived by hand: " << grad_head_byHand << endl;
+        cout << "    value of second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_i * y_i) << endl;
+        cout << "  derived by autoDiff: " << grad_tail_autoDiff(0,0) << endl;
+        cout << "  derived by hand: " << grad_tail_byHand << endl;
+        cout << "    value of second term = " << - theta_sDDot(0) * (2 * theta_s(0) * y_iplus1 * y_iplus1) << endl;
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
+    }
+
+
 
 
 
