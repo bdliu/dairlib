@@ -25,7 +25,7 @@ PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(vector<VectorXd> h_ve
     vector<VectorXd> s_vec, vector<VectorXd> ds_vec);
 
 // Store splines in csv file for plotting
-// s at different time is stored at different columns
+// The first row is time, and the rest rows are s
 void storeSplineOfS(vector<VectorXd> h_vec,
     PiecewisePolynomial<double> s_spline,
     string directory, string prefix);

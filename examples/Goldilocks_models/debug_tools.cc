@@ -4,7 +4,7 @@ namespace dairlib {
 namespace goldilocks_models  {
 
 // Create time knots for creating cubic splines
-vector<double> createTimeKnotsGivenTimesteps(vector<VectorXd> h_vec){
+vector<double> createTimeKnotsGivenTimesteps(vector<VectorXd> h_vec) {
   vector<double> T_breakpoint;
   double time = 0;
   T_breakpoint.push_back(time);
@@ -16,9 +16,10 @@ vector<double> createTimeKnotsGivenTimesteps(vector<VectorXd> h_vec){
 }
 
 
-PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(vector<VectorXd> h_vec,
-                                   vector<VectorXd> s_vec,
-                                   vector<VectorXd> ds_vec) {
+PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(
+  vector<VectorXd> h_vec,
+  vector<VectorXd> s_vec,
+  vector<VectorXd> ds_vec) {
   // Create time knots
   vector<double> T_breakpoint = createTimeKnotsGivenTimesteps(h_vec);
 
@@ -36,10 +37,10 @@ PiecewisePolynomial<double> createCubicSplineGivenSAndSdot(vector<VectorXd> h_ve
 
 
 void storeSplineOfS(vector<VectorXd> h_vec,
-    PiecewisePolynomial<double> s_spline,
-    string directory, string prefix){
+                    PiecewisePolynomial<double> s_spline,
+                    string directory, string prefix) {
   // parameters
-  int n_sample_each_seg = 3;
+  int n_sample_each_seg = 20;
 
   // setup
   int n_s = s_spline.value(0).rows();
@@ -48,27 +49,40 @@ void storeSplineOfS(vector<VectorXd> h_vec,
   vector<double> T_breakpoint = createTimeKnotsGivenTimesteps(h_vec);
 
   // Create the matrix for csv file
-  MatrixXd s_over_time(n_s, 1 + (n_sample_each_seg - 1)*h_vec.size());
-  // cout << "s_over_time.rows() = " << s_over_time.rows() << endl;
-  // cout << "s_over_time.cols() = " << s_over_time.cols() << endl;
-  s_over_time.block(0, 0, n_s, 1) = s_spline.value(0.0);
+  // The first row is time, and the rest rows are s
+  MatrixXd t_and_s(1 + n_s, 1 + (n_sample_each_seg - 1)*h_vec.size());
+  MatrixXd t_and_ds(1 + n_s, 1 + (n_sample_each_seg - 1)*h_vec.size());
+  MatrixXd t_and_dds(1 + n_s, 1 + (n_sample_each_seg - 1)*h_vec.size());
+  t_and_s(0, 0) = 0;
+  t_and_ds(0, 0) = 0;
+  t_and_dds(0, 0) = 0;
+  t_and_s.block(1, 0, n_s, 1) = s_spline.value(0);
+  t_and_ds.block(1, 0, n_s, 1) = s_spline.derivative(1).value(0);
+  t_and_dds.block(1, 0, n_s, 1) = s_spline.derivative(2).value(0);
   for (unsigned int i = 0; i < h_vec.size() ; i++) {
     for (int j = 1; j < n_sample_each_seg; j++) {
-      // cout << j + i * (n_sample_each_seg - 1) << endl;
-      s_over_time.block(0, j + i * (n_sample_each_seg - 1), n_s, 1) =
-        s_spline.value(
-          T_breakpoint[i] + j * h_vec[i](0) / (n_sample_each_seg - 1));
+      double time = T_breakpoint[i] + j * h_vec[i](0) / (n_sample_each_seg - 1);
+      t_and_s(0, j + i * (n_sample_each_seg - 1)) = time;
+      t_and_ds(0, j + i * (n_sample_each_seg - 1)) = time;
+      t_and_dds(0, j + i * (n_sample_each_seg - 1)) = time;
+      t_and_s.block(1, j + i * (n_sample_each_seg - 1), n_s, 1) =
+        s_spline.value(time);
+      t_and_ds.block(1, j + i * (n_sample_each_seg - 1), n_s, 1) =
+        s_spline.derivative(1).value(time);
+      t_and_dds.block(1, j + i * (n_sample_each_seg - 1), n_s, 1) =
+        s_spline.derivative(2).value(time);
     }
   }
-  // cout << "s_over_time = \n" << s_over_time << endl;
 
   // Store into csv file
-  writeCSV(directory + prefix + string("s.csv"), s_over_time);
+  writeCSV(directory + prefix + string("t_and_s.csv"), t_and_s);
+  writeCSV(directory + prefix + string("t_and_ds.csv"), t_and_ds);
+  writeCSV(directory + prefix + string("t_and_dds.csv"), t_and_dds);
 }
 
 
 void checkSplineOfS(vector<VectorXd> h_vec, vector<VectorXd> dds_vec,
-    PiecewisePolynomial<double> s_spline){
+                    PiecewisePolynomial<double> s_spline) {
   // parameters
   double tol = 1e-4;
 
@@ -79,9 +93,8 @@ void checkSplineOfS(vector<VectorXd> h_vec, vector<VectorXd> dds_vec,
   for (unsigned int i = 0; i < T_breakpoint.size() ; i++) {
     VectorXd dds_by_drake = s_spline.derivative(2).value(T_breakpoint[i]);
     VectorXd dds_by_hand = dds_vec[i];
-    DRAKE_DEMAND((dds_by_drake - dds_by_hand).norm() <= tol);
+    DRAKE_DEMAND((dds_by_drake - dds_by_hand).norm() < tol);
   }
-
 }
 
 
