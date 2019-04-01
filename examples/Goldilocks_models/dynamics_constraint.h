@@ -69,17 +69,23 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
               VectorX<Expression>*y) const override;
 
+  AutoDiffVecXd getConstraintValueInAutoDiff(
+    AutoDiffVecXd x_i, AutoDiffVecXd x_iplus1, const AutoDiffVecXd h_i,
+    const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
+
   void getSAndSDot(VectorXd x,
                    VectorXd & s, VectorXd & ds) const;
   void getSAndSDot(AutoDiffVecXd x_i,
                    AutoDiffVecXd & s_i,
                    AutoDiffVecXd & ds_i,
-                   int i_start) const;
+                   int i_start,
+                   const VectorXd & theta_s) const;
 
   VectorXd getSDDot(VectorXd s, VectorXd ds) const;
 
-  MatrixXd getGradientWrtTheta(const VectorXd & x_i, const VectorXd & x_iplus1,
-                               const VectorXd & h_i) const;
+  MatrixXd getGradientWrtTheta(const VectorXd & x_i_double,
+                               const VectorXd & x_iplus1_double,
+                               const VectorXd & h_i_double) const;
 
   VectorXd getDynFeatures(VectorXd s, VectorXd ds) const;
 
