@@ -40,7 +40,7 @@ void storeSplineOfS(vector<VectorXd> h_vec,
                     PiecewisePolynomial<double> s_spline,
                     string directory, string prefix) {
   // parameters
-  int n_sample_each_seg = 20;
+  int n_sample_each_seg = 3;
 
   // setup
   int n_s = s_spline.value(0).rows();
