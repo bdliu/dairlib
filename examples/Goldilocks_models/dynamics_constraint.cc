@@ -277,6 +277,10 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   return gradWrtTheta;
 }
 
+VectorXd DynamicsConstraint::getDynFeatures(VectorXd s, VectorXd ds) const{
+  return dyn_expression_.getFeature(s, ds);
+}
+
 
 
 

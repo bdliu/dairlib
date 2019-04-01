@@ -467,8 +467,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     writeCSV(directory + prefix + string("A.csv"), A);
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
-    writeCSV(directory + prefix + string("y.csv"), y);
-    writeCSV(directory + prefix + string("B.csv"), B);*/
+    writeCSV(directory + prefix + string("y.csv"), y);*/
+    writeCSV(directory + prefix + string("B.csv"), B);
 
 
     // Store s, ds and dds into csv files
@@ -493,7 +493,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         ds_vec.push_back(ds);
         dds_vec.push_back(dds);
 
-        if(m < num_time_samples[l] - 1){
+        if (m < num_time_samples[l] - 1) {
           auto h_i = gm_traj_opt.dircon->timestep(i);
           VectorXd h_i_sol = result.GetSolution(h_i);
           h_vec.push_back(h_i_sol);
@@ -503,7 +503,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       N_accum -= 1;  // due to overlaps between modes
     }
     PiecewisePolynomial<double> s_spline = createCubicSplineGivenSAndSdot(
-      h_vec, s_vec, ds_vec);
+        h_vec, s_vec, ds_vec);
     storeSplineOfS(h_vec, s_spline, directory, prefix);
     // checkSplineOfS(h_vec, dds_vec, s_spline);
 
@@ -515,6 +515,31 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Below are all for debugging
+
+
+
+    // Checking B
+    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+      for (int m = 0; m < num_time_samples[l]; m++) {
+        int i = N_accum + m;
+        cout << "i = " << i << endl;
+        // Get the gradient value first
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+
+        VectorXd s;
+        VectorXd ds;
+        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
+        VectorXd dyn_feature =
+          gm_traj_opt.dynamics_constraint_at_head->getDynFeatures(s, ds);
+        cout << "  dyn_feature = " << dyn_feature.transpose() << endl;
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
+    }
+
+
+
 
 
 
