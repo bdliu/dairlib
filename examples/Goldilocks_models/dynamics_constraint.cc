@@ -62,13 +62,6 @@ void DynamicsConstraint::DoEval(const
 void DynamicsConstraint::DoEval(const
                                 Eigen::Ref<const AutoDiffVecXd>& qvqvh,
                                 AutoDiffVecXd* y) const {
-  // Write a function getSAndSDot() that gives you s_i, s_iplus1, ds_i, ds_iplus1
-  // When you want to get B, you can call getSAndSDot() and then
-  // call the feature function.
-  // Before you call getSAndSDot(), you will need to format them into the DoEval
-  // input here (i.e. autodiff qvqvh), so that you only need to call one function.
-  // Also, you can call getSAndSDot() to record your reduced order model state.
-
   // Extract elements
   AutoDiffVecXd x_i = qvqvh.head(n_q_ + n_v_);
   AutoDiffVecXd x_iplus1 = qvqvh.segment(n_q_ + n_v_, n_q_ + n_v_);
@@ -96,8 +89,8 @@ AutoDiffVecXd DynamicsConstraint::getConstraintValueInAutoDiff(
   AutoDiffVecXd ds_i = initializeAutoDiff(VectorXd::Zero(n_s_));
   AutoDiffVecXd s_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
   AutoDiffVecXd ds_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
-  getSAndSDot(x_i, s_i, ds_i, 0, theta_s);
-  getSAndSDot(x_iplus1, s_iplus1, ds_iplus1, n_q_ + n_v_, theta_s);
+  getSAndSDotInAutoDiff(x_i, s_i, ds_i, 0, theta_s);
+  getSAndSDotInAutoDiff(x_iplus1, s_iplus1, ds_iplus1, n_q_ + n_v_, theta_s);
 
   // Get constraint value in autoDiff
   if (is_head_) {
@@ -123,9 +116,10 @@ AutoDiffVecXd DynamicsConstraint::getConstraintValueInAutoDiff(
 }
 
 
-void DynamicsConstraint::getSAndSDot(AutoDiffVecXd x,
-                                     AutoDiffVecXd & s, AutoDiffVecXd & ds, const int & i_start,
-                                     const VectorXd & theta_s) const {
+void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
+    AutoDiffVecXd & s, AutoDiffVecXd & ds,
+    const int & i_start,
+    const VectorXd & theta_s) const {
   AutoDiffVecXd q = x.head(n_q_);
   AutoDiffVecXd v = x.tail(n_v_);
   // s
@@ -142,9 +136,9 @@ void DynamicsConstraint::getSAndSDot(AutoDiffVecXd x,
     x(i) += eps_;
     AutoDiffVecXd q = x.head(n_q_);
 
-    MatrixXd d_phii_d_q = autoDiffToGradientMatrix(
-                            kin_expression_.getFeature(q)).block(
-                            0, i_start, n_feature_s_, n_q_);
+    MatrixXd d_phii_d_q =
+      autoDiffToGradientMatrix(
+        kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
     VectorXd vi_val = DiscardGradient(x.tail(n_v_));
     VectorXd dphii_dt = d_phii_d_q * vi_val;
     grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_;
@@ -176,17 +170,11 @@ void DynamicsConstraint::getSAndSDot(
   AutoDiffVecXd x_autoDiff = initializeAutoDiff(x);
   AutoDiffVecXd s_autoDiff = initializeAutoDiff(VectorXd::Zero(n_s_));
   AutoDiffVecXd ds_autoDiff = initializeAutoDiff(VectorXd::Zero(n_s_));
-  getSAndSDot(x_autoDiff, s_autoDiff, ds_autoDiff, 0, theta_s_);
+  getSAndSDotInAutoDiff(x_autoDiff, s_autoDiff, ds_autoDiff, 0, theta_s_);
 
   s = DiscardGradient(s_autoDiff);
   ds = DiscardGradient(ds_autoDiff);
 }
-
-VectorXd DynamicsConstraint::getSDDot(const VectorXd & s,
-                                      const VectorXd & ds) const {
-  return dyn_expression_.getExpression(theta_sDDot_, s, ds);
-}
-
 
 MatrixXd DynamicsConstraint::getGradientWrtTheta(
   const VectorXd & x_i_double, const VectorXd & x_iplus1_double,
@@ -298,7 +286,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
       // Evaluate constraint value
       y_vec.push_back(autoDiffToValueMatrix(getConstraintValueInAutoDiff(
-                                              x_i, x_iplus1, h_i, theta_s, theta_sDDot)));
+                                              x_i, x_iplus1, h_i,
+                                              theta_s, theta_sDDot)));
 
       theta(k) -= shift;
     }
@@ -310,13 +299,6 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
   return gradWrtTheta;
 }
-
-
-VectorXd DynamicsConstraint::getDynFeatures(const VectorXd & s,
-    const VectorXd & ds) const {
-  return dyn_expression_.getFeature(s, ds);
-}
-
 
 
 

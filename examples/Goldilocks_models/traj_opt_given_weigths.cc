@@ -570,8 +570,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         // Compare the values
         cout << grad_head_byFD << " (by finite difference)" << endl;
         cout << grad_head_byHand << " " << -dyn_feature_i << " (by hand)" << endl;
+        cout << "  differnce = " << grad_head_byFD(0,0) - grad_head_byHand << ", " << grad_head_byFD(0,1) + dyn_feature_i(0) << endl;
         cout << grad_tail_byFD << " (by finite difference)" << endl;
         cout << grad_tail_byHand << " " << -dyn_feature_iplus1 << " (by hand)" << endl;
+        cout << "  differnce = " << grad_tail_byFD(0,0) - grad_tail_byHand << ", " << grad_tail_byFD(0,1) + dyn_feature_iplus1(0) << endl;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes

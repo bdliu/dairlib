@@ -72,13 +72,17 @@ class DynamicsConstraint : public Constraint {
   void getSAndSDot(const VectorXd & x,
                    VectorXd & s, VectorXd & ds) const;
 
-  VectorXd getSDDot(const VectorXd & s, const VectorXd & ds) const;
+  VectorXd getSDDot(const VectorXd & s, const VectorXd & ds) const {
+    return dyn_expression_.getExpression(theta_sDDot_, s, ds);
+  };
 
   MatrixXd getGradientWrtTheta(const VectorXd & x_i_double,
                                const VectorXd & x_iplus1_double,
                                const VectorXd & h_i_double) const;
 
-  VectorXd getDynFeatures(const VectorXd & s, const VectorXd & ds) const;
+  VectorXd getDynFeatures(const VectorXd & s, const VectorXd & ds) const {
+    return dyn_expression_.getFeature(s, ds);
+  };
 
 
  private:
@@ -87,11 +91,11 @@ class DynamicsConstraint : public Constraint {
     const AutoDiffVecXd & h_i,
     const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
 
-  void getSAndSDot(AutoDiffVecXd x_i,
-                   AutoDiffVecXd & s_i,
-                   AutoDiffVecXd & ds_i,
-                   const int & i_start,
-                   const VectorXd & theta_s) const;
+  void getSAndSDotInAutoDiff(AutoDiffVecXd x_i,
+                             AutoDiffVecXd & s_i,
+                             AutoDiffVecXd & ds_i,
+                             const int & i_start,
+                             const VectorXd & theta_s) const;
 
   const MultibodyPlant<AutoDiffXd> * plant_;
   int n_q_;
