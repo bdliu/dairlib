@@ -519,7 +519,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Checking B
-    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+    // theta_sddot part
+    /*for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l]; m++) {
         int i = N_accum + m;
         cout << "i = " << i << endl;
@@ -536,7 +537,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
-    }
+    }*/
 
 
 
