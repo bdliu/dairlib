@@ -197,9 +197,6 @@ VectorXd DynamicsConstraint::getSDDot(VectorXd s, VectorXd ds) const{
 MatrixXd DynamicsConstraint::getGradientWrtTheta(
   const VectorXd & x_i_double, const VectorXd & x_iplus1_double,
   const VectorXd & h_i_double) const {
-  // TODO(yminchen): create a function that you can use here and in Eval, so
-  // that you don't duplicate the code.
-
   // It's a nonlinear function in theta, so we use autoDiff to get the gradient.
   // The calculation here will not be the same as the one in eval(), because
   // we have totally different autodiff, and the second autodiff requires
@@ -283,6 +280,15 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
 
   // ////////// V2: Do central differencing on theta ///////////////////////////
+  // Get x_i, x_iplus1 and h_i in autoDiff
+  VectorXd qvqvh_double(2*(n_q_+n_v_)+1);
+  qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
+  AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
+
+  AutoDiffVecXd x_i = qvqvh.head(n_q_ + n_v_);
+  AutoDiffVecXd x_iplus1 = qvqvh.segment(n_q_ + n_v_, n_q_ + n_v_);
+  const AutoDiffVecXd h_i = qvqvh.tail(1);
+
   // Get the gradient wrt theta_s and theta_sDDot
   VectorXd theta(n_theta_s_ + n_theta_sDDot_);
   theta << theta_s_, theta_sDDot_;
@@ -295,15 +301,6 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
       VectorXd theta_s = theta.head(n_theta_s_);
       VectorXd theta_sDDot = theta.tail(n_theta_sDDot_);
-
-      VectorXd qvqvh_double(2*(n_q_+n_v_)+1);
-      qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
-      AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
-
-      // Extract elements
-      AutoDiffVecXd x_i = qvqvh.head(n_q_ + n_v_);
-      AutoDiffVecXd x_iplus1 = qvqvh.segment(n_q_ + n_v_, n_q_ + n_v_);
-      const AutoDiffVecXd h_i = qvqvh.tail(1);
 
       // Evaluate constraint value
       y_vec.push_back(autoDiffToValueMatrix(getConstraintValueInAutoDiff(
@@ -319,6 +316,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
   return gradWrtTheta;
 }
+
 
 VectorXd DynamicsConstraint::getDynFeatures(VectorXd s, VectorXd ds) const{
   return dyn_expression_.getFeature(s, ds);
