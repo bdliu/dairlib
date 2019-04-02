@@ -240,7 +240,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
   // ////////// V2: Do central differencing on theta ///////////////////////////
   // Get x_i, x_iplus1 and h_i in autoDiff
-  VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
+  /*VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
   AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
 
@@ -271,7 +271,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     // Get gradient
     gradWrtTheta.col(k) = (y_vec[1] - y_vec[0]) / eps_cd_;
     y_vec.clear();
-  }
+  }*/
 
 
   // ////////////////// V3: higher order method on theta ///////////////////////
@@ -279,7 +279,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   // Doesn't help to increase the accuracy...
 
   // Get x_i, x_iplus1 and h_i in autoDiff
-  /*VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
+  VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
   AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
 
@@ -311,7 +311,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     gradWrtTheta.col(k) =
       (-y_vec[3] + 8 * y_vec[2] - 8 * y_vec[1] + y_vec[0]) / (3 * eps_ho_);
     y_vec.clear();
-  }*/
+  }
 
 
   return gradWrtTheta;
