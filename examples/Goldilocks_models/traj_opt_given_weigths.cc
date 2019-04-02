@@ -337,7 +337,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   cout << "Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
-  cout << "Cost:" << result.get_optimal_cost() << endl << endl;
+  cout << "Cost:" << result.get_optimal_cost() << endl;
 
   // The following line gives seg fault
   // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
@@ -392,6 +392,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
   if (!is_get_nominal) {
+    cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
     double c_double;
@@ -403,6 +404,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     c << c_double;
 
     // Get matrix B (~get feature vectors)
+    cout << "\nGetting B.\n";
     int n_theta_s = theta_s.size();
     int n_theta_sDDot = theta_sDDot.size();
     int n_theta = n_theta_s + n_theta_sDDot;
@@ -460,6 +462,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     B_vec.push_back(B);
 
     // Store the vectors and matrices
+    cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
 
     /*writeCSV(directory + prefix + string("H.csv"), H);
@@ -472,6 +475,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Store s, ds and dds into csv files
+    cout << "\nStoring s, ds and dds into csv.\n";
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;
@@ -512,11 +516,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
+
+
     // Below are all for debugging
 
-
-
     // Checking B
+    // BTW, the code only work in the case of y = q_1 ^2 and dds = s^3
     bool is_checking_matrix_B = false;
     if (is_checking_matrix_B) {
       N_accum = 0;
@@ -577,6 +582,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     }
 
     // Checking the accuracy of s and sdot calculation
+    // BTW, the code only work in the case of y = q_1 ^2
     bool is_checking_s_sdot = false;
     if (is_checking_s_sdot) {
       N_accum = 0;
@@ -596,11 +602,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           VectorXd ds_iplus1;
           gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
             x_i_sol, s_i, ds_i);
-          // cout << "ds_i_byhand - ds_i = " << 2*x_i_sol(1)*x_i_sol(1+7) - ds_i(0) << endl;
+          // cout << "ds_i_byhand - ds_i = " <<
+               // theta_s(0) * 2 * x_i_sol(1)*x_i_sol(1 + 7) - ds_i(0) << endl;
           gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
             x_iplus1_sol, s_iplus1, ds_iplus1);
           // cout << "ds_iplus1_byhand - ds_iplus1 = " <<
-          // 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
+               // theta_s(0) * 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
         }
         N_accum += num_time_samples[l];
         N_accum -= 1;  // due to overlaps between modes
@@ -631,7 +638,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    /*cout << "\ncheck if H is diagonal: \n";
+    cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -676,6 +683,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int nl_i = A.rows();
     int nw_i = A.cols();
     MathematicalProgram quadprog;
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+                             "Major iterations limit", 10000);
     auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
     quadprog.AddLinearConstraint( A,
                                   lb - y,
@@ -689,7 +698,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     cout << solution_result2 << endl;
     cout << "Cost:" << result2.get_optimal_cost() << endl;
     VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
-    cout << "w_sol norm:" << dw_sol.norm() << endl;
+    cout << "dw_sol norm:" << dw_sol.norm() << endl;
     // cout << "dw_sol = \n" << dw_sol << endl;
     cout << "Finished traj opt\n\n";
 
@@ -764,17 +773,17 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
             if (k == n_show)
               break;
           }
-          if (i == n_show-1 && j == n_ae - 1 && k < n_show) {
+          if (i == n_show - 1 && j == n_ae - 1 && k < n_show) {
             cout << "There are only " << k << " # of violations\n";
           }
         }
-        if(constraint_vio_row_idx.size()>=n_show)
+        if (constraint_vio_row_idx.size() >= n_show)
           break;
-        else if (i != 10-1)
+        else if (i != 10 - 1)
           constraint_vio_row_idx.clear();
       }
       cout << "  Row index of violation = ";
-      for(int j : constraint_vio_row_idx){
+      for (int j : constraint_vio_row_idx) {
         cout << j << ", ";
       }
       cout << endl;
@@ -787,7 +796,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         systems::trajectory_optimization::linearizeConstraints(
           gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
         cout << "  nonlinear_constraint_val = ";
-        for(int j : constraint_vio_row_idx){
+        for (int j : constraint_vio_row_idx) {
           double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
           cout << violation << ", ";
         }
@@ -806,7 +815,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_aub; j++) {
           double violation =
-              y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
+            y2(ub_active_ineq_row_idx[j]) - ub(ub_active_ineq_row_idx[j]);
           if (violation > 1e-8) {
             nonlinear_constraint_val(k) = violation;
             k++;
@@ -818,7 +827,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           }
         }
         cout << "  nonlinear_constraint_val = "
-            << nonlinear_constraint_val.transpose() << endl;
+             << nonlinear_constraint_val.transpose() << endl;
       }
     }
     if (n_alb) {
@@ -833,7 +842,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_alb; j++) {
           double violation =
-              y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
+            y2(lb_active_ineq_row_idx[j]) - lb(lb_active_ineq_row_idx[j]);
           if (violation < - 1e-8) {
             nonlinear_constraint_val(k) = violation;
             k++;
@@ -845,9 +854,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           }
         }
         cout << "  nonlinear_constraint_val = "
-            << nonlinear_constraint_val.transpose() << endl;
+             << nonlinear_constraint_val.transpose() << endl;
       }
-    }*/
+    }
   }  // end of if(!is_get_nominal)
 
 

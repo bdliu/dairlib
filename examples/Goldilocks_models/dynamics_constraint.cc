@@ -313,6 +313,50 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   }
 
 
+
+
+
+
+  // Finding the optimal step size
+  // https://math.stackexchange.com/questions/815113/is-there-a-general-formula-for-estimating-the-step-size-h-in-numerical-different
+  // https://www.uio.no/studier/emner/matnat/math/MAT-INF1100/h10/kompendiet/kap11.pdf
+
+  // Testing: Checking the third order derivatives
+  /*double h = 1e-3;
+  std::vector<double> thirdorder_shift_vec_{-h, 0, h};
+  // Get the gradient wrt theta_s and theta_sDDot
+  theta << theta_s_, theta_sDDot_;
+  MatrixXd thirdOrderDerivWrtTheta(n_s_, theta.size());
+  vector<VectorXd> y3_vec;
+  for (int k = 0; k < theta.size(); k++) {
+    for (double shift : thirdorder_shift_vec_) {
+      theta(k) += shift;
+
+      VectorXd theta_s = theta.head(n_theta_s_);
+      VectorXd theta_sDDot = theta.tail(n_theta_sDDot_);
+
+      // Evaluate constraint value
+      y3_vec.push_back(autoDiffToValueMatrix(getConstraintValueInAutoDiff(
+                                              x_i, x_iplus1, h_i,
+                                              theta_s, theta_sDDot)));
+
+      theta(k) -= shift;
+    }
+
+    // Get gradient
+    thirdOrderDerivWrtTheta.col(k) =
+      (y3_vec[2] -2* y3_vec[1] + y3_vec[0]) / (pow(h,2));
+    y3_vec.clear();
+  }
+  cout << "gradWrtTheta = " << gradWrtTheta << endl;
+  cout << "thirdOrderDerivWrtTheta = \n" << thirdOrderDerivWrtTheta << endl;
+  cout << "thirdOrderDerivWrtTheta.norm() = " << thirdOrderDerivWrtTheta.norm() << endl;*/
+
+
+
+
+
+
   return gradWrtTheta;
 }
 

@@ -76,6 +76,7 @@ double secondOrderCost(const MathematicalProgram* prog, const VectorXd& x,
 
     // forward differencing for Hessian
     double dx = 1e-8;
+    // double dx = 1e-4;
     AutoDiffVecXd y_hessian =
         initializeAutoDiff(VectorXd::Zero(1), variables.size());
     for (int i = 0; i < variables.size(); i++) {

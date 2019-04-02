@@ -252,7 +252,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // init_file_pass_in = string("1_2_w.csv");
         // stride_length = 0.3;
         // init_file_pass_in = string("19_2_w.csv");
-        init_file_pass_in = string("1_0_w.csv");
+        // init_file_pass_in = string("1_0_w.csv");
+        init_file_pass_in = string("2_0_w.csv");
       }
 
       // Trajectory optimization with fixed model paramters
