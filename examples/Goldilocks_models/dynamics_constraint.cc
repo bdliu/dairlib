@@ -203,7 +203,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   // You'll need to create autoDiff yourself first, cause the input is double
   // and you need to jacobian to get ds.
 
-  // ////////// V1: Do forward differencing on theta ///////////////////////////
+  // ////////// V1: Do forward differencing wrt theta //////////////////////////
   /*// Get x_i, x_iplus1 and h_i in autoDiff
   VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
@@ -238,7 +238,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     y_vec.clear();
   }*/
 
-  // ////////// V2: Do central differencing on theta ///////////////////////////
+  // ////////// V2: Do central differencing wrt theta //////////////////////////
   // Get x_i, x_iplus1 and h_i in autoDiff
   /*VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
@@ -274,9 +274,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   }*/
 
 
-  // ////////////////// V3: higher order method on theta ///////////////////////
+  // /////////// V3: higher order method of finite difference //////////////////
   // Reference: https://en.wikipedia.org/wiki/Numerical_differentiation#Higher-order_methods
-  // Doesn't help to increase the accuracy...
 
   // Get x_i, x_iplus1 and h_i in autoDiff
   VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
