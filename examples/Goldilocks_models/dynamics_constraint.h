@@ -111,7 +111,8 @@ class DynamicsConstraint : public Constraint {
   KinematicsExpression<AutoDiffXd> kin_expression_;
   DynamicsExpression dyn_expression_;
   bool is_head_;
-  double eps_ = 1e-8;
+  double eps_sDot_ = 1e-5;
+  double eps_ = 1e-4; //1e-3 good for ho; 1e-4 good for cd; ___ good for fd
   vector<double> fd_shift_vec_{0, eps_};  // forward difference
   vector<double> cd_shift_vec_{ -eps_ / 2, eps_ / 2};  // central difference
   vector<double> ho_shift_vec_{ -eps_ / 2, -eps_ / 4, eps_ / 4, eps_ / 2};

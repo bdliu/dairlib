@@ -559,11 +559,11 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
         // Compare the values
         cout << grad_head_byFD << " (by finite difference)" << endl;
-        cout << grad_head_byHand << " " << -dyn_feature_i << " (by hand)" << endl;
+        cout << grad_head_byHand << " " << -dyn_feature_i << " (analytically)" << endl;
         cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_byHand <<
              ", " << grad_head_byFD(0, 1) + dyn_feature_i << endl;
         cout << grad_tail_byFD << " (by finite difference)" << endl;
-        cout << grad_tail_byHand << " " << -dyn_feature_iplus1 << " (by hand)" << endl;
+        cout << grad_tail_byHand << " " << -dyn_feature_iplus1 << " (analytically)" << endl;
         cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_byHand <<
              ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
       }
@@ -576,7 +576,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     N_accum = 0;
     for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l] - 1; m++) {
-        int i = N_accum + m;
+        // int i = N_accum + m;
         // cout << "i = " << i << endl;
 
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);

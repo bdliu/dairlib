@@ -135,7 +135,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  theta_s = VectorXd::Ones(n_theta_s);
+  theta_s = 0.25*VectorXd::Ones(n_theta_s);
   theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);

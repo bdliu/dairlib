@@ -121,11 +121,9 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
   VectorXd v0_val = DiscardGradient(x.tail(n_v_));
   VectorXd dphi0_dt = d_phi0_d_q * v0_val;
 
-  MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
-  // vector<VectorXd> dphii_dt_vec(2,VectorXd::Zero(n_feature_s_));
+  /////////////////// V2: forward differencing /////////////////////////////////
+  /*MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
   for (int i = 0; i < n_q_ + n_v_; i++) {
-    // for(int j = 0; j < cd_shift_vec_.size(); j++){
-    //   x(i) += cd_shift_vec_[j];
     x(i) += eps_;
 
     AutoDiffVecXd q = x.head(n_q_);
@@ -134,15 +132,32 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
         kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
     VectorXd vi_val = DiscardGradient(x.tail(n_v_));
     VectorXd dphii_dt = d_phii_d_q * vi_val;
-    // dphii_dt_vec[j] = d_phii_d_q * vi_val;
 
     x(i) -= eps_;
-    //   x(i) -= cd_shift_vec_[j];
-    // }
 
-    // grad_dphidt.col(i_start + i) = (dphii_dt_vec[1] - dphii_dt_vec[0]) / eps_;
     grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_;
+  }*/
+
+  /////////////////// V2: central differencing /////////////////////////////////
+  MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
+  vector<VectorXd> dphii_dt_vec(2, VectorXd::Zero(n_feature_s_));
+  for (int i = 0; i < n_q_ + n_v_; i++) {
+    for (unsigned int j = 0; j < cd_shift_vec_.size(); j++) {
+      x(i) += cd_shift_vec_[j];
+
+      AutoDiffVecXd q = x.head(n_q_);
+      MatrixXd d_phii_d_q =
+        autoDiffToGradientMatrix(
+          kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
+      VectorXd vi_val = DiscardGradient(x.tail(n_v_));
+      dphii_dt_vec[j] = d_phii_d_q * vi_val;
+
+      x(i) -= cd_shift_vec_[j];
+    }
+
+    grad_dphidt.col(i_start + i) = (dphii_dt_vec[1] - dphii_dt_vec[0]) / eps_;
   }
+  //////////////////////////////////////////////////////////////////////////////
 
   AutoDiffVecXd dphi_dt = initializeAutoDiff(dphi0_dt);
   drake::math::initializeAutoDiffGivenGradientMatrix(
@@ -334,8 +349,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   // Reference: https://en.wikipedia.org/wiki/Numerical_differentiation#Higher-order_methods
   // Doesn't help to increase the accuracy...
 
-  /*// Get x_i, x_iplus1 and h_i in autoDiff
-  VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
+  // Get x_i, x_iplus1 and h_i in autoDiff
+  /*VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
   AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
 
