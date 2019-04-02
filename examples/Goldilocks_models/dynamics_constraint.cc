@@ -68,7 +68,50 @@ void DynamicsConstraint::DoEval(const
   const AutoDiffVecXd h_i = qvqvh.tail(1);
 
   // Impose dynamics constraint
-  *y = getConstraintValueInAutoDiff(x_i, x_iplus1, h_i, theta_s_, theta_sDDot_);
+  // Way 1 /////////////////////////////////////////////////////////////////////
+  // *y = getConstraintValueInAutoDiff(x_i, x_iplus1, h_i, theta_s_, theta_sDDot_);
+
+
+  // Way 2 /////////////////////////////////////////////////////////////////////
+  // Get s and ds at knot i and i+1
+  AutoDiffVecXd s_i = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd ds_i = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd s_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
+  AutoDiffVecXd ds_iplus1 = initializeAutoDiff(VectorXd::Zero(n_s_));
+  getSAndSDotInAutoDiff(x_i, s_i, ds_i, 0, theta_s_);
+  getSAndSDotInAutoDiff(x_iplus1, s_iplus1, ds_iplus1, n_q_ + n_v_, theta_s_);
+
+  // Get constraint value in autoDiff
+  if (is_head_) {
+    AutoDiffVecXd lhs =
+      2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
+      (h_i(0) * h_i(0));
+
+    // AutoDiffVecXd rhs =
+    //   dyn_expression_.getExpression(theta_sDDot_, s_i, ds_i);
+    AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
+    for (int i = 0; i < n_sDDot_; i++)
+      rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
+                 dyn_expression_.getFeature(s_i, ds_i));
+
+    *y = lhs - rhs;
+  }
+  else {
+    AutoDiffVecXd lhs =
+      (6 * (s_i - s_iplus1) + h_i(0) * (4 * ds_iplus1 + 2 * ds_i)) /
+      (h_i(0) * h_i(0));
+
+    // AutoDiffVecXd rhs =
+    //   dyn_expression_.getExpression(theta_sDDot_, s_iplus1, ds_iplus1);
+    AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
+    for (int i = 0; i < n_sDDot_; i++)
+      rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
+                 dyn_expression_.getFeature(s_iplus1, ds_iplus1));
+
+    *y = lhs - rhs;
+  }
+  //////////////////////////////////////////////////////////////////////////////
+
 }
 
 void DynamicsConstraint::DoEval(const

@@ -139,7 +139,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
   theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
-  if (iter_start > 0 && !FLAGS_is_debug) {
+  if (iter_start > 0) {
+  // if (iter_start > 0 && !FLAGS_is_debug) {
     MatrixXd theta_s_mat =
       readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
     MatrixXd theta_sDDot_mat =
@@ -253,7 +254,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // stride_length = 0.3;
         // init_file_pass_in = string("19_2_w.csv");
         // init_file_pass_in = string("1_0_w.csv");
-        init_file_pass_in = string("2_0_w.csv");
+        init_file_pass_in = string("1_0_w.csv");
       }
 
       // Trajectory optimization with fixed model paramters
