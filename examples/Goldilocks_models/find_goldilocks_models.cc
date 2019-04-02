@@ -266,9 +266,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
                             eps_regularization,
                             is_get_nominal);
       current_is_success = (current_is_success & result.is_success());
-      if (iter > 1 && !current_is_success)
-        break;
+      if ((iter > 1 && !current_is_success) || FLAGS_is_debug) break;
     }
+    if(FLAGS_is_debug) break;
 
     if (is_get_nominal) {
       if (!current_is_success)
