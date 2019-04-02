@@ -232,8 +232,11 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
             cos(q(6)) * cos(q(6));*/
 
   //////////// Version 8: debug B matrix ///////////////////////////////////////
+  // VectorX<U> feature(1);
+  // feature << q(1);
+  //////////// Version 9: debug B matrix ///////////////////////////////////////
   VectorX<U> feature(1);
-  feature << q(1);
+  feature << q(1)*q(1);
 
   return feature;
 }

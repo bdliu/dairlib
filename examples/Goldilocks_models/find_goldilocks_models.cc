@@ -203,8 +203,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // store initial parameter values
     prefix = to_string(iter) +  "_";
-    writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-    writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+    if(!FLAGS_is_debug){
+      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+    }
 
     // Clear the vectors/matrices before trajectory optimization
     A_vec.clear();
@@ -767,8 +769,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
   // store parameter values
   prefix = to_string(iter + 1) +  "_";
-  writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-  writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+  if(!FLAGS_is_debug){
+    writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
+    writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+  }
 
 }
 }  // namespace goldilocks_models

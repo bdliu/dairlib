@@ -118,7 +118,6 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
   MatrixXd d_phi0_d_q =
     autoDiffToGradientMatrix(
       kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
-  // cout << "d_phi0_d_q = " << d_phi0_d_q << endl;
   VectorXd v0_val = DiscardGradient(x.tail(n_v_));
   VectorXd dphi0_dt = d_phi0_d_q * v0_val;
 
@@ -127,17 +126,17 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
   for (int i = 0; i < n_q_ + n_v_; i++) {
     // for(int j = 0; j < cd_shift_vec_.size(); j++){
     //   x(i) += cd_shift_vec_[j];
-      x(i) += eps_;
+    x(i) += eps_;
 
-      AutoDiffVecXd q = x.head(n_q_);
-      MatrixXd d_phii_d_q =
-        autoDiffToGradientMatrix(
-          kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
-      VectorXd vi_val = DiscardGradient(x.tail(n_v_));
-      VectorXd dphii_dt = d_phii_d_q * vi_val;
-      // dphii_dt_vec[j] = d_phii_d_q * vi_val;
+    AutoDiffVecXd q = x.head(n_q_);
+    MatrixXd d_phii_d_q =
+      autoDiffToGradientMatrix(
+        kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
+    VectorXd vi_val = DiscardGradient(x.tail(n_v_));
+    VectorXd dphii_dt = d_phii_d_q * vi_val;
+    // dphii_dt_vec[j] = d_phii_d_q * vi_val;
 
-      x(i) -= eps_;
+    x(i) -= eps_;
     //   x(i) -= cd_shift_vec_[j];
     // }
 
