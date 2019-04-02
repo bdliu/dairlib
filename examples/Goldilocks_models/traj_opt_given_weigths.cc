@@ -544,11 +544,11 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         double dphis_i = 2*x_i_sol(1)*x_i_sol(1 + 7);
         double phis_iplus1 = x_iplus1_sol(1)*x_iplus1_sol(1);
         double dphis_iplus1 = 2*x_iplus1_sol(1)*x_iplus1_sol(1 + 7);
-        double grad_head_byHand =
+        double grad_head_exact =
           (-6 * (phis_i - phis_iplus1) - 2 * h_i * (2 * dphis_i + dphis_iplus1)) /
           (h_i * h_i) - theta_sDDot(0) *
           (3 * theta_s(0) * theta_s(0) * phis_i * phis_i * phis_i);
-        double grad_tail_byHand =
+        double grad_tail_exact =
           (6 * (phis_i - phis_iplus1) + 2 * h_i * (dphis_i + 2 * dphis_iplus1)) /
           (h_i * h_i) - theta_sDDot(0) *
           (3 * theta_s(0) * theta_s(0) * phis_iplus1 * phis_iplus1 * phis_iplus1);
@@ -559,12 +559,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
         // Compare the values
         cout << grad_head_byFD << " (by finite difference)" << endl;
-        cout << grad_head_byHand << " " << -dyn_feature_i << " (analytically)" << endl;
-        cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_byHand <<
+        cout << grad_head_exact << " " << -dyn_feature_i << " (analytically (exact solution))" << endl;
+        cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_exact <<
              ", " << grad_head_byFD(0, 1) + dyn_feature_i << endl;
         cout << grad_tail_byFD << " (by finite difference)" << endl;
-        cout << grad_tail_byHand << " " << -dyn_feature_iplus1 << " (analytically)" << endl;
-        cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_byHand <<
+        cout << grad_tail_exact << " " << -dyn_feature_iplus1 << " (analytically (exact solution))" << endl;
+        cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_exact <<
              ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
       }
       N_accum += num_time_samples[l];

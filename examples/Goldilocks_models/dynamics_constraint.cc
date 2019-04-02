@@ -115,27 +115,27 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
   s = kin_expression_.getExpression(theta_s, q);
 
   // ds
-  MatrixXd d_phi0_d_q =
+  MatrixXd d_phi_d_q =
     autoDiffToGradientMatrix(
       kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
-  VectorXd v0_val = DiscardGradient(x.tail(n_v_));
-  VectorXd dphi0_dt = d_phi0_d_q * v0_val;
+  VectorXd v_val = DiscardGradient(x.tail(n_v_));
+  VectorXd dphi0_dt = d_phi_d_q * v_val;
 
   /////////////////// V2: forward differencing /////////////////////////////////
   /*MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
   for (int i = 0; i < n_q_ + n_v_; i++) {
-    x(i) += eps_;
+    x(i) += eps_cd_;
 
-    AutoDiffVecXd q = x.head(n_q_);
-    MatrixXd d_phii_d_q =
+    q = x.head(n_q_);
+    d_phi_d_q =
       autoDiffToGradientMatrix(
         kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
-    VectorXd vi_val = DiscardGradient(x.tail(n_v_));
-    VectorXd dphii_dt = d_phii_d_q * vi_val;
+    v_val = DiscardGradient(x.tail(n_v_));
+    VectorXd dphii_dt = d_phi_d_q * v_val;
 
-    x(i) -= eps_;
+    x(i) -= eps_cd_;
 
-    grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_;
+    grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_cd_;
   }*/
 
   /////////////////// V2: central differencing /////////////////////////////////
@@ -145,17 +145,19 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
     for (unsigned int j = 0; j < cd_shift_vec_.size(); j++) {
       x(i) += cd_shift_vec_[j];
 
-      AutoDiffVecXd q = x.head(n_q_);
-      MatrixXd d_phii_d_q =
+      // overwrite q, d_phi_d_q and v_val for computational speed
+      // (instead of declare variable)
+      q = x.head(n_q_);
+      d_phi_d_q =
         autoDiffToGradientMatrix(
           kin_expression_.getFeature(q)).block(0, i_start, n_feature_s_, n_q_);
-      VectorXd vi_val = DiscardGradient(x.tail(n_v_));
-      dphii_dt_vec[j] = d_phii_d_q * vi_val;
+      v_val = DiscardGradient(x.tail(n_v_));
+      dphii_dt_vec[j] = d_phi_d_q * v_val;
 
       x(i) -= cd_shift_vec_[j];
     }
 
-    grad_dphidt.col(i_start + i) = (dphii_dt_vec[1] - dphii_dt_vec[0]) / eps_;
+    grad_dphidt.col(i_start + i) = (dphii_dt_vec[1] - dphii_dt_vec[0]) / eps_cd_;
   }
   //////////////////////////////////////////////////////////////////////////////
 
@@ -202,81 +204,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   // and you need to jacobian to get ds.
 
   // ////////// V1: Do forward differencing on theta ///////////////////////////
-  /*VectorXd q_i = x_i_double.head(n_q_);
-  VectorXd v_i = x_i_double.tail(n_v_);
-  VectorXd q_iplus1 = x_iplus1_double.head(n_q_);
-  VectorXd v_iplus1 = x_iplus1_double.tail(n_v_);
-
-  // Get s_i, ds_i
-  AutoDiffVecXd q_i_ad = initializeAutoDiff(q_i);
-  AutoDiffVecXd s_i_ad = kin_expression_.getExpression(theta_s_, q_i_ad);
-  VectorXd s_i = autoDiffToValueMatrix(s_i_ad);
-  VectorXd ds_i = autoDiffToGradientMatrix(s_i_ad) * v_i;
-  // Get s_iplus1, ds_iplus1
-  AutoDiffVecXd q_iplus1_ad = initializeAutoDiff(q_iplus1);
-  AutoDiffVecXd s_iplus1_ad = kin_expression_.getExpression(
-                                theta_s_, q_iplus1_ad);
-  VectorXd s_iplus1 = autoDiffToValueMatrix(s_iplus1_ad);
-  VectorXd ds_iplus1 = autoDiffToGradientMatrix(s_iplus1_ad) * v_iplus1;
-  // Get constraint value
-  VectorXd y_0;
-  if (is_head_) {
-    y_0 =
-      2 * (-3 * (s_i - s_iplus1 ) - h_i_double(0) * (ds_iplus1 + 2 * ds_i)) /
-      (h_i_double(0) * h_i_double(0)) -
-      dyn_expression_.getExpression(theta_sDDot_, s_i, ds_i);
-  }
-  else {
-    y_0 =
-      (6 * (s_i - s_iplus1 ) + h_i_double(0) * (4 * ds_iplus1 + 2 * ds_i)) /
-      (h_i_double(0) * h_i_double(0)) -
-      dyn_expression_.getExpression(theta_sDDot_, s_iplus1, ds_iplus1);
-  }
-
-  // Get the gradient wrt theta_s and theta_sDDot
-  VectorXd theta(n_theta_s_ + n_theta_sDDot_);
-  theta << theta_s_, theta_sDDot_;
-  MatrixXd gradWrtTheta(n_s_, theta.size());
-  for (int k = 0; k < theta.size(); k++) {
-    theta(k) += eps_;
-
-    VectorXd theta_s = theta.head(n_theta_s_);
-    VectorXd theta_sDDot = theta.tail(n_theta_sDDot_);
-
-    // Get s_i, ds_i
-    AutoDiffVecXd s_i_ad = kin_expression_.getExpression(theta_s, q_i_ad);
-    VectorXd s_i = autoDiffToValueMatrix(s_i_ad);
-    VectorXd ds_i = autoDiffToGradientMatrix(s_i_ad) * v_i;
-    // Get s_iplus1, ds_iplus1
-    AutoDiffVecXd s_iplus1_ad = kin_expression_.getExpression(
-                                  theta_s, q_iplus1_ad);
-    VectorXd s_iplus1 = autoDiffToValueMatrix(s_iplus1_ad);
-    VectorXd ds_iplus1 = autoDiffToGradientMatrix(s_iplus1_ad) * v_iplus1;
-    // Get constraint value
-    VectorXd y_1;
-    if (is_head_) {
-      y_1 =
-        2 * (-3 * (s_i - s_iplus1 ) - h_i_double(0) * (ds_iplus1 + 2 * ds_i)) /
-        (h_i_double(0) * h_i_double(0)) -
-        dyn_expression_.getExpression(theta_sDDot, s_i, ds_i);
-    }
-    else {
-      y_1 =
-        (6 * (s_i - s_iplus1 ) + h_i_double(0) * (4 * ds_iplus1 + 2 * ds_i)) /
-        (h_i_double(0) * h_i_double(0)) -
-        dyn_expression_.getExpression(theta_sDDot, s_iplus1, ds_iplus1);
-    }
-
-    // Get gradient
-    gradWrtTheta.col(k) = (y_1 - y_0) / eps_;
-
-    theta(k) -= eps_;
-  }*/
-
-
-  /////////
-  // Get x_i, x_iplus1 and h_i in autoDiff
-  /*VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
+  /*// Get x_i, x_iplus1 and h_i in autoDiff
+  VectorXd qvqvh_double(2 * (n_q_ + n_v_) + 1);
   qvqvh_double << x_i_double, x_iplus1_double, h_i_double;
   AutoDiffVecXd qvqvh = initializeAutoDiff(qvqvh_double);
 
@@ -305,7 +234,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     }
 
     // Get gradient
-    gradWrtTheta.col(k) = (y_vec[1] - y_vec[0]) / eps_;
+    gradWrtTheta.col(k) = (y_vec[1] - y_vec[0]) / eps_fd_;
     y_vec.clear();
   }*/
 
@@ -340,7 +269,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     }
 
     // Get gradient
-    gradWrtTheta.col(k) = (y_vec[1] - y_vec[0]) / eps_;
+    gradWrtTheta.col(k) = (y_vec[1] - y_vec[0]) / eps_cd_;
     y_vec.clear();
   }
 
@@ -380,7 +309,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
     // Get gradient
     gradWrtTheta.col(k) =
-      (-y_vec[3] + 8 * y_vec[2] - 8 * y_vec[1] + y_vec[0]) / (3 * eps_);
+      (-y_vec[3] + 8 * y_vec[2] - 8 * y_vec[1] + y_vec[0]) / (3 * eps_ho_);
     y_vec.clear();
   }*/
 
