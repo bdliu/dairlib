@@ -326,7 +326,7 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   std::vector<double> thirdorder_shift_vec_{-h, 0, h};
   // Get the gradient wrt theta_s and theta_sDDot
   theta << theta_s_, theta_sDDot_;
-  MatrixXd thirdOrderDerivWrtTheta(n_s_, theta.size());
+  MatrixXd secondOrderDerivWrtTheta(n_s_, theta.size());
   vector<VectorXd> y3_vec;
   for (int k = 0; k < theta.size(); k++) {
     for (double shift : thirdorder_shift_vec_) {
@@ -344,13 +344,13 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
     }
 
     // Get gradient
-    thirdOrderDerivWrtTheta.col(k) =
+    secondOrderDerivWrtTheta.col(k) =
       (y3_vec[2] -2* y3_vec[1] + y3_vec[0]) / (pow(h,2));
     y3_vec.clear();
   }
   cout << "gradWrtTheta = " << gradWrtTheta << endl;
-  cout << "thirdOrderDerivWrtTheta = \n" << thirdOrderDerivWrtTheta << endl;
-  cout << "thirdOrderDerivWrtTheta.norm() = " << thirdOrderDerivWrtTheta.norm() << endl;*/
+  cout << "secondOrderDerivWrtTheta = \n" << secondOrderDerivWrtTheta << endl;
+  cout << "secondOrderDerivWrtTheta.norm() = " << secondOrderDerivWrtTheta.norm() << endl;*/
 
 
 
