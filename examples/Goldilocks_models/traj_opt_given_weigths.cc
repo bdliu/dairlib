@@ -517,87 +517,94 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Checking B
-    N_accum = 0;
-    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
-      for (int m = 0; m < num_time_samples[l] - 1; m++) {
-        int i = N_accum + m;
-        cout << "i = " << i << endl;
+    bool is_checking_matrix_B = false;
+    if (is_checking_matrix_B) {
+      N_accum = 0;
+      for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+        for (int m = 0; m < num_time_samples[l] - 1; m++) {
+          int i = N_accum + m;
+          cout << "i = " << i << endl;
 
-        // From finite differencing
-        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
-        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
-        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
-        VectorXd x_i_sol = result.GetSolution(x_i);
-        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
-        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
-        double h_i = h_i_sol(0);
+          // From finite differencing
+          auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+          auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+          auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+          VectorXd x_i_sol = result.GetSolution(x_i);
+          VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+          VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+          double h_i = h_i_sol(0);
 
-        MatrixXd grad_head_byFD =
-          gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-            x_i_sol, x_iplus1_sol, h_i_sol);
-        MatrixXd grad_tail_byFD =
-          gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-            x_i_sol, x_iplus1_sol, h_i_sol);
+          MatrixXd grad_head_byFD =
+            gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
+              x_i_sol, x_iplus1_sol, h_i_sol);
+          MatrixXd grad_tail_byFD =
+            gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+              x_i_sol, x_iplus1_sol, h_i_sol);
 
-        // From hand calculation (theta_s part)
-        double phis_i = x_i_sol(1)*x_i_sol(1);
-        double dphis_i = 2*x_i_sol(1)*x_i_sol(1 + 7);
-        double phis_iplus1 = x_iplus1_sol(1)*x_iplus1_sol(1);
-        double dphis_iplus1 = 2*x_iplus1_sol(1)*x_iplus1_sol(1 + 7);
-        double grad_head_exact =
-          (-6 * (phis_i - phis_iplus1) - 2 * h_i * (2 * dphis_i + dphis_iplus1)) /
-          (h_i * h_i) - theta_sDDot(0) *
-          (3 * theta_s(0) * theta_s(0) * phis_i * phis_i * phis_i);
-        double grad_tail_exact =
-          (6 * (phis_i - phis_iplus1) + 2 * h_i * (dphis_i + 2 * dphis_iplus1)) /
-          (h_i * h_i) - theta_sDDot(0) *
-          (3 * theta_s(0) * theta_s(0) * phis_iplus1 * phis_iplus1 * phis_iplus1);
+          // From hand calculation (theta_s part)
+          double phis_i = x_i_sol(1) * x_i_sol(1);
+          double dphis_i = 2 * x_i_sol(1) * x_i_sol(1 + 7);
+          double phis_iplus1 = x_iplus1_sol(1) * x_iplus1_sol(1);
+          double dphis_iplus1 = 2 * x_iplus1_sol(1) * x_iplus1_sol(1 + 7);
+          double grad_head_exact =
+            (-6 * (phis_i - phis_iplus1) -
+             2 * h_i * (2 * dphis_i + dphis_iplus1)) / (h_i * h_i) -
+            theta_sDDot(0) * (3 * pow(theta_s(0), 2) * pow(phis_i, 3));
+          double grad_tail_exact =
+            (6 * (phis_i - phis_iplus1) +
+             2 * h_i * (dphis_i + 2 * dphis_iplus1)) / (h_i * h_i) -
+            theta_sDDot(0) * (3 * pow(theta_s(0), 2) * pow(phis_iplus1, 3));
 
-        // From hand calculation (theta_sddot part)
-        double dyn_feature_i = pow(theta_s(0) * phis_i, 3);
-        double dyn_feature_iplus1 = pow(theta_s(0) * phis_iplus1, 3);
+          // From hand calculation (theta_sddot part)
+          double dyn_feature_i = pow(theta_s(0) * phis_i, 3);
+          double dyn_feature_iplus1 = pow(theta_s(0) * phis_iplus1, 3);
 
-        // Compare the values
-        cout << grad_head_byFD << " (by finite difference)" << endl;
-        cout << grad_head_exact << " " << -dyn_feature_i << " (analytically (exact solution))" << endl;
-        cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_exact <<
-             ", " << grad_head_byFD(0, 1) + dyn_feature_i << endl;
-        cout << grad_tail_byFD << " (by finite difference)" << endl;
-        cout << grad_tail_exact << " " << -dyn_feature_iplus1 << " (analytically (exact solution))" << endl;
-        cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_exact <<
-             ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
+          // Compare the values
+          cout << grad_head_byFD << " (by finite difference)" << endl;
+          cout << grad_head_exact << " " << -dyn_feature_i <<
+               " (analytically (exact solution))" << endl;
+          cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_exact <<
+               ", " << grad_head_byFD(0, 1) + dyn_feature_i << endl;
+          cout << grad_tail_byFD << " (by finite difference)" << endl;
+          cout << grad_tail_exact << " " << -dyn_feature_iplus1 <<
+               " (analytically (exact solution))" << endl;
+          cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_exact <<
+               ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
+        }
+        N_accum += num_time_samples[l];
+        N_accum -= 1;  // due to overlaps between modes
       }
-      N_accum += num_time_samples[l];
-      N_accum -= 1;  // due to overlaps between modes
     }
 
-
     // Checking the accuracy of s and sdot calculation
-    N_accum = 0;
-    for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
-      for (int m = 0; m < num_time_samples[l] - 1; m++) {
-        // int i = N_accum + m;
-        // cout << "i = " << i << endl;
+    bool is_checking_s_sdot = false;
+    if (is_checking_s_sdot) {
+      N_accum = 0;
+      for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
+        for (int m = 0; m < num_time_samples[l] - 1; m++) {
+          // int i = N_accum + m;
+          // cout << "i = " << i << endl;
 
-        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
-        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
-        VectorXd x_i_sol = result.GetSolution(x_i);
-        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+          auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+          auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+          VectorXd x_i_sol = result.GetSolution(x_i);
+          VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
 
-        VectorXd s_i;
-        VectorXd ds_i;
-        VectorXd s_iplus1;
-        VectorXd ds_iplus1;
-        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
-          x_i_sol, s_i, ds_i);
-        // cout << "ds_i_byhand - ds_i = " << 2*x_i_sol(1)*x_i_sol(1+7) - ds_i(0) << endl;
-        gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
-          x_iplus1_sol, s_iplus1, ds_iplus1);
-        // cout << "ds_iplus1_byhand - ds_iplus1 = " <<
-             // 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
+          VectorXd s_i;
+          VectorXd ds_i;
+          VectorXd s_iplus1;
+          VectorXd ds_iplus1;
+          gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
+            x_i_sol, s_i, ds_i);
+          // cout << "ds_i_byhand - ds_i = " << 2*x_i_sol(1)*x_i_sol(1+7) - ds_i(0) << endl;
+          gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
+            x_iplus1_sol, s_iplus1, ds_iplus1);
+          // cout << "ds_iplus1_byhand - ds_iplus1 = " <<
+          // 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
+        }
+        N_accum += num_time_samples[l];
+        N_accum -= 1;  // due to overlaps between modes
       }
-      N_accum += num_time_samples[l];
-      N_accum -= 1;  // due to overlaps between modes
     }
 
 
