@@ -112,6 +112,9 @@ class DynamicsConstraint : public Constraint {
   DynamicsExpression dyn_expression_;
   bool is_head_;
   double eps_ = 1e-8;
+  vector<double> fd_shift_vec_{0, eps_};  // forward difference
+  vector<double> cd_shift_vec_{ -eps_ / 2, eps_ / 2};  // central difference
+  vector<double> ho_shift_vec_{ -eps_ / 2, -eps_ / 4, eps_ / 4, eps_ / 2};
 };
 }  // namespace goldilocks_models
 }  // namespace dairlib
