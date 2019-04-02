@@ -420,7 +420,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
         int i = N_accum + m;
-        cout << "i = " << i << endl;
+        // cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
@@ -577,7 +577,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     for (unsigned int l = 0; l < 1 ; l++) { // just look at the first mode now
       for (int m = 0; m < num_time_samples[l] - 1; m++) {
         int i = N_accum + m;
-        cout << "i = " << i << endl;
+        // cout << "i = " << i << endl;
 
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
@@ -590,15 +590,11 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd ds_iplus1;
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
           x_i_sol, s_i, ds_i);
-        cout << "x_i_sol(1+7) = " << 2*x_i_sol(1)*x_i_sol(1+7) << endl;
-        cout << "ds_i = " << ds_i << endl;
-        cout << "x_i_sol(1+7) - ds_i = " << 2*x_i_sol(1)*x_i_sol(1+7) - ds_i(0) << endl;
+        // cout << "ds_i_byhand - ds_i = " << 2*x_i_sol(1)*x_i_sol(1+7) - ds_i(0) << endl;
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
           x_iplus1_sol, s_iplus1, ds_iplus1);
-        cout << "x_iplus1_sol(1+7) = " << 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) << endl;
-        cout << "ds_iplus1 = " << ds_iplus1 << endl;
-        cout << "x_iplus1_sol(1+7) - ds_iplus1 = " <<
-             2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
+        // cout << "ds_iplus1_byhand - ds_iplus1 = " <<
+             // 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
