@@ -3,12 +3,18 @@ import numpy as np
 import csv
 import os
 import time
+import sys
 
 
-iteration_start = 35
+iteration_start = 7
 iteration_end = 35
+if len(sys.argv) == 2:
+    iteration_start = int(sys.argv[1])
+elif len(sys.argv) == 3:
+    iteration_start = int(sys.argv[1])
+    iteration_end = int(sys.argv[2])
 
-iteration = 1
+
 batch = 0
 directory = 'data/'
 
@@ -53,7 +59,7 @@ for iteration in range(iteration_start,iteration_end+1):
     # # bb.x1 += 0.12
     # leg.set_bbox_to_anchor(bb, transform = ax.transAxes)
 
-    if (iteration_start == iteration_end):
+    if (iteration == iteration_end):
         plt.show()
     else:
         plt.draw()
