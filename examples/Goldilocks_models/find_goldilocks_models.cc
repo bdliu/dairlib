@@ -372,7 +372,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
                                     VectorXd::Zero(nl_i),
                                     VectorXd::Zero(nl_i),
                                     w2);
-          quadprog.AddQuadraticCost(H_vec[0],b_vec[0],w2);
+          quadprog.AddQuadraticCost(H_vec[batch],b_vec[batch],w2);
           const auto result2 = Solve(quadprog);
           auto solution_result2 = result2.get_solution_result();
           cout << solution_result2 << endl;
@@ -382,7 +382,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
           cout << "Finished traj opt\n\n";
 
           cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-          cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;
+          cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[batch] << endl;
 
 
 
