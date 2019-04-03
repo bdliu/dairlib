@@ -167,7 +167,7 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
   /////////////////// V2: forward differencing /////////////////////////////////
   /*MatrixXd grad_dphidt = MatrixXd::Zero(n_feature_s_, 2 * (n_q_ + n_v_) + 1);
   for (int i = 0; i < n_q_ + n_v_; i++) {
-    x(i) += eps_cd_;
+    x(i) += eps_fd_;
 
     q = x.head(n_q_);
     d_phi_d_q =
@@ -176,9 +176,9 @@ void DynamicsConstraint::getSAndSDotInAutoDiff(AutoDiffVecXd x,
     v_val = DiscardGradient(x.tail(n_v_));
     VectorXd dphii_dt = d_phi_d_q * v_val;
 
-    x(i) -= eps_cd_;
+    x(i) -= eps_fd_;
 
-    grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_cd_;
+    grad_dphidt.col(i_start + i) = (dphii_dt - dphi0_dt) / eps_fd_;
   }*/
 
   /////////////////// V2: central differencing /////////////////////////////////

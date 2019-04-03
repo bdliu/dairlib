@@ -294,9 +294,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
       if (!current_is_success && iter == 1) {
         iter -= 1;
       }
-      else if (!current_is_success
-               || (total_cost >
-                   min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
+      // else if (!current_is_success
+      //          || (total_cost >
+      //              min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
+      else if (!current_is_success) {
         current_iter_step_size = current_iter_step_size / 2;
         // if(current_iter_step_size<1e-5){
         //   cout<<"switch to the other method.";
@@ -307,11 +308,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
         iter -= 1;
 
         // Descent
+        cout << "here\n";
         theta = prev_theta + current_iter_step_size * step_direction;
 
         // Assign theta_s and theta_sDDot
+        cout << "here\n";
         theta_s = theta.head(n_theta_s);
+        cout << "here\n";
         theta_sDDot = theta.tail(n_theta_sDDot);
+        cout << "here\n";
       }
       else {
         // Extract active and independent constraints
@@ -358,7 +363,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
 
 
-          /*cout << "\n (After extracting active constraints) Run traj opt to check if your quadratic approximation is correct\n";
+          cout << "\n (After extracting active constraints) Run traj opt to check if your quadratic approximation is correct\n";
           nl_i = A_active.rows();
           nw_i = A_active.cols();
           MathematicalProgram quadprog;
@@ -377,7 +382,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
           cout << "Finished traj opt\n\n";
 
           cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-          cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;*/
+          cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[0] << endl;
 
 
 

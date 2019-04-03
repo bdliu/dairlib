@@ -638,7 +638,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    cout << "\ncheck if H is diagonal: \n";
+    /*cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -683,14 +683,14 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int nl_i = A.rows();
     int nw_i = A.cols();
     MathematicalProgram quadprog;
-    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
-                             "Major iterations limit", 10000);
     auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
     quadprog.AddLinearConstraint( A,
                                   lb - y,
                                   ub - y,
                                   dw);
     quadprog.AddQuadraticCost(H, b, dw);
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+                             "Major iterations limit", 10000);
     // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
     // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
     const auto result2 = Solve(quadprog);
@@ -700,6 +700,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
     cout << "dw_sol norm:" << dw_sol.norm() << endl;
     // cout << "dw_sol = \n" << dw_sol << endl;
+    cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A*dw_sol << endl; // dw in null space
+    cout << "if this is not zero, then w=0 is not optimal: " << dw_sol.transpose()*b << endl;
     cout << "Finished traj opt\n\n";
 
     // vector<double> w_sol_sort;
@@ -734,7 +736,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Plug back and check the cost and constraints of nonlinear programming
-    double eps = 1e-1;
+    double eps = 1e-2;
     unsigned int n_show = 10;  // number of rows of constraints you want to show
     // cost
     cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
@@ -856,7 +858,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         cout << "  nonlinear_constraint_val = "
              << nonlinear_constraint_val.transpose() << endl;
       }
-    }
+    }*/
   }  // end of if(!is_get_nominal)
 
 
