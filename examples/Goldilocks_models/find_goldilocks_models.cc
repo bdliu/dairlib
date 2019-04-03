@@ -389,53 +389,6 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
 
 
-          /*// Find redundant rows
-          cout << "Find redundant rows of constraints\n";
-          vector<int> non_redundant_row_idx;
-          non_redundant_row_idx.push_back(0);
-          VectorXd rowi(nw_i);
-          VectorXd rowj(nw_i);
-          VectorXd normalized_rowi(nw_i);
-          VectorXd normalized_rowj(nw_i);
-          unsigned int count = 0; // see if it goes through all element of vector
-          for (int i = 1; i < nl_i; i++) {
-            count = 0;
-            for (int j : non_redundant_row_idx) {
-              rowi = A_active.row(i).transpose();
-              rowj = A_active.row(j).transpose();
-              normalized_rowi = rowi / rowi.norm();
-              normalized_rowj = rowj / rowj.norm();
-              if ((normalized_rowi - normalized_rowj).norm() < 1e-6) {
-                cout << "There are redundant rows (" << j << "," << i << ")\n";
-                // We don't need to check the b in Ax=b, because we know there are
-                // feasible solutions
-                // But we still check it just in case.
-                if (y_active(i) / rowi.norm() - y_active(j) / rowj.norm() > 1e-6)
-                  cout << "There are over-constraining rows!!!!\n";
-                // Checking if B is involved
-                for(int k = 0; k<n_theta_s + n_theta_sDDot; k++){
-                  if(B_active(i,k) != 0) cout << "B is in redundant rows of constraints\n";
-                }
-                break;
-              }
-              count++;
-            }
-            if (count == non_redundant_row_idx.size())
-              non_redundant_row_idx.push_back(i);
-          }
-          cout << "Finished finding redundant rows of constraints\n";
-
-          nl_i = non_redundant_row_idx.size();
-
-          // Get rid of redundant rows
-          MatrixXd A_active_nonredundant(nl_i, nw_i);
-          MatrixXd B_active_nonredundant(nl_i, nt_i);
-          VectorXd y_active_nonredundant(nl_i);
-          for (int i = 0; i < nl_i; i++) {
-            A_active_nonredundant.row(i) = A_active.row(non_redundant_row_idx[i]);
-            B_active_nonredundant.row(i) = B_active.row(non_redundant_row_idx[i]);
-            y_active_nonredundant(i) = y_active(non_redundant_row_idx[i]);
-          }*/
 
           // Only add the rows that are linearly independent
           // cout << "Start extracting independent rows of A\n";
