@@ -471,7 +471,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
     writeCSV(directory + prefix + string("y.csv"), y);*/
-    writeCSV(directory + prefix + string("B.csv"), B);
+    // writeCSV(directory + prefix + string("B.csv"), B);
 
 
     // Store s, ds and dds into csv files

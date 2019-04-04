@@ -41,6 +41,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter_start, 0, "The starting iteration #");
+DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
 
@@ -100,10 +101,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
-  double h_step = 1e-2;  // 1e-1 caused divergence when close to optimal sol
+  double h_step = 1e-3; //1e-2; is the default  // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
   double indpt_row_tol = 1e-6;//1e-6
-  bool is_newton = false;
+  bool is_newton = FLAGS_is_newton;
   bool is_stochastic = FLAGS_is_stochastic;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
@@ -702,8 +703,14 @@ void findGoldilocksModels(int argc, char* argv[]) {
         theta_sDDot = theta.tail(n_theta_sDDot);
 
         // Check optimality
+        VectorXd lambda_square_vecXd(1); lambda_square_vecXd << lambda_square;
+        VectorXd norm_grad_cost(1); norm_grad_cost << costGradient.norm();
+        prefix = to_string(iter) +  "_";
+        writeCSV(directory + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
+        writeCSV(directory + prefix + string("lambda_square.csv"), lambda_square_vecXd);
+
         cout << "lambda_square = " << lambda_square << endl;
-        cout << "costGradient norm: " << costGradient.norm() << endl << endl;
+        cout << "costGradient norm: " << norm_grad_cost << endl << endl;
         if (is_newton) {
           if (lambda_square < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
@@ -711,7 +718,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
           }
         }
         else {
-          if (costGradient.norm() < stopping_threshold) {
+          if (norm_grad_cost(0) < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
             break;
           }
