@@ -6,13 +6,15 @@ import time
 import sys
 
 
-iter_start = 11
+iter_start = 1
 iter_end = 11
+is_iter_end = 0
 if len(sys.argv) == 2:
     iter_start = int(sys.argv[1])
 if len(sys.argv) == 3:
     iter_start = int(sys.argv[1])
     iter_end = int(sys.argv[2])
+    is_iter_end = 1
 
 
 batch_max = 5
@@ -39,7 +41,7 @@ while 1:
             #     plots = csv.reader(csvfile, delimiter=',')
             #     for row in plots:
             #         cost.append(row[0])
-            if iteration == iter_end:
+            if is_iter_end & (iteration == iter_end):
                 break;
             iteration+=1
 
@@ -52,7 +54,6 @@ while 1:
             len_total_cost = len(cost)
             total_cost = cost
         else:
-            print(batch)
             total_cost = [x + y for x, y in zip(total_cost, cost[0:len_total_cost])]
         if batch == 0:
             average_cost = [x/batch_max for x in total_cost]
