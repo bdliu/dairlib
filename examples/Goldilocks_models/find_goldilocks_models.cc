@@ -40,7 +40,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(iter_start, 35, "The starting iteration #");
+DEFINE_int32(iter_start, 0, "The starting iteration #");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
 
@@ -135,10 +135,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
-  theta_s = 0.25*VectorXd::Ones(n_theta_s);
-  theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
-  // theta_s = VectorXd::Random(n_theta_s);
-  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  // theta_s = 0.25*VectorXd::Ones(n_theta_s);
+  // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
+  theta_s = VectorXd::Random(n_theta_s);
+  theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
   // if (iter_start > 0 && !FLAGS_is_debug) {
     MatrixXd theta_s_mat =
@@ -308,15 +308,11 @@ void findGoldilocksModels(int argc, char* argv[]) {
         iter -= 1;
 
         // Descent
-        cout << "here\n";
         theta = prev_theta + current_iter_step_size * step_direction;
 
         // Assign theta_s and theta_sDDot
-        cout << "here\n";
         theta_s = theta.head(n_theta_s);
-        cout << "here\n";
         theta_sDDot = theta.tail(n_theta_sDDot);
-        cout << "here\n";
       }
       else {
         // Extract active and independent constraints

@@ -18,6 +18,22 @@ elif len(sys.argv) == 3:
 batch = 0
 directory = 'data/'
 
+# Get the max and min
+max_list = []
+min_list = []
+for iteration in range(iteration_start,iteration_end+1):
+    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv'):
+        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv', delimiter=",")
+        n_rows = (matrix.shape)[0]
+
+        for index in range(1,n_rows):
+            dds_i_th_element = matrix[index,:]
+            max_list.append(np.amax(dds_i_th_element))
+            min_list.append(np.amin(dds_i_th_element))
+max_val = max(max_list)
+min_val = min(min_list)
+
+# Plot
 fig = plt.figure(1)
 
 for iteration in range(iteration_start,iteration_end+1):
@@ -47,7 +63,7 @@ for iteration in range(iteration_start,iteration_end+1):
 
     # Set the axis limit
     # ax.set_xlim(0, 0.95)
-    # ax.set_ylim(-0.45, 1.1)
+    ax.set_ylim(min_val, max_val)
 
     # Draw the figure so you can find the positon of the legend.
     plt.draw()

@@ -3,12 +3,18 @@ import numpy as np
 import csv
 import os
 import time
+import sys
+
+
+iter_start = 11
+if len(sys.argv) == 2:
+    iter_start = int(sys.argv[1])
+
 
 batch_max = 5
 min_dist = 0.24
 delta_dist = 0.03
 
-iter_start = 11
 directory = 'data/'
 
 while 1:
