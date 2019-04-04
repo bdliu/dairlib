@@ -422,7 +422,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
         int i = N_accum + m;
-        // cout << "i = " << i << endl;
+        cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
@@ -638,7 +638,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    /*cout << "\ncheck if H is diagonal: \n";
+    cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -689,10 +689,13 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                                   ub - y,
                                   dw);
     quadprog.AddQuadraticCost(H, b, dw);
-    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
-                             "Major iterations limit", 10000);
-    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-10); //1.0e-10
-    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-10); //1.0e-10
+    quadprog.SetSolverOption(drake::solvers::GurobiSolver::id(), "BarConvTol", 1E-9);
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+    //                          "Print file", "snopt.out");
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+    //                          "Major iterations limit", 10000);
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-14); //1.0e-10
+    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-14); //1.0e-10
     const auto result2 = Solve(quadprog);
     auto solution_result2 = result2.get_solution_result();
     cout << solution_result2 << endl;
@@ -736,7 +739,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Plug back and check the cost and constraints of nonlinear programming
-    double eps = 1e-2;
+    double eps = 1e-1;
     unsigned int n_show = 10;  // number of rows of constraints you want to show
     // cost
     cout << "checking the cost of the original nonlinear programming and the approximated quadratic programming\n";
@@ -858,7 +861,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         cout << "  nonlinear_constraint_val = "
              << nonlinear_constraint_val.transpose() << endl;
       }
-    }*/
+    }
   }  // end of if(!is_get_nominal)
 
 

@@ -5,6 +5,7 @@
 #include "systems/trajectory_optimization/hybrid_dircon.h"
 
 #include "drake/solvers/snopt_solver.h"
+#include "drake/solvers/gurobi_solver.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/constraint.h"
 #include "drake/solvers/solve.h"

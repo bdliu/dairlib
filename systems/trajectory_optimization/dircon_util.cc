@@ -75,7 +75,7 @@ double secondOrderCost(const MathematicalProgram* prog, const VectorXd& x,
     }
 
     // forward differencing for Hessian
-    double dx = 1e-8;
+    /*double dx = 1e-8;
     // double dx = 1e-4;
     AutoDiffVecXd y_hessian =
         initializeAutoDiff(VectorXd::Zero(1), variables.size());
@@ -91,28 +91,30 @@ double secondOrderCost(const MathematicalProgram* prog, const VectorXd& x,
         if (ind_i != ind_j)
           Q(ind_j, ind_i) += (gradient_hessian(0, j) - gradient_x(0, j)) / dx;
       }
-    }
+    }*/
 
     // // Central differencing for Hessian
-    // double dx = 1e-8;
-    // AutoDiffVecXd y_hessian_p = initializeAutoDiff(VectorXd::Zero(1), variables.size());
-    // AutoDiffVecXd y_hessian_m = initializeAutoDiff(VectorXd::Zero(1), variables.size());
-    // for (int i = 0; i < variables.size(); i++) {
-    //   x_val(i) -= dx/2;
-    //   binding.evaluator()->Eval(x_val, y_hessian_m);
-    //   x_val(i) += dx;
-    //   binding.evaluator()->Eval(x_val, y_hessian_p);
-    //   x_val(i) -= dx/2;
+    double dx = 1e-3;
+    AutoDiffVecXd y_hessian_p = initializeAutoDiff(VectorXd::Zero(1), variables.size());
+    AutoDiffVecXd y_hessian_m = initializeAutoDiff(VectorXd::Zero(1), variables.size());
+    for (int i = 0; i < variables.size(); i++) {
+      x_val(i) -= dx/2;
+      binding.evaluator()->Eval(x_val, &y_hessian_m);
+      x_val(i) += dx;
+      binding.evaluator()->Eval(x_val, &y_hessian_p);
+      x_val(i) -= dx/2;
 
-    //   MatrixXd gradient_hessian_p = autoDiffToGradientMatrix(y_hessian_p);
-    //   MatrixXd gradient_hessian_m = autoDiffToGradientMatrix(y_hessian_m);
+      MatrixXd gradient_hessian_p = autoDiffToGradientMatrix(y_hessian_p);
+      MatrixXd gradient_hessian_m = autoDiffToGradientMatrix(y_hessian_m);
 
-    //   for (int j=0; j <= i; j++) {
-    //     Q(prog->FindDecisionVariableIndex(variables(i)),
-    //       prog->FindDecisionVariableIndex(variables(j))) +=
-    //       (gradient_hessian_p(j)-gradient_hessian_m(j))/dx;
-    //   }
-    // }
+      for (int j=0; j <= i; j++) {
+        int ind_i = prog->FindDecisionVariableIndex(variables(i));
+        int ind_j = prog->FindDecisionVariableIndex(variables(j));
+        Q(ind_i, ind_j) += (gradient_hessian_p(0, j) - gradient_hessian_m(0, j)) / dx;
+        if (ind_i != ind_j)
+          Q(ind_j, ind_i) += (gradient_hessian_p(0, j) - gradient_hessian_m(0, j))/dx;
+      }
+    }
 
   }
   return c;
