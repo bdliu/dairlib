@@ -6,7 +6,7 @@
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/solve.h"
-#include "systems/trajectory_optimization/dircon_util.h"
+#include "solvers/optimization_utils.h"
 
 #include "drake/common/trajectories/piecewise_polynomial.h"
 

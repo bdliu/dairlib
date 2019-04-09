@@ -19,7 +19,7 @@
 #include "drake/solvers/solve.h"
 
 #include "common/find_resource.h"
-#include "attic/systems/trajectory_optimization/dircon_util.h"
+#include "attic/solvers/optimization_utils.h"
 #include "attic/systems/trajectory_optimization/dircon_position_data.h"
 #include "attic/systems/trajectory_optimization/dircon_kinematic_data_set.h"
 #include "attic/systems/trajectory_optimization/hybrid_dircon.h"

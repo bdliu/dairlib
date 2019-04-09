@@ -55,6 +55,7 @@ cc_binary(
     deps = [
         "//systems/goldilocks_models",
         "//attic/systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody:rigid_body_tree",
         "@drake//attic/multibody:rigid_body_tree_construction",
         "@drake//attic/multibody/parsers",
@@ -80,6 +81,7 @@ cc_binary(
         "//systems/primitives",
         "//systems/goldilocks_models",
         "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody/parsers",
         "@drake//common",
         "@drake//math",
@@ -107,6 +109,7 @@ cc_library(
         "//systems/primitives",
         "//systems/goldilocks_models",
         "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody/parsers",
         "@drake//common",
         "@drake//math",
@@ -119,8 +122,8 @@ cc_library(
         "@drake//multibody/parsing",
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
-	":kinematics_constraint",
-	":dynamics_constraint",
+	    ":kinematics_constraint",
+	    ":dynamics_constraint",
     ],
 )
 
@@ -137,6 +140,7 @@ cc_library(
         "//common",
         "//systems/primitives",
         "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody/parsers",
         "@drake//common",
         "@drake//math",
@@ -315,6 +319,7 @@ cc_binary(
         "@drake//solvers",
         "@drake//solvers:mathematical_program",
         "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
     ],
 )
 
@@ -328,6 +333,7 @@ cc_binary(
         "@drake//solvers:mathematical_program",
         "@drake//common/trajectories:piecewise_polynomial",
         "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
     ],
 )
 

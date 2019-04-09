@@ -22,7 +22,7 @@
 #include "drake/solvers/constraint.h"
 #include "drake/solvers/solve.h"
 
-#include "attic/systems/trajectory_optimization/dircon_util.h"
+#include "attic/solvers/optimization_utils.h"
 
 #include "attic/systems/trajectory_optimization/dircon_position_data.h"
 #include "attic/systems/trajectory_optimization/dircon_kinematic_data_set.h"
@@ -293,7 +293,7 @@ shared_ptr<HybridDircon<double>> sgdIter(double stride_length, double duration,
     VectorXd features(m_constraint.n_features());
     for (int j = 0; j < m_constraint.n_features(); j++) {
       auto m_ij = trajopt->SubstitutePlaceholderVariables(m_constraint.getFeature(j), i);
-      features(j) = drake::ExtractDoubleOrThrow(result.GetSolution(m_ij));
+      features(j) = drake::ExtractDoubleOrThrow(trajopt->SubstituteSolution(m_ij));
     }
 
     VectorXd ind = systems::trajectory_optimization::getConstraintRows(

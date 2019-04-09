@@ -19,7 +19,7 @@
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/constraint.h"
-#include "systems/trajectory_optimization/dircon_util.h"
+#include "solvers/optimization_utils.h"
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
 #include "systems/trajectory_optimization/dircon_opt_constraints.h"

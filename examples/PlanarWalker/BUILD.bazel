@@ -68,6 +68,7 @@ cc_binary(
     data = ["PlanarWalker.urdf"],
     deps = [
         "//attic/systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "//common",
         "@drake//attic/multibody:rigid_body_tree",
         "@drake//attic/multibody:rigid_body_tree_construction",
@@ -92,6 +93,7 @@ cc_library(
     deps = [
         "//systems/goldilocks_models",
         "//attic/systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody:rigid_body_tree",
         "@drake//attic/multibody:rigid_body_tree_construction",
         "@drake//attic/multibody/parsers",
@@ -160,6 +162,7 @@ cc_binary(
     deps = [
         "//systems/goldilocks_models",
         "//attic/systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
         "@drake//attic/multibody:rigid_body_tree",
         "@drake//attic/multibody:rigid_body_tree_construction",
         "@drake//attic/multibody/parsers",

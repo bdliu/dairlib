@@ -7,7 +7,7 @@
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/solve.h"
 using drake::solvers::MathematicalProgram;
-#include "systems/trajectory_optimization/dircon_util.h"
+#include "solvers/optimization_utils.h"
 
 using std::cout;
 using std::endl;

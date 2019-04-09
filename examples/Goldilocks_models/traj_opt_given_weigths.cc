@@ -20,7 +20,7 @@
 #include "common/find_resource.h"
 #include "systems/primitives/subvector_pass_through.h"
 
-#include "systems/trajectory_optimization/dircon_util.h"
+#include "solvers/optimization_utils.h"
 #include "systems/trajectory_optimization/dircon_position_data.h"
 #include "systems/trajectory_optimization/dircon_kinematic_data_set.h"
 #include "systems/trajectory_optimization/dircon_opt_constraints.h"
@@ -396,10 +396,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
     double c_double;
-    systems::trajectory_optimization::linearizeConstraints(
+    LinearizeConstraints(
       gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-    c_double = systems::trajectory_optimization::secondOrderCost(
-                 gm_traj_opt.dircon.get(), w_sol, H, b);
+    c_double = SecondOrderCost(gm_traj_opt.dircon.get(), w_sol, *H, *b);
     VectorXd c(1);
     c << c_double;
 
@@ -846,8 +845,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       MatrixXd H2;
       VectorXd b2;
       double c_nonlinear;
-      c_nonlinear = systems::trajectory_optimization::secondOrderCost(
-                      gm_traj_opt.dircon.get(), w_sol_test, H2, b2) - c_double;
+      c_nonlinear = SecondOrderCost(
+                      gm_traj_opt.dircon.get(), w_sol_test, *H2, *b2) - c_double;
       cout << "i = " << i << endl;
       cout << "  c_nonlinear = " << c_nonlinear << endl;
       VectorXd dw_sol_test = i * eps * dw_sol;
@@ -865,8 +864,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        systems::trajectory_optimization::linearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        LinearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_ae; j++) {
           double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
@@ -896,8 +895,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        systems::trajectory_optimization::linearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        LinearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
         cout << "  nonlinear_constraint_val = ";
         for (int j : constraint_vio_row_idx) {
           double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
@@ -912,8 +911,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        systems::trajectory_optimization::linearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        LinearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
         VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_aub; j++) {
@@ -939,8 +938,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        systems::trajectory_optimization::linearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, y2, A2, lb2, ub2);
+        LinearizeConstraints(
+          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
         VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_alb; j++) {
