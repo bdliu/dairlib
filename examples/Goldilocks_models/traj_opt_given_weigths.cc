@@ -603,15 +603,112 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
             x_i_sol, s_i, ds_i);
           // cout << "ds_i_byhand - ds_i = " <<
-               // theta_s(0) * 2 * x_i_sol(1)*x_i_sol(1 + 7) - ds_i(0) << endl;
+          // theta_s(0) * 2 * x_i_sol(1)*x_i_sol(1 + 7) - ds_i(0) << endl;
           gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
             x_iplus1_sol, s_iplus1, ds_iplus1);
           // cout << "ds_iplus1_byhand - ds_iplus1 = " <<
-               // theta_s(0) * 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
+          // theta_s(0) * 2 * x_iplus1_sol(1)*x_iplus1_sol(1 + 7) - ds_iplus1(0) << endl;
         }
         N_accum += num_time_samples[l];
         N_accum -= 1;  // due to overlaps between modes
       }
+    }
+
+
+
+
+
+
+    bool is_comparing_two_constraint_linearization = false;
+    if (is_comparing_two_constraint_linearization) {
+      /*// Comparing the new cosntraint linearization and the old lienarization
+      MatrixXd A_new;
+      VectorXd y_new, lb_new, ub_new;
+      systems::trajectory_optimization::newlinearizeConstraints(
+        gm_traj_opt.dircon.get(), w_sol, y_new, A_new, lb_new, ub_new);
+      // reorganize the rows or A
+      cout << "Reorganize the rows or A\n";
+      int nl_i = A.rows();
+      int nw_i = A.cols();
+      cout << "size of A = " << A.rows() << ", " <<  A.cols() << endl;
+      cout << "size of A_new = " << A_new.rows() << ", " <<  A_new.cols() << endl;
+      vector<int> new_row_idx;
+      VectorXd rowi(nw_i);
+      VectorXd rowj(nw_i);
+      VectorXd normalized_rowi(nw_i);
+      VectorXd normalized_rowj(nw_i);
+      for (int i = 0; i < nl_i; i++) { // A_new
+        for (int j = 0; j < nl_i; j++) { // A
+          rowi = A_new.row(i).transpose();
+          rowj = A.row(j).transpose();
+          normalized_rowi = rowi / rowi.norm();
+          normalized_rowj = rowj / rowj.norm();
+          if ((normalized_rowi - normalized_rowj).norm() < 1e-14) {
+            if (rowi.norm() != rowj.norm()) {
+              cout << i << "-th row of A_new: scale are different by " <<
+                   rowi.norm() / rowj.norm() << endl;
+            }
+            // check ub and lb
+            // cout << "("<<i<<","<<j<<")"<<": \n";
+            // cout << "  ub(j) = " << ub(j) << endl;
+            // cout << "  ub_new(i) = " << ub_new(i) << endl;
+            // cout << "  lb(j) = " << lb(j) << endl;
+            // cout << "  lb_new(i) = " << lb_new(i) << endl;
+            if (ub(j) == ub_new(i) && lb(j) == lb_new(i) ) {
+              // Maybe there are duplicated rows, so check if already assigned the row
+              bool is_existing = false;
+              for (int idx : new_row_idx) {
+                if (idx == j) {
+                  is_existing = true;
+                  break;
+                }
+              }
+              if (!is_existing) {
+                new_row_idx.push_back(j);
+                break;
+              }
+            }
+          }
+          if (j == nl_i - 1) cout << i << "-th row of A_new has no corresponding A\n";
+        }
+      }
+      MatrixXd A_new_reorg(nl_i, nw_i);
+      for (int i = 0; i < nl_i; i++) {
+        A_new_reorg.row(new_row_idx[i]) = A_new.row(i);
+      }
+      cout << "size of new_row_idx = " << new_row_idx.size() << endl;
+      // Check if new_row_idx covers every index
+      for (int i = 0; i < nl_i; i++) {
+        for (int j = 0; j < nl_i; j++) {
+          if (new_row_idx[j] == i) {
+            break;
+          }
+          if (j == nl_i - 1 ) cout << i << "-th row of A doesn't get assigned to\n";
+        }
+      }
+      // for (int i:new_row_idx) cout << i << endl;
+
+      // compare A with A_new_reorg
+      MatrixXd diff_A = A_new_reorg - A;
+      MatrixXd abs_diff_A = diff_A.cwiseAbs();
+      VectorXd left_one = VectorXd::Ones(abs_diff_A.rows());
+      VectorXd right_one = VectorXd::Ones(abs_diff_A.cols());
+      cout << "sum-abs-diff_A: " <<
+           left_one.transpose()*abs_diff_A*right_one << endl;
+      cout << "sum-abs-diff_A divide by m*n: " <<
+           left_one.transpose()*abs_diff_A*right_one /
+           (abs_diff_A.rows()*abs_diff_A.cols())
+           << endl;
+      double max_diff_A_element = abs_diff_A(0, 0);
+      for (int i = 0; i < abs_diff_A.rows(); i++)
+        for (int j = 0; j < abs_diff_A.cols(); j++) {
+          if (abs_diff_A(i, j) > max_diff_A_element) {
+            max_diff_A_element = abs_diff_A(i, j);
+            cout << "(" << i << "," << j << ")" << ": max_diff_A_element = " <<
+                 max_diff_A_element << endl;
+          }
+        }
+      cout << "max_diff_A_element = " << max_diff_A_element << endl;*/
     }
 
 
@@ -632,100 +729,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
     // cout << "  smallest singular value is "
     //      << svd_5.singularValues()(max_row_col - 1) << endl;
-
-
-
-
-
-    // Comparing the new cosntraint linearization and the old lienarization
-    MatrixXd A_new;
-    VectorXd y_new, lb_new, ub_new;
-    systems::trajectory_optimization::newlinearizeConstraints(
-      gm_traj_opt.dircon.get(), w_sol, y_new, A_new, lb_new, ub_new);
-    // reorganize the rows or A
-    cout << "Reorganize the rows or A\n";
-    int nl_i = A.rows();
-    int nw_i = A.cols();
-    cout << "size of A = " << A.rows() << ", " <<  A.cols() << endl;
-    cout << "size of A_new = " << A_new.rows() << ", " <<  A_new.cols() << endl;
-    vector<int> new_row_idx;
-    VectorXd rowi(nw_i);
-    VectorXd rowj(nw_i);
-    VectorXd normalized_rowi(nw_i);
-    VectorXd normalized_rowj(nw_i);
-    for (int i = 0; i < nl_i; i++) { // A_new
-      for (int j = 0; j < nl_i; j++) { // A
-        rowi = A_new.row(i).transpose();
-        rowj = A.row(j).transpose();
-        normalized_rowi = rowi / rowi.norm();
-        normalized_rowj = rowj / rowj.norm();
-        if ((normalized_rowi - normalized_rowj).norm() < 1e-14) {
-          if(rowi.norm() != rowj.norm()) {
-            cout << i << "-th row of A_new: scale are different by " << rowi.norm()/rowj.norm() << endl;
-          }
-          // check ub and lb
-          // cout << "("<<i<<","<<j<<")"<<": \n";
-          // cout << "  ub(j) = " << ub(j) << endl;
-          // cout << "  ub_new(i) = " << ub_new(i) << endl;
-          // cout << "  lb(j) = " << lb(j) << endl;
-          // cout << "  lb_new(i) = " << lb_new(i) << endl;
-          if (ub(j)==ub_new(i) && lb(j)==lb_new(i) ){
-            // Maybe there are duplicated rows, so check if already assigned the row
-            bool is_existing = false;
-            for(int idx:new_row_idx){
-              if(idx == j){
-                is_existing = true;
-                break;
-              }
-            }
-            if(!is_existing){
-              new_row_idx.push_back(j);
-              break;
-            }
-          }
-        }
-        if(j == nl_i -1) cout << i << "-th row of A_new has no corresponding A\n";
-      }
-    }
-    MatrixXd A_new_reorg(nl_i,nw_i);
-    for (int i = 0; i < nl_i; i++) {
-      A_new_reorg.row(new_row_idx[i]) = A_new.row(i);
-    }
-    cout << "size of new_row_idx = " << new_row_idx.size() << endl;
-    // Check if new_row_idx covers every index
-    for (int i = 0; i < nl_i; i++){
-      for (int j = 0; j < nl_i; j++){
-        if(new_row_idx[j] == i){
-          break;
-        }
-        if(j == nl_i -1 ) cout << i << "-th row of A doesn't get assigned to\n";
-      }
-    }
-    // for (int i:new_row_idx) cout << i << endl;
-
-    // compare A with A_new_reorg
-    MatrixXd diff_A = A_new_reorg - A;
-    MatrixXd abs_diff_A = diff_A.cwiseAbs();
-    VectorXd left_one = VectorXd::Ones(abs_diff_A.rows());
-    VectorXd right_one = VectorXd::Ones(abs_diff_A.cols());
-    cout << "sum-abs-diff_A: " <<
-         left_one.transpose()*abs_diff_A*right_one << endl;
-    cout << "sum-abs-diff_A divide by m*n: " <<
-         left_one.transpose()*abs_diff_A*right_one / (abs_diff_A.rows()*abs_diff_A.cols())
-         << endl;
-    double max_diff_A_element = abs_diff_A(0, 0);
-    for (int i = 0; i < abs_diff_A.rows(); i++)
-      for (int j = 0; j < abs_diff_A.cols(); j++) {
-        if (abs_diff_A(i, j) > max_diff_A_element) {
-          max_diff_A_element = abs_diff_A(i, j);
-          cout << "("<<i<<","<<j<<")"<<": max_diff_A_element = " << max_diff_A_element << endl;
-        }
-      }
-      cout << "max_diff_A_element = " << max_diff_A_element << endl;
-
-
-
-
 
 
 
@@ -796,8 +799,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     VectorXd dw_sol = result2.GetSolution(quadprog.decision_variables());
     cout << "dw_sol norm:" << dw_sol.norm() << endl;
     // cout << "dw_sol = \n" << dw_sol << endl;
-    cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A*dw_sol << endl; // dw in null space
-    cout << "if this is not zero, then w=0 is not optimal: " << dw_sol.transpose()*b << endl;
+    cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A*dw_sol <<
+         endl; // dw in null space
+    cout << "if this is not zero, then w=0 is not optimal: " << dw_sol.transpose()*b
+         << endl;
     cout << "Finished traj opt\n\n";
 
     // vector<double> w_sol_sort;
