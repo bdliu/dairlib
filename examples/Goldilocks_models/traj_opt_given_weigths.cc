@@ -622,16 +622,94 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    // int A_row = A.rows();
-    // int A_col = A.cols();
-    // cout << "A_row = " << A_row << endl;
-    // cout << "A_col = " << A_col << endl;
+    int A_row = A.rows();
+    int A_col = A.cols();
+    cout << "A_row = " << A_row << endl;
+    cout << "A_col = " << A_col << endl;
     // int max_row_col = (A_row > A_col) ? A_row : A_col;
     // Eigen::BDCSVD<MatrixXd> svd_5(A);
     // cout << "A:\n";
     // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
     // cout << "  smallest singular value is "
     //      << svd_5.singularValues()(max_row_col - 1) << endl;
+
+
+
+
+
+    // Comparing the new cosntraint linearization and the old lienarization
+    // Augment A
+    MatrixXd A_aug(A.rows(), A.cols()+2);
+    A_aug.block(0,0,A.rows(), A.cols()) = A;
+    A_aug.block(0,A.cols(), A.rows(), 1) = lb;
+    A_aug.block(0,A.cols()+1, A.rows(), 1) = ub;
+    MatrixXd A_new;
+    VectorXd y_new, lb_new, ub_new;
+    systems::trajectory_optimization::newlinearizeConstraints(
+      gm_traj_opt.dircon.get(), w_sol, y_new, A_new, lb_new, ub_new);
+    MatrixXd A_new_aug(A.rows(), A.cols()+2);
+    A_new_aug.block(0,0,A.rows(), A.cols()) = A_new;
+    A_new_aug.block(0,A.cols(), A.rows(), 1) = lb_new;
+    A_new_aug.block(0,A.cols()+1, A.rows(), 1) = ub_new;
+
+    // reorganize the rows or A
+    int nl_i = A_aug.rows();
+    int nw_i = A_aug.cols();
+    cout << "nl_i = " << nl_i << endl;
+    cout << "nw_i = " << nw_i << endl;
+    cout << "Reorganize the rows or A\n";
+    vector<int> new_row_idx;
+    VectorXd rowi(nw_i);
+    VectorXd rowj(nw_i);
+    VectorXd normalized_rowi(nw_i);
+    VectorXd normalized_rowj(nw_i);
+    for (int i = 0; i < nl_i; i++) { // A_new
+      for (int j = 0; j < nl_i; j++) { // A
+        rowi = A_new_aug.row(i).transpose();
+        rowj = A_aug.row(j).transpose();
+        normalized_rowi = rowi / rowi.norm();
+        normalized_rowj = rowj / rowj.norm();
+        if ((normalized_rowi - normalized_rowj).norm() < 1e-3) {
+          if(rowi.norm() != rowj.norm()) {
+            cout << i << "-th row of A_new: scale are different by " << rowi.norm()/rowj.norm() << endl;
+          }
+          new_row_idx.push_back(j);
+          break;
+        }
+        if(j == nl_i -1) cout << i << "-th row of A_new has no corresponding A\n";
+      }
+    }
+    cout << "Size of new_row_idx = " << new_row_idx.size() << endl;
+    cout << "Create reorginized A\n";
+    MatrixXd A_new_aug_reorg(nl_i,nw_i);
+    for (int i = 0; i < nl_i; i++) {
+      cout << "i = " << i << endl;
+      cout << "new_row_idx[i] = " << new_row_idx[i] << endl;
+      A_new_aug_reorg.block(new_row_idx[i],0,1,nw_i) = A_new_aug.row(i);
+    }
+    for (int i:new_row_idx) cout << i << endl;
+    // compare A with A_new_aug_reorg
+    MatrixXd diff_A = A_new_aug_reorg - A_aug;
+    MatrixXd abs_diff_A = diff_A.cwiseAbs();
+    VectorXd left_one = VectorXd::Ones(abs_diff_A.rows());
+    VectorXd right_one = VectorXd::Ones(abs_diff_A.cols());
+    cout << "sum-abs-diff_A: " <<
+         left_one.transpose()*abs_diff_A*right_one << endl;
+    cout << "sum-abs-diff_A divide by m*n: " <<
+         left_one.transpose()*abs_diff_A*right_one / (abs_diff_A.rows()*abs_diff_A.cols())
+         << endl;
+    double max_diff_A_element = abs_diff_A(0, 0);
+    for (int i = 0; i < abs_diff_A.rows(); i++)
+      for (int j = 0; j < abs_diff_A.cols(); j++) {
+        if (abs_diff_A(i, j) > max_diff_A_element) {
+          max_diff_A_element = abs_diff_A(i, j);
+          cout << "("<<i<<","<<j<<")"<<": max_diff_A_element = " << max_diff_A_element << endl;
+        }
+      }
+      cout << "max_diff_A_element = " << max_diff_A_element << endl;
+
+
+
 
 
 
@@ -680,8 +758,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
-    int nl_i = A.rows();
-    int nw_i = A.cols();
+    // int nl_i = A.rows();
+    // int nw_i = A.cols();
     MathematicalProgram quadprog;
     auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
     quadprog.AddLinearConstraint( A,
@@ -689,11 +767,11 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                                   ub - y,
                                   dw);
     quadprog.AddQuadraticCost(H, b, dw);
-    quadprog.SetSolverOption(drake::solvers::GurobiSolver::id(), "BarConvTol", 1E-9);
-    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
-    //                          "Print file", "snopt.out");
-    // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
-    //                          "Major iterations limit", 10000);
+    // quadprog.SetSolverOption(drake::solvers::GurobiSolver::id(), "BarConvTol", 1E-9);
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+                             "Print file", "snopt.out");
+    quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(),
+                             "Major iterations limit", 10000);
     // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-14); //1.0e-10
     // quadprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-14); //1.0e-10
     const auto result2 = Solve(quadprog);

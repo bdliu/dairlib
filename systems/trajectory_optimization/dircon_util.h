@@ -19,6 +19,10 @@ void linearizeConstraints(const drake::solvers::MathematicalProgram* prog,
                           const Eigen::VectorXd& x, Eigen::VectorXd& y,
                           Eigen::MatrixXd& A, Eigen::VectorXd& lb,
                           Eigen::VectorXd& ub);
+void newlinearizeConstraints(const drake::solvers::MathematicalProgram* prog,
+                          const Eigen::VectorXd& x, Eigen::VectorXd& y,
+                          Eigen::MatrixXd& A, Eigen::VectorXd& lb,
+                          Eigen::VectorXd& ub);
 
 double secondOrderCost(const drake::solvers::MathematicalProgram* prog,
                        const Eigen::VectorXd& x, Eigen::MatrixXd& Q,

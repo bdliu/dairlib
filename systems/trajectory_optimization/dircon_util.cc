@@ -211,8 +211,6 @@ void linearizeConstraints(const MathematicalProgram* prog, const VectorXd& x,
       constraint_index += n;
     }
   }
-
-
 }
 int CountConstraintRows(const MathematicalProgram* prog) {
   int n = 0;
@@ -222,6 +220,71 @@ int CountConstraintRows(const MathematicalProgram* prog) {
   }
   return n;
 }
+
+
+
+
+void newlinearizeConstraints(const MathematicalProgram* prog, const VectorXd& x,
+                          VectorXd& y, MatrixXd& A, VectorXd& lb, VectorXd& ub) {
+  int num_constraints = 0;
+  int num_vars = prog->num_vars();
+
+  // First, count constraints
+  num_constraints += CountConstraintRows(prog);
+
+  // Initialize data storage
+  lb.resize(num_constraints);
+  ub.resize(num_constraints);
+  y.resize(num_constraints);
+  A = Eigen::MatrixXd::Zero(num_constraints, num_vars);
+
+  int constraint_index = 0;
+  auto constraints = prog->GetAllConstraints();
+  // cout << "size of constraints = " << constraints.size() << endl;
+
+  // int count = 0;
+  // int current_row = 0;
+  for (auto const& binding : constraints) {
+    auto const& c = binding.evaluator();
+    int n = c->num_constraints();
+    lb.segment(constraint_index, n) = c->lower_bound();
+    ub.segment(constraint_index, n) = c->upper_bound();
+
+    auto variables = binding.variables();
+    // cout << "Binding # " << count << " (row # " << current_row << "; # of rows = "
+    //      << n << "): ";
+    // cout << variables.transpose() << endl;
+    // count++;
+    // current_row += n;
+
+    // Initialize AutoDiff vector for result
+    AutoDiffVecXd y_val = initializeAutoDiff(
+                            VectorXd::Zero(c->num_constraints()), variables.size());
+
+    // Extract subset of decision variable vector
+    VectorXd x_binding(variables.size());
+    for (int i = 0; i < variables.size(); i++) {
+      x_binding(i) = x(prog->FindDecisionVariableIndex(variables(i)));
+    }
+    AutoDiffVecXd x_val = initializeAutoDiff(x_binding);
+
+    // Evaluate constraint and extract gradient
+    binding.evaluator()->Eval(x_val, &y_val);
+    MatrixXd dx = autoDiffToGradientMatrix(y_val);
+
+    y.segment(constraint_index, n) = autoDiffToValueMatrix(y_val);
+    for (int i = 0; i < variables.size(); i++) {
+      A.block(constraint_index,
+              prog->FindDecisionVariableIndex(variables(i)), n, 1) = dx.col(i);
+    }
+
+    constraint_index += n;
+  }
+
+}
+
+
+
 
 
 
