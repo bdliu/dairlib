@@ -622,10 +622,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    int A_row = A.rows();
-    int A_col = A.cols();
-    cout << "A_row = " << A_row << endl;
-    cout << "A_col = " << A_col << endl;
+    // int A_row = A.rows();
+    // int A_col = A.cols();
+    // cout << "A_row = " << A_row << endl;
+    // cout << "A_col = " << A_col << endl;
     // int max_row_col = (A_row > A_col) ? A_row : A_col;
     // Eigen::BDCSVD<MatrixXd> svd_5(A);
     // cout << "A:\n";
@@ -638,26 +638,16 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Comparing the new cosntraint linearization and the old lienarization
-    // Augment A
-    MatrixXd A_aug(A.rows(), A.cols()+2);
-    A_aug.block(0,0,A.rows(), A.cols()) = A;
-    A_aug.block(0,A.cols(), A.rows(), 1) = lb;
-    A_aug.block(0,A.cols()+1, A.rows(), 1) = ub;
     MatrixXd A_new;
     VectorXd y_new, lb_new, ub_new;
     systems::trajectory_optimization::newlinearizeConstraints(
       gm_traj_opt.dircon.get(), w_sol, y_new, A_new, lb_new, ub_new);
-    MatrixXd A_new_aug(A.rows(), A.cols()+2);
-    A_new_aug.block(0,0,A.rows(), A.cols()) = A_new;
-    A_new_aug.block(0,A.cols(), A.rows(), 1) = lb_new;
-    A_new_aug.block(0,A.cols()+1, A.rows(), 1) = ub_new;
-
     // reorganize the rows or A
-    int nl_i = A_aug.rows();
-    int nw_i = A_aug.cols();
-    cout << "nl_i = " << nl_i << endl;
-    cout << "nw_i = " << nw_i << endl;
     cout << "Reorganize the rows or A\n";
+    int nl_i = A.rows();
+    int nw_i = A.cols();
+    cout << "size of A = " << A.rows() << ", " <<  A.cols() << endl;
+    cout << "size of A_new = " << A_new.rows() << ", " <<  A_new.cols() << endl;
     vector<int> new_row_idx;
     VectorXd rowi(nw_i);
     VectorXd rowj(nw_i);
@@ -665,31 +655,56 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     VectorXd normalized_rowj(nw_i);
     for (int i = 0; i < nl_i; i++) { // A_new
       for (int j = 0; j < nl_i; j++) { // A
-        rowi = A_new_aug.row(i).transpose();
-        rowj = A_aug.row(j).transpose();
+        rowi = A_new.row(i).transpose();
+        rowj = A.row(j).transpose();
         normalized_rowi = rowi / rowi.norm();
         normalized_rowj = rowj / rowj.norm();
-        if ((normalized_rowi - normalized_rowj).norm() < 1e-3) {
+        if ((normalized_rowi - normalized_rowj).norm() < 1e-14) {
           if(rowi.norm() != rowj.norm()) {
             cout << i << "-th row of A_new: scale are different by " << rowi.norm()/rowj.norm() << endl;
           }
-          new_row_idx.push_back(j);
-          break;
+          // check ub and lb
+          // cout << "("<<i<<","<<j<<")"<<": \n";
+          // cout << "  ub(j) = " << ub(j) << endl;
+          // cout << "  ub_new(i) = " << ub_new(i) << endl;
+          // cout << "  lb(j) = " << lb(j) << endl;
+          // cout << "  lb_new(i) = " << lb_new(i) << endl;
+          if (ub(j)==ub_new(i) && lb(j)==lb_new(i) ){
+            // Maybe there are duplicated rows, so check if already assigned the row
+            bool is_existing = false;
+            for(int idx:new_row_idx){
+              if(idx == j){
+                is_existing = true;
+                break;
+              }
+            }
+            if(!is_existing){
+              new_row_idx.push_back(j);
+              break;
+            }
+          }
         }
         if(j == nl_i -1) cout << i << "-th row of A_new has no corresponding A\n";
       }
     }
-    cout << "Size of new_row_idx = " << new_row_idx.size() << endl;
-    cout << "Create reorginized A\n";
-    MatrixXd A_new_aug_reorg(nl_i,nw_i);
+    MatrixXd A_new_reorg(nl_i,nw_i);
     for (int i = 0; i < nl_i; i++) {
-      cout << "i = " << i << endl;
-      cout << "new_row_idx[i] = " << new_row_idx[i] << endl;
-      A_new_aug_reorg.block(new_row_idx[i],0,1,nw_i) = A_new_aug.row(i);
+      A_new_reorg.row(new_row_idx[i]) = A_new.row(i);
     }
-    for (int i:new_row_idx) cout << i << endl;
-    // compare A with A_new_aug_reorg
-    MatrixXd diff_A = A_new_aug_reorg - A_aug;
+    cout << "size of new_row_idx = " << new_row_idx.size() << endl;
+    // Check if new_row_idx covers every index
+    for (int i = 0; i < nl_i; i++){
+      for (int j = 0; j < nl_i; j++){
+        if(new_row_idx[j] == i){
+          break;
+        }
+        if(j == nl_i -1 ) cout << i << "-th row of A doesn't get assigned to\n";
+      }
+    }
+    // for (int i:new_row_idx) cout << i << endl;
+
+    // compare A with A_new_reorg
+    MatrixXd diff_A = A_new_reorg - A;
     MatrixXd abs_diff_A = diff_A.cwiseAbs();
     VectorXd left_one = VectorXd::Ones(abs_diff_A.rows());
     VectorXd right_one = VectorXd::Ones(abs_diff_A.cols());
