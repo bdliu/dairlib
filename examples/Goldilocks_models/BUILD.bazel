@@ -154,9 +154,9 @@ cc_library(
         "@drake//multibody/parsing",
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
-#        "@gurobi//:gurobi_cxx",
     ],
 )
+#        "@gurobi//:gurobi_cxx",
 
 
 cc_binary(

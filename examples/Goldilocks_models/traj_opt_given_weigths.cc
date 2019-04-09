@@ -396,9 +396,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
     double c_double;
-    LinearizeConstraints(
-      gm_traj_opt.dircon.get(), w_sol, y, A, lb, ub);
-    c_double = SecondOrderCost(gm_traj_opt.dircon.get(), w_sol, *H, *b);
+    solvers::LinearizeConstraints(
+      *gm_traj_opt.dircon.get(), w_sol, &y, &A, &lb, &ub);
+    c_double = solvers::SecondOrderCost(*gm_traj_opt.dircon.get(), w_sol, &H, &b);
     VectorXd c(1);
     c << c_double;
 
@@ -409,12 +409,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int n_theta = n_theta_s + n_theta_sDDot;
     MatrixXd B = MatrixXd::Zero(A.rows(), n_theta);
     // Get the row index of B matrix where dynamics constraint starts
-    VectorXd ind_head = systems::trajectory_optimization::getConstraintRows(
-                          gm_traj_opt.dircon.get(),
+    VectorXd ind_head = solvers::GetConstraintRows(
+                          *gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
     // cout << "ind_head = " << ind_head(0) << endl;
-    VectorXd ind_tail = systems::trajectory_optimization::getConstraintRows(
-                          gm_traj_opt.dircon.get(),
+    VectorXd ind_tail = solvers::GetConstraintRows(
+                          *gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
     // cout << "ind_tail = " << ind_tail(0) << endl;
     int N_accum = 0;
@@ -845,8 +845,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       MatrixXd H2;
       VectorXd b2;
       double c_nonlinear;
-      c_nonlinear = SecondOrderCost(
-                      gm_traj_opt.dircon.get(), w_sol_test, *H2, *b2) - c_double;
+      c_nonlinear = solvers::SecondOrderCost(
+                      *gm_traj_opt.dircon.get(), w_sol_test, &H2, &b2) - c_double;
       cout << "i = " << i << endl;
       cout << "  c_nonlinear = " << c_nonlinear << endl;
       VectorXd dw_sol_test = i * eps * dw_sol;
@@ -864,8 +864,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        LinearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
+        solvers::LinearizeConstraints(
+          *gm_traj_opt.dircon.get(), w_sol_test, &y2, &A2, &lb2, &ub2);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_ae; j++) {
           double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
@@ -895,8 +895,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        LinearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
+        solvers::LinearizeConstraints(
+          *gm_traj_opt.dircon.get(), w_sol_test, &y2, &A2, &lb2, &ub2);
         cout << "  nonlinear_constraint_val = ";
         for (int j : constraint_vio_row_idx) {
           double violation = y2(active_eq_row_idx[j]) - ub(active_eq_row_idx[j]);
@@ -911,8 +911,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        LinearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
+        solvers::LinearizeConstraints(
+          *gm_traj_opt.dircon.get(), w_sol_test, &y2, &A2, &lb2, &ub2);
         VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_aub; j++) {
@@ -938,8 +938,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd w_sol_test = w_sol + i * eps * dw_sol;
         MatrixXd A2;
         VectorXd y2, lb2, ub2;
-        LinearizeConstraints(
-          gm_traj_opt.dircon.get(), w_sol_test, *y2, *A2, *lb2, *ub2);
+        solvers::LinearizeConstraints(
+          *gm_traj_opt.dircon.get(), w_sol_test, &y2, &A2, &lb2, &ub2);
         VectorXd nonlinear_constraint_val = VectorXd::Zero(n_show);
         unsigned int k = 0;
         for (unsigned int j = 0; j < n_alb; j++) {

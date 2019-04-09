@@ -14,8 +14,9 @@ namespace dairlib {
 namespace solvers {
 
 void CheckGenericConstraints(const MathematicalProgram& prog,
-    const drake::solvers::MathematicalProgramResult& result,
-    double tol) {
+    const drake::solvers::MathematicalProgramResult& result) {
+  double tol = 1e-6;
+
   for (auto const& binding : prog.generic_constraints()) {
     auto y = result.EvalBinding(binding);
     auto c = binding.evaluator();
@@ -32,7 +33,8 @@ void CheckGenericConstraints(const MathematicalProgram& prog,
 }
 
 double SecondOrderCost(const MathematicalProgram& prog, const VectorXd& x_nom,
-    MatrixXd* Q, VectorXd* w, double eps) {
+    MatrixXd* Q, VectorXd* w) {
+  double eps = 1e-8;
 
   int num_vars = prog.num_vars();
   *Q = Eigen::MatrixXd::Zero(num_vars, num_vars);

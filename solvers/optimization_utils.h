@@ -10,9 +10,8 @@ namespace solvers {
 /// specified tolerance.
 /// Prints out any violating constraints
 /// @return True if all generic constraints are satisfied
-bool CheckConstraints(const drake::solvers::MathematicalProgram& prog,
-    const drake::solvers::MathematicalProgramResult& result,
-    double tol = 1e-6);
+void CheckGenericConstraints(const drake::solvers::MathematicalProgram& prog,
+    const drake::solvers::MathematicalProgramResult& result);
 
 /// Given a MathematicalProgram and associated constraint Binding, returns
 /// the vector of row indices associated with that constraint.
@@ -49,8 +48,7 @@ void LinearizeConstraints(const drake::solvers::MathematicalProgram& prog,
 /// @param eps The epsilon to use for numerical differencing
 /// @return Returns the constant part of the cost
 double SecondOrderCost(const drake::solvers::MathematicalProgram& prog,
-    const Eigen::VectorXd& x_nom, Eigen::MatrixXd* Q, Eigen::VectorXd* w,
-    double eps = 1e-8);
+    const Eigen::VectorXd& x_nom, Eigen::MatrixXd* Q, Eigen::VectorXd* w);
 
 /// Count the total number of constraint rows, if lb <= f(x) <= ub, this is
 /// the dimension of f(x)
