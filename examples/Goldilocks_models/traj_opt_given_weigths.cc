@@ -643,7 +643,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           rowj = A.row(j).transpose();
           normalized_rowi = rowi / rowi.norm();
           normalized_rowj = rowj / rowj.norm();
-          if ((normalized_rowi - normalized_rowj).norm() < 1e-14) {
+          if ((normalized_rowi - normalized_rowj).norm() < 1e-15) {
             if (rowi.norm() != rowj.norm()) {
               cout << i << "-th row of A_new: scale are different by " <<
                    rowi.norm() / rowj.norm() << endl;
@@ -776,8 +776,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     cout << "\nRun traj opt to check if your quadratic approximation is correct\n";
-    // int nl_i = A.rows();
-    // int nw_i = A.cols();
+    int nl_i = A.rows();
+    int nw_i = A.cols();
     MathematicalProgram quadprog;
     auto dw = quadprog.NewContinuousVariables(nw_i, "dw");
     quadprog.AddLinearConstraint( A,
