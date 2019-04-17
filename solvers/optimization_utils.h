@@ -12,7 +12,7 @@ namespace solvers {
 /// specified tolerance.
 /// Prints out any violating constraints
 /// @return True if all generic constraints are satisfied
-void CheckGenericConstraints(const drake::solvers::MathematicalProgram& prog,
+bool CheckGenericConstraints(const drake::solvers::MathematicalProgram& prog,
     const drake::solvers::MathematicalProgramResult& result,
     double tol = 1e-6);
 
