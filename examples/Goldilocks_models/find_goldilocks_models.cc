@@ -123,23 +123,29 @@ void findGoldilocksModels(int argc, char* argv[]) {
   DynamicsExpression dyn_expression(n_sDDot, 0);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
+  cout << "here\n";
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
+  cout << "here\n";
   int n_feature_sDDot = dyn_expression.getFeature(dummy_s,dummy_s).size();
+  cout << "here\n";
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   VectorXd theta_s(n_theta_s);
   VectorXd theta_sDDot(n_theta_sDDot);
 
+  cout << "Finish reduced order model setup\n";
+
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
+  theta_s(1) = 1;
   // theta_s(2) = 1;
   // theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
-  theta_s = VectorXd::Random(n_theta_s);
-  theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  // theta_s = VectorXd::Random(n_theta_s);
+  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
   // if (iter_start > 0 && !FLAGS_is_debug) {
     MatrixXd theta_s_mat =
