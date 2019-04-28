@@ -55,6 +55,7 @@ namespace dairlib {
 
 DEFINE_int32(iter, 18, "The iter #");
 DEFINE_int32(batch, 0, "The batch #");
+DEFINE_double(realtime_factor, 1, "Rate of which the traj is played back");
 
 void visualizeGait(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -104,7 +105,7 @@ void visualizeGait(int argc, char* argv[]) {
   while (true)
     for (int i = 0; i < n_loops; i++) {
       drake::systems::Simulator<double> simulator(*diagram);
-      simulator.set_target_realtime_rate(1);
+      simulator.set_target_realtime_rate(FLAGS_realtime_factor);
       simulator.Initialize();
       simulator.StepTo(pp_xtraj.end_time());
     }

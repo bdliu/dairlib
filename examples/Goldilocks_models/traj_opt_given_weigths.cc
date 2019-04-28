@@ -392,7 +392,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
   if (!is_get_nominal) {
-    cout << "\nGetting A, H, y, lb, ub, b.\n";
+    // cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
     double c_double;
@@ -403,7 +403,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     c << c_double;
 
     // Get matrix B (~get feature vectors)
-    cout << "\nGetting B.\n";
+    // cout << "\nGetting B.\n";
     int n_theta_s = theta_s.size();
     int n_theta_sDDot = theta_sDDot.size();
     int n_theta = n_theta_s + n_theta_sDDot;
@@ -421,7 +421,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
         int i = N_accum + m;
-        cout << "i = " << i << endl;
+        // cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
@@ -461,7 +461,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     B_vec.push_back(B);
 
     // Store the vectors and matrices
-    cout << "\nStoring vectors and matrices into csv.\n";
+    // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
 
     /*writeCSV(directory + prefix + string("H.csv"), H);
@@ -474,7 +474,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
     // Store s, ds and dds into csv files
-    cout << "\nStoring s, ds and dds into csv.\n";
+    // cout << "\nStoring s, ds and dds into csv.\n";
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;

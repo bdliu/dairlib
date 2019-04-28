@@ -271,7 +271,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   feature_base << st_to_CoM(0),  // CoM_x
                st_to_CoM(2);  // CoM_z*/
 
-  ///// Way 2: caluclate by hand ////////////
+  ///// Way 2: caluclate by hand //////////// Speed increased by 35 times!!!
   // Calculate the CoM by hand instead of by using MBP
   VectorX<U> CoM_xz(2);
   CoM_xz << q(0) + (0.3 * sin(q(2))) / 2.0 + (
