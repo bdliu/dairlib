@@ -240,26 +240,19 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
   // Get CoM position and stance foot position in autoDiff
-  cout << "In kinematics expression\n";
-  cout << "q = " << q.transpose() << endl;
   auto context = plant_->CreateDefaultContext();
-  cout << "In kinematics expression\n";
   plant_->SetPositions(context.get(), q);
-  cout << "In kinematics expression\n";
 
   // CoM
-  cout << "In kinematics expression\n";
   const auto & torso = plant_->GetBodyByName("torso_mass");
   const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context, torso);
   VectorX<U> CoM = 0.5 * torso_pose.translation();
-  cout << "In kinematics expression\n";
   for (int i = 0; i < 4; i++) {
     const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
     const auto & body_pose = plant_->EvalBodyPoseInWorld(*context, body);
 
     CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
   }
-  cout << "In kinematics expression\n";
 
   // Stance foot position (left foot)
   const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
@@ -271,14 +264,9 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
                              left_lower_leg_Rotmat * foot_disp_;
   VectorX<U> st_to_CoM = CoM - left_foot_pos;
 
-  cout << "In kinematics expression\n";
   VectorX<U> feature_base(2);
-  cout << "In kinematics expression\n";
   feature_base << st_to_CoM(0),  // CoM_x
                st_to_CoM(2);  // CoM_z
-  cout << "In kinematics expression\n";
-
-  cout << "feature_base = " << feature_base.transpose() << endl;
 
   // elements:
   // q(0),
@@ -291,7 +279,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // feature_base(0), feature_base(1)
 
   VectorX<U> feature(70);  // 2 + 1 + 12 + 10C2 = 2 + 1 + 12 + 55 = 70
-  feature << 1,2,
+  feature << feature_base,
           1,
           q(0),
           q(1),
@@ -370,9 +358,6 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           cos(q(6)) * sin(q(6)),
           // 10
           cos(q(6)) * cos(q(6));
-
-  cout << "feature = " << feature << endl;
-
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
 /*  // Get CoM position and stance foot position in autoDiff

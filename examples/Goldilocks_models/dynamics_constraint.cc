@@ -28,7 +28,7 @@ DynamicsConstraint::DynamicsConstraint(
   n_feature_sDDot_(n_feature_sDDot),
   n_theta_sDDot_(theta_sDDot.size()),
   theta_sDDot_(theta_sDDot),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s)),
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant)),
   dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot)),
   is_head_(is_head) {
 

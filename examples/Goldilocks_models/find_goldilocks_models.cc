@@ -119,21 +119,16 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
 
   // Reduced order model setup
-  KinematicsExpression<double> kin_expression(n_s, 0);
+  KinematicsExpression<double> kin_expression(n_s, 0, &plant);
   DynamicsExpression dyn_expression(n_sDDot, 0);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
-  cout << "here\n";
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
-  cout << "here\n";
   int n_feature_sDDot = dyn_expression.getFeature(dummy_s,dummy_s).size();
-  cout << "here\n";
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   VectorXd theta_s(n_theta_s);
   VectorXd theta_sDDot(n_theta_sDDot);
-
-  cout << "Finish reduced order model setup\n";
 
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
