@@ -520,7 +520,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // Below are all for debugging
 
     // Checking B
-    // BTW, the code only work in the case of y = q_1 ^2 and dds = s^3
+    // BTW, the code only work in the case of s = q_1 ^2 and dds = s^3
     bool is_checking_matrix_B = false;
     if (is_checking_matrix_B) {
       N_accum = 0;
@@ -733,7 +733,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-    cout << "\ncheck if H is diagonal: \n";
+    /*cout << "\ncheck if H is diagonal: \n";
     MatrixXd H_test = H;
     int nw = H_test.rows();
     for (int i = 0; i < nw; i++) {
@@ -958,7 +958,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         cout << "  nonlinear_constraint_val = "
              << nonlinear_constraint_val.transpose() << endl;
       }
-    }
+    }*/
   }  // end of if(!is_get_nominal)
 
 

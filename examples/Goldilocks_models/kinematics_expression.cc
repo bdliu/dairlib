@@ -16,6 +16,7 @@ KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature,
   n_feature_ = n_feature;
   n_s_ = n_s;
   plant_ = plant;
+  context_ = plant->CreateDefaultContext();
 
   mass_disp_ << 0, 0, -0.25;
   foot_disp_ << 0, 0, -0.5;
@@ -151,7 +152,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // sin(q(5)), cos(q(5))
   // sin(q(6)), cos(q(6))
 
-  /*VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
+  VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
   feature <<1,
             q(0),
             q(1),
@@ -229,7 +230,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
             sin(q(6)) * sin(q(6)),
             cos(q(6)) * sin(q(6)),
             // 10
-            cos(q(6)) * cos(q(6));*/
+            cos(q(6)) * cos(q(6));
 
   //////////// Version 8: debug B matrix ///////////////////////////////////////
   // VectorX<U> feature(1);
@@ -240,16 +241,16 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
   // Get CoM position and stance foot position in autoDiff
-  auto context = plant_->CreateDefaultContext();
-  plant_->SetPositions(context.get(), q);
+  // auto context = plant_->CreateDefaultContext();
+  /*plant_->SetPositions(context_.get(), q);
 
   // CoM
   const auto & torso = plant_->GetBodyByName("torso_mass");
-  const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context, torso);
+  const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context_, torso);
   VectorX<U> CoM = 0.5 * torso_pose.translation();
   for (int i = 0; i < 4; i++) {
     const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
-    const auto & body_pose = plant_->EvalBodyPoseInWorld(*context, body);
+    const auto & body_pose = plant_->EvalBodyPoseInWorld(*context_, body);
 
     CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
   }
@@ -257,7 +258,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // Stance foot position (left foot)
   const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
   const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                       *context, left_lower_leg);
+                                       *context_, left_lower_leg);
   const VectorX<U> left_lower_leg_Pos = left_lower_leg_pose.translation();
   const MatrixX<U> left_lower_leg_Rotmat = left_lower_leg_pose.linear();
   VectorX<U> left_foot_pos = left_lower_leg_Pos +
@@ -357,20 +358,19 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));
+          cos(q(6)) * cos(q(6));*/
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
 /*  // Get CoM position and stance foot position in autoDiff
-  auto context = plant_->CreateDefaultContext();
-  plant_->SetPositions(context.get(), q);
+  plant_->SetPositions(context_.get(), q);
 
   // CoM
   const auto & torso = plant_->GetBodyByName("torso_mass");
-  const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context, torso);
+  const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context_, torso);
   VectorX<U> CoM = 0.5 * torso_pose.translation();
   for (int i = 0; i < 4; i++) {
     const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
-    const auto & body_pose = plant_->EvalBodyPoseInWorld(*context, body);
+    const auto & body_pose = plant_->EvalBodyPoseInWorld(*context_, body);
 
     CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
   }
@@ -378,7 +378,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // Stance foot position (left foot)
   const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
   const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                       *context, left_lower_leg);
+                                       *context_, left_lower_leg);
   const VectorX<U> left_lower_leg_Pos = left_lower_leg_pose.translation();
   const MatrixX<U> left_lower_leg_Rotmat = left_lower_leg_pose.linear();
   VectorX<U> left_foot_pos = left_lower_leg_Pos +
@@ -388,7 +388,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // Swing foot position (right foot)
   const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
   const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                        *context, right_lower_leg);
+                                        *context_, right_lower_leg);
   const VectorX<U> right_lower_leg_Pos = right_lower_leg_pose.translation();
   const MatrixX<U> right_lower_leg_Rotmat = right_lower_leg_pose.linear();
   VectorX<U> right_foot_pos = right_lower_leg_Pos +

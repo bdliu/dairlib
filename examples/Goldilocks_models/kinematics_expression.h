@@ -49,6 +49,7 @@ class KinematicsExpression {
 
  private:
   const MultibodyPlant<T> * plant_;
+  std::unique_ptr<drake::systems::Context<T>> context_;
   int n_feature_;
   int n_q_;
   int n_s_;

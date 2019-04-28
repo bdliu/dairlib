@@ -125,6 +125,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
   VectorXd dummy_s = VectorXd::Zero(n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot = dyn_expression.getFeature(dummy_s,dummy_s).size();
+  cout << "n_feature_s = " << n_feature_s << endl;
+  cout << "n_feature_sDDot = " << n_feature_sDDot << endl;
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
   VectorXd theta_s(n_theta_s);
