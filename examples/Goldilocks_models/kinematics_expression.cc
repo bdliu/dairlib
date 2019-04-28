@@ -152,7 +152,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // sin(q(5)), cos(q(5))
   // sin(q(6)), cos(q(6))
 
-  VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
+  /*VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
   feature <<1,
             q(0),
             q(1),
@@ -230,7 +230,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
             sin(q(6)) * sin(q(6)),
             cos(q(6)) * sin(q(6)),
             // 10
-            cos(q(6)) * cos(q(6));
+            cos(q(6)) * cos(q(6));*/
 
   //////////// Version 8: debug B matrix ///////////////////////////////////////
   // VectorX<U> feature(1);
@@ -242,7 +242,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   //////////// Version 10: features contain LIPM & swing foot //////////////////
   // Get CoM position and stance foot position in autoDiff
   // auto context = plant_->CreateDefaultContext();
-  /*plant_->SetPositions(context_.get(), q);
+  plant_->SetPositions(context_.get(), q);
 
   // CoM
   const auto & torso = plant_->GetBodyByName("torso_mass");
@@ -358,7 +358,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));*/
+          cos(q(6)) * cos(q(6));
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
 /*  // Get CoM position and stance foot position in autoDiff

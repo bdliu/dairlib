@@ -6,8 +6,8 @@ import time
 import sys
 
 
-iteration_start = 7
-iteration_end = 35
+iteration_start = 1
+iteration_end = 17
 if len(sys.argv) == 2:
     iteration_start = int(sys.argv[1])
 elif len(sys.argv) == 3:

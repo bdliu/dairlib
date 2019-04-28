@@ -101,7 +101,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
-  double h_step = 1e-3; //1e-2; is the default  // 1e-1 caused divergence when close to optimal sol
+  double h_step = 1e-2; // 1e-3 is small enough to avoid gittering at the end
+                        // 1e-2 is a good compromise on both speed and gittering
+                        // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
