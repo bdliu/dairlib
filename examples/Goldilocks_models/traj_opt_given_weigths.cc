@@ -72,7 +72,7 @@ using systems::SubvectorPassThrough;
 
 MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     MultibodyPlant<AutoDiffXd> & plant_autoDiff,
-    int n_s, int n_sDDot,
+    int n_s, int n_sDDot, int n_tau,
     int n_feature_s,
     int n_feature_sDDot,
     Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
@@ -316,7 +316,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-    n_s, n_sDDot, n_feature_s, n_feature_sDDot, theta_s, theta_sDDot,
+    n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, num_time_samples, is_get_nominal);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
@@ -424,18 +424,22 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         // cout << "i = " << i << endl;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
         auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto tau_iplus1 = gm_traj_opt.reduced_model_input(i + 1, n_tau);
         auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
         VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd tau_i_sol = result.GetSolution(tau_i);
         VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd tau_iplus1_sol = result.GetSolution(tau_iplus1);
         VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
 
         MatrixXd dyn_gradient_head =
           gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-            x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
         MatrixXd dyn_gradient_tail =
           gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-            x_i_sol, x_iplus1_sol, h_i_sol);
+            x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
 
         // Fill in B matrix
         B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
@@ -473,11 +477,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // writeCSV(directory + prefix + string("B.csv"), B);
 
 
-    // Store s, ds and dds into csv files
+    // Store s, ds, dds and tau into csv files
     // cout << "\nStoring s, ds and dds into csv.\n";
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;
+    std::vector<VectorXd> tau_vec;
     std::vector<VectorXd> h_vec;
     N_accum = 0;
     // for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
@@ -486,15 +491,19 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         int i = N_accum + m;
         // Get the gradient value first
         auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
         VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd tau_i_sol = result.GetSolution(tau_i);
 
         VectorXd s;
         VectorXd ds;
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
-        VectorXd dds = gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds);
+        VectorXd dds =
+          gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds, tau_i_sol);
         s_vec.push_back(s);
         ds_vec.push_back(ds);
         dds_vec.push_back(dds);
+        tau_vec.push_back(tau_i_sol);
 
         if (m < num_time_samples[l] - 1) {
           auto h_i = gm_traj_opt.dircon->timestep(i);
@@ -508,6 +517,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     PiecewisePolynomial<double> s_spline = createCubicSplineGivenSAndSdot(
         h_vec, s_vec, ds_vec);
     storeSplineOfS(h_vec, s_spline, directory, prefix);
+    storeTau(h_vec, tau_vec, directory, prefix);
     // checkSplineOfS(h_vec, dds_vec, s_spline);
 
 
@@ -531,19 +541,23 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
           // From finite differencing
           auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+          auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
           auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+          auto tau_iplus1 = gm_traj_opt.reduced_model_input(i + 1, n_tau);
           auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
           VectorXd x_i_sol = result.GetSolution(x_i);
+          VectorXd tau_i_sol = result.GetSolution(tau_i);
           VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+          VectorXd tau_iplus1_sol = result.GetSolution(tau_iplus1);
           VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
           double h_i = h_i_sol(0);
 
           MatrixXd grad_head_byFD =
             gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
-              x_i_sol, x_iplus1_sol, h_i_sol);
+              x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
           MatrixXd grad_tail_byFD =
             gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-              x_i_sol, x_iplus1_sol, h_i_sol);
+              x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
 
           // From hand calculation (theta_s part)
           double phis_i = x_i_sol(1) * x_i_sol(1);

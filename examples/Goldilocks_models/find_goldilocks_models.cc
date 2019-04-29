@@ -85,8 +85,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
-  string init_file;
-  // init_file = "";
+  string init_file = "";
   init_file = "w0.csv";
   // init_file = "w0_with_z.csv";
   string prefix = "";
@@ -102,8 +101,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = 1e-2; // 1e-3 is small enough to avoid gittering at the end
-                        // 1e-2 is a good compromise on both speed and gittering
-                        // 1e-1 caused divergence when close to optimal sol
+  //                    // 1e-2 is a good compromise on both speed and gittering
+  //                    // 1e-1 caused divergence when close to optimal sol
   double eps_regularization = 1e-4;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
@@ -119,14 +118,20 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model parameters
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
+  int n_tau = 0;
+  cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
+       "Need to make sure that the implementation in DynamicsExpression agrees "
+       "with n_s and n_tau.\n";
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);
   DynamicsExpression dyn_expression(n_sDDot, 0);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
+  VectorXd dummy_tau = VectorXd::Zero(n_tau);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
-  int n_feature_sDDot = dyn_expression.getFeature(dummy_s,dummy_s).size();
+  int n_feature_sDDot =
+    dyn_expression.getFeature(dummy_s, dummy_s, dummy_tau).size();
   cout << "n_feature_s = " << n_feature_s << endl;
   cout << "n_feature_sDDot = " << n_feature_sDDot << endl;
   int n_theta_s = n_s * n_feature_s;
@@ -146,7 +151,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
-  // if (iter_start > 0 && !FLAGS_is_debug) {
+    // if (iter_start > 0 && !FLAGS_is_debug) {
     MatrixXd theta_s_mat =
       readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
     MatrixXd theta_sDDot_mat =
@@ -176,7 +181,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
     for (int i = 0; i < n_batch; i++) {
       MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
                            to_string(i) + string("_c.csv"));
-      old_cost += c(0,0) / n_batch;
+      old_cost += c(0, 0) / n_batch;
     }
     min_so_far = old_cost;
     cout << "min_so_far = " << min_so_far << endl;
@@ -210,7 +215,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // store initial parameter values
     prefix = to_string(iter) +  "_";
-    if(!FLAGS_is_debug){
+    if (!FLAGS_is_debug) {
       writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
       writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
     }
@@ -235,7 +240,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       /// setup for each batch
       double stride_length = is_get_nominal ? stride_length_0 :
                              stride_length_0 + delta_stride_length_vec[batch];
-      if(!is_get_nominal && is_stochastic) stride_length += dist(e1);
+      if (!is_get_nominal && is_stochastic) stride_length += dist(e1);
       cout << "stride_length = " << stride_length << endl;
 
       prefix = to_string(iter) +  "_" + to_string(batch) + "_";
@@ -253,7 +258,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
         init_file_pass_in = to_string(iter - 1) +  "_" +
                             to_string(batch) + string("_w.csv");
       //Testing
-      if(FLAGS_is_debug){
+      if (FLAGS_is_debug) {
         // init_file_pass_in = to_string(iter) +  "_" +
         //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
         // init_file_pass_in = string("1_2_w.csv");
@@ -266,7 +271,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       // Trajectory optimization with fixed model paramters
       MathematicalProgramResult result =
         trajOptGivenWeights(plant, plant_autoDiff,
-                            n_s, n_sDDot, n_feature_s, n_feature_sDDot,
+                            n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
                             theta_s, theta_sDDot,
                             stride_length, duration, max_inner_iter_pass_in,
                             directory, init_file_pass_in, prefix,
@@ -278,7 +283,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       current_is_success = (current_is_success & result.is_success());
       if ((iter > 1 && !current_is_success) || FLAGS_is_debug) break;
     }
-    if(FLAGS_is_debug) break;
+    if (FLAGS_is_debug) break;
 
     if (is_get_nominal) {
       if (!current_is_success)
@@ -300,9 +305,6 @@ void findGoldilocksModels(int argc, char* argv[]) {
       if (!current_is_success && iter == 1) {
         iter -= 1;
       }
-      // else if (!current_is_success
-      //          || (total_cost >
-      //              min_so_far)) { // TODO: Shouldn't redo the iteration if the cost goes up
       else if (!current_is_success) {
         current_iter_step_size = current_iter_step_size / 2;
         // if(current_iter_step_size<1e-5){
@@ -365,26 +367,27 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
 
 
-          cout << "\n (After extracting active constraints) Run traj opt to check if your quadratic approximation is correct\n";
+          cout << "\n (After extracting active constraints) Run traj opt to "
+               "check if your quadratic approximation is correct\n";
           nl_i = A_active.rows();
           nw_i = A_active.cols();
           MathematicalProgram quadprog;
           auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
           quadprog.AddLinearConstraint( A_active,
-                                    VectorXd::Zero(nl_i),
-                                    VectorXd::Zero(nl_i),
-                                    w2);
-          quadprog.AddQuadraticCost(H_vec[batch],b_vec[batch],w2);
+                                        VectorXd::Zero(nl_i),
+                                        VectorXd::Zero(nl_i),
+                                        w2);
+          quadprog.AddQuadraticCost(H_vec[batch], b_vec[batch], w2);
           const auto result2 = Solve(quadprog);
           auto solution_result2 = result2.get_solution_result();
           cout << solution_result2 << endl;
           cout << "Cost:" << result2.get_optimal_cost() << endl;
           VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
           cout << "w_sol norm:" << w_sol_check.norm() << endl;
-          cout << "Finished traj opt\n\n";
-
-          cout << "This should be zero\n" << VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-          cout << "if this is not zero, then w=0 is not optimal: " << w_sol_check.transpose()*b_vec[batch] << endl;
+          // cout << "This should be zero\n" <<
+          //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
+          cout << "if this is not zero, then w=0 is not optimal: " <<
+               w_sol_check.transpose()*b_vec[batch] << endl;
 
 
 
@@ -737,7 +740,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
   // store parameter values
   prefix = to_string(iter + 1) +  "_";
-  if(!FLAGS_is_debug){
+  if (!FLAGS_is_debug) {
     writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
     writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
   }

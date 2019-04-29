@@ -3,6 +3,7 @@ import numpy as np
 import csv
 import os
 import time
+import sys
 
 min_dist = 0.24
 delta_dist = 0.03
@@ -10,6 +11,11 @@ delta_dist = 0.03
 
 iteration_start = 1
 iteration_end = 34
+if len(sys.argv) == 2:
+    iteration_start = int(sys.argv[1])
+if len(sys.argv) == 3:
+    iteration_start = int(sys.argv[1])
+    iteration_end = int(sys.argv[2])
 
 iteration = 1
 batch = 2

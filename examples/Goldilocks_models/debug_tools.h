@@ -36,6 +36,10 @@ void checkSplineOfS(const vector<VectorXd> & h_vec,
                     const vector<VectorXd> & dds_vec,
                     const PiecewisePolynomial<double> & s_spline);
 
+void storeTau(const vector<VectorXd> & h_vec,
+              const vector<VectorXd> & tau_vec,
+              const string & directory,
+              const string & prefix);
 }  // namespace goldilocks_models
 } // dairlib
 

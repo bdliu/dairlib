@@ -57,13 +57,14 @@ class DynamicsConstraint : public Constraint {
                      const VectorXd & theta_s,
                      int n_sDDot, int n_feature_sDDot,
                      const VectorXd & theta_sDDot,
+                     int n_tau,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      bool is_head,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& qvqvh,
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& qvqvth,
               drake::AutoDiffVecXd* y) const override;
 
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
@@ -72,32 +73,37 @@ class DynamicsConstraint : public Constraint {
   void getSAndSDot(const VectorXd & x,
                    VectorXd & s, VectorXd & ds) const;
 
-  VectorXd getSDDot(const VectorXd & s, const VectorXd & ds) const {
-    return dyn_expression_.getExpression(theta_sDDot_, s, ds);
+  VectorXd getSDDot(const VectorXd & s, const VectorXd & ds,
+                    const VectorXd & tau) const {
+    return dyn_expression_.getExpression(theta_sDDot_, s, ds, tau);
   };
 
-  MatrixXd getGradientWrtTheta(const VectorXd & x_i_double,
-                               const VectorXd & x_iplus1_double,
-                               const VectorXd & h_i_double) const;
+  MatrixXd getGradientWrtTheta(
+    const VectorXd & x_i_double, const VectorXd & tau_i_double,
+    const VectorXd & x_iplus1_double, const VectorXd & tau_iplus1_double,
+    const VectorXd & h_i_double) const;
 
-  VectorXd getDynFeatures(const VectorXd & s, const VectorXd & ds) const {
-    return dyn_expression_.getFeature(s, ds);
+  VectorXd getDynFeatures(const VectorXd & s, const VectorXd & ds,
+                          const VectorXd & tau) const {
+    return dyn_expression_.getFeature(s, ds, tau);
   };
 
 
  private:
   AutoDiffVecXd getConstraintValueInAutoDiff(
-    const AutoDiffVecXd & x_i, const AutoDiffVecXd & x_iplus1,
+    const AutoDiffVecXd & x_i, const AutoDiffVecXd & tau_i,
+    const AutoDiffVecXd & x_iplus1, const AutoDiffVecXd & tau_iplus1,
     const AutoDiffVecXd & h_i,
     const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
-
   void getSAndSDotInAutoDiff(AutoDiffVecXd x_i,
                              AutoDiffVecXd & s_i,
                              AutoDiffVecXd & ds_i,
                              const int & i_start,
                              const VectorXd & theta_s) const;
+
   VectorXd getConstraintValueInDouble(
-    const AutoDiffVecXd & x_i, const AutoDiffVecXd & x_iplus1,
+    const AutoDiffVecXd & x_i, const VectorXd & tau_i,
+    const AutoDiffVecXd & x_iplus1, const VectorXd & tau_iplus1,
     const VectorXd & h_i,
     const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
   void getSAndSDotInDouble(AutoDiffVecXd x,
@@ -116,6 +122,7 @@ class DynamicsConstraint : public Constraint {
   int n_feature_sDDot_;
   int n_theta_sDDot_;
   VectorXd theta_sDDot_;
+  int n_tau_;
   KinematicsExpression<AutoDiffXd> kin_expression_;
   DynamicsExpression dyn_expression_;
   bool is_head_;

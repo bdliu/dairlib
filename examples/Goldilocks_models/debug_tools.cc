@@ -100,6 +100,30 @@ void checkSplineOfS(const vector<VectorXd> & h_vec,
 }
 
 
+void storeTau(const vector<VectorXd> & h_vec,
+              const vector<VectorXd> & tau_vec,
+              const string & directory,
+              const string & prefix) {
+  // setup
+  int n_tau = tau_vec[0].rows();
+
+  // Create time knots
+  vector<double> T_breakpoint = createTimeKnotsGivenTimesteps(h_vec);
+
+  // Create the matrix for csv file
+  // The first row is time, and the rest rows are tau
+  MatrixXd t_and_tau(1 + n_tau, tau_vec.size());
+  for (unsigned int i = 0; i < T_breakpoint.size() ; i++) {
+    t_and_tau(0, i) = T_breakpoint[i];
+    t_and_tau.block(1, i, n_tau, 1) = tau_vec[i];
+  }
+
+  // Store into csv file
+  writeCSV(directory + prefix + string("t_and_tau.csv"), t_and_tau);
+}
+
+
+
 }  // namespace goldilocks_models
 } // dairlib
 

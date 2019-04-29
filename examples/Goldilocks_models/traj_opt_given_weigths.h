@@ -28,7 +28,7 @@ namespace goldilocks_models  {
 MathematicalProgramResult trajOptGivenWeights(
     MultibodyPlant<double> & plant,
     MultibodyPlant<AutoDiffXd> & plant_autoDiff,
-    int n_s, int n_sDDot, int n_feature_s, int n_feature_sDDot,
+    int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
     VectorXd & theta_s, VectorXd & theta_sDDot,
     double stride_length, double duration, int max_iter,
     std::string directory, std::string init_file, std::string prefix,
