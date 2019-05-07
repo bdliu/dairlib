@@ -118,7 +118,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model parameters
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 0;
+  int n_tau = 1;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
