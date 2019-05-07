@@ -29,14 +29,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // Create decision variables
-  if(n_tau == 0){
-    // Create a dummy tau_var that will not be used in the constraint eval.
-    // TODO(yminchen): increase the speed by removing dummy tau somehow
-    tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
-  } else
-    tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
+  // (Since VectorX allows 0-size vector, the trajectory optimization works even
+  // when n_tau = 0.)
+  tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
 
-  // Add cost to tau
+  // Add cost for the input tau
   for (int i = 0; i < N; i++){
     auto tau_i = reduced_model_input(i, n_tau);
     dircon->AddQuadraticCost(MatrixXd::Identity(n_tau,n_tau),
