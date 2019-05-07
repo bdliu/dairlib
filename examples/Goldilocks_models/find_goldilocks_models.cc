@@ -122,6 +122,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
+  MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
+  // B_tau(1,0) = 1;
+  // B_tau(2,1) = 1;
+  B_tau(0,0) = 1;
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);
@@ -131,7 +135,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   VectorXd dummy_tau = VectorXd::Zero(n_tau);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot =
-    dyn_expression.getFeature(dummy_s, dummy_s, dummy_tau).size();
+    dyn_expression.getFeature(dummy_s, dummy_s).size();
   cout << "n_feature_s = " << n_feature_s << endl;
   cout << "n_feature_sDDot = " << n_feature_sDDot << endl;
   int n_theta_s = n_s * n_feature_s;
@@ -272,7 +276,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       MathematicalProgramResult result =
         trajOptGivenWeights(plant, plant_autoDiff,
                             n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
-                            theta_s, theta_sDDot,
+                            B_tau, theta_s, theta_sDDot,
                             stride_length, duration, max_inner_iter_pass_in,
                             directory, init_file_pass_in, prefix,
                             w_sol_vec, A_vec, H_vec,

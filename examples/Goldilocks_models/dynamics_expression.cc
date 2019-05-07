@@ -8,6 +8,12 @@ DynamicsExpression::DynamicsExpression(int n_sDDot, int n_feature_sDDot) {
   n_feature_sDDot_ = n_feature_sDDot;
   n_sDDot_ = n_sDDot;
 }
+DynamicsExpression::DynamicsExpression(int n_sDDot, int n_feature_sDDot,
+                                       MatrixXd B_tau) {
+  n_feature_sDDot_ = n_feature_sDDot;
+  n_sDDot_ = n_sDDot;
+  B_tau_ = B_tau;
+}
 
 int DynamicsExpression::getDimFeature() {
   return n_feature_sDDot_;
@@ -21,17 +27,16 @@ V DynamicsExpression::getExpression(const U & theta,
   // DRAKE_DEMAND(n_feature_sDDot_ == getFeature(s).size());  // check feature size
 
   V expression(n_sDDot_);
-
   for (int i = 0; i < n_sDDot_; i++)
     expression(i) = theta.segment(i * n_feature_sDDot_,
-                                  n_feature_sDDot_).dot(getFeature(s, ds, tau));
+                                  n_feature_sDDot_).dot(getFeature(s, ds));
+  expression += B_tau_ * tau;
 
   return expression;
 }
 
 template <typename T>
-T DynamicsExpression::getFeature(const T & s, const T & ds,
-                                 const T & tau) const {
+T DynamicsExpression::getFeature(const T & s, const T & ds) const {
 
   // Implement your choice of features below
   // Be careful that the dimension should match with n_feature_sDDot_
@@ -117,10 +122,8 @@ template VectorX<AutoDiffXd> DynamicsExpression::getExpression(
 
 template VectorX<double> DynamicsExpression::getFeature(
   const VectorX<double> &,
-  const VectorX<double> &,
   const VectorX<double> &) const;
 template VectorX<AutoDiffXd> DynamicsExpression::getFeature(
-  const VectorX<AutoDiffXd> &,
   const VectorX<AutoDiffXd> &,
   const VectorX<AutoDiffXd> &) const;
 

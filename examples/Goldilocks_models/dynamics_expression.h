@@ -14,6 +14,7 @@ using Eigen::Dynamic;
 using std::cout;
 using std::endl;
 using Eigen::VectorXd;
+using Eigen::MatrixXd;
 
 using drake::MatrixX;
 using drake::VectorX;
@@ -27,6 +28,7 @@ namespace goldilocks_models {
 class DynamicsExpression {
  public:
   explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot);
+  explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot, MatrixXd B_tau);
   DynamicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -35,11 +37,12 @@ class DynamicsExpression {
   V getExpression(const U & theta, const V & s, const V & ds, const V & tau) const;
 
   template <typename T>
-  T getFeature(const T & s, const T & ds, const T & tau) const;
+  T getFeature(const T & s, const T & ds) const;
 
  private:
   int n_feature_sDDot_;
   int n_sDDot_;
+  MatrixXd B_tau_;
 };
 
 }  // namespace goldilocks_models

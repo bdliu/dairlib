@@ -74,6 +74,7 @@ class GoldilcocksModelTrajOpt {
  public:
   GoldilcocksModelTrajOpt(
       int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
+      MatrixXd B_tau,
       VectorXd & theta_s, VectorXd & theta_sDDot,
       std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,

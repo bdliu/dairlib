@@ -10,6 +10,7 @@ DynamicsConstraint::DynamicsConstraint(
   int n_sDDot, int n_feature_sDDot,
   const VectorXd & theta_sDDot,
   int n_tau,
+  MatrixXd B_tau,
   const MultibodyPlant<AutoDiffXd> * plant,
   bool is_head,
   const std::string& description):
@@ -31,7 +32,7 @@ DynamicsConstraint::DynamicsConstraint(
   theta_sDDot_(theta_sDDot),
   n_tau_(n_tau),
   kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant)),
-  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot)),
+  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau)),
   is_head_(is_head) {
 
   // Check the theta size
@@ -48,9 +49,8 @@ DynamicsConstraint::DynamicsConstraint(
   // Check the feature size implemented in the model expression
   VectorXd s_temp = VectorXd::Zero(n_sDDot);
   VectorXd ds_temp = VectorXd::Zero(n_sDDot);
-  VectorXd tau_temp = VectorXd::Zero(n_tau);
   DRAKE_DEMAND(n_feature_sDDot ==
-               dyn_expression_.getFeature(s_temp, ds_temp, tau_temp).size());
+               dyn_expression_.getFeature(s_temp, ds_temp).size());
 }
 
 
@@ -79,6 +79,8 @@ void DynamicsConstraint::DoEval(const
 
 
   // Way 2 /////////////////////////////////////////////////////////////////////
+  // (not up-to-date)
+  // rhs is copied from DynamicsExpression.getExpression().
   /*// Get s and ds at knot i and i+1
   AutoDiffVecXd s_i = initializeAutoDiff(VectorXd::Zero(n_s_));
   AutoDiffVecXd ds_i = initializeAutoDiff(VectorXd::Zero(n_s_));
@@ -98,7 +100,7 @@ void DynamicsConstraint::DoEval(const
     AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
     for (int i = 0; i < n_sDDot_; i++)
       rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
-                 dyn_expression_.getFeature(s_i, ds_i, tau_i));
+                 dyn_expression_.getFeature(s_i, ds_i));
 
     *y = lhs - rhs;
   }
@@ -112,7 +114,7 @@ void DynamicsConstraint::DoEval(const
     AutoDiffVecXd rhs = initializeAutoDiff(VectorXd::Zero(n_sDDot_));
     for (int i = 0; i < n_sDDot_; i++)
       rhs(i) = theta_sDDot_.segment(i * n_feature_sDDot_, n_feature_sDDot_).dot(
-                 dyn_expression_.getFeature(s_iplus1, ds_iplus1, tau_iplus1));
+                 dyn_expression_.getFeature(s_iplus1, ds_iplus1));
 
     *y = lhs - rhs;
   }*/

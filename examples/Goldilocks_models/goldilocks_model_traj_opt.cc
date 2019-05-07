@@ -7,7 +7,7 @@ namespace goldilocks_models {
 // Constructor
 GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
-  VectorXd & theta_s, VectorXd & theta_sDDot,
+  MatrixXd B_tau, VectorXd & theta_s, VectorXd & theta_sDDot,
   std::unique_ptr<HybridDircon<double>> dircon_in,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::vector<int> & num_time_samples,
@@ -16,7 +16,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   n_sDDot_(n_sDDot),
   n_tau_(n_tau),
   n_feature_s_(n_feature_s),
-  n_feature_sDDot_(n_feature_sDDot) {
+  n_feature_sDDot_(n_feature_sDDot){
 
   // Get total sample ponits
   int N = 0;
@@ -47,11 +47,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
                                    n_s, n_feature_s, theta_s,
                                    n_sDDot, n_feature_sDDot, theta_sDDot,
-                                   n_tau, plant, true);
+                                   n_tau, B_tau, plant, true);
     dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
                                    n_s, n_feature_s, theta_s,
                                    n_sDDot, n_feature_sDDot, theta_sDDot,
-                                   n_tau, plant, false);
+                                   n_tau, B_tau, plant, false);
 
     // Add dynamics constraint for all segments (between knots)
     int N_accum = 0;

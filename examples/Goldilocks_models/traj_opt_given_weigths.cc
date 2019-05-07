@@ -75,6 +75,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int n_s, int n_sDDot, int n_tau,
     int n_feature_s,
     int n_feature_sDDot,
+    MatrixXd B_tau,
     Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
     double stride_length, double duration, int max_iter,
     string directory,
@@ -317,7 +318,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
-    n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot, theta_s, theta_sDDot,
+    n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
+    B_tau, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, num_time_samples, is_get_nominal);
 
   // Add regularization term here so that hessian is pd (for outer loop), so

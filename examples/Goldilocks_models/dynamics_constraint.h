@@ -58,6 +58,7 @@ class DynamicsConstraint : public Constraint {
                      int n_sDDot, int n_feature_sDDot,
                      const VectorXd & theta_sDDot,
                      int n_tau,
+                     MatrixXd B_tau,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      bool is_head,
                      const std::string& description = "");
@@ -85,7 +86,7 @@ class DynamicsConstraint : public Constraint {
 
   VectorXd getDynFeatures(const VectorXd & s, const VectorXd & ds,
                           const VectorXd & tau) const {
-    return dyn_expression_.getFeature(s, ds, tau);
+    return dyn_expression_.getFeature(s, ds);
   };
 
 
