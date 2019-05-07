@@ -313,6 +313,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     trajopt->SetInitialGuessForAllVariables(w0);
   }
 
+
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilcocksModelTrajOpt gm_traj_opt(
@@ -326,6 +327,10 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     auto w = gm_traj_opt.dircon->decision_variables();
     for (int i = 0; i < w.size(); i++)
       gm_traj_opt.dircon->AddQuadraticCost(eps_reg * w(i)*w(i));
+    // cout << "w = " << w << endl;
+    // cout << "Check the order of decisiion variable: \n";
+    // for (int i = 0; i < w.size(); i++)
+    //   cout << gm_traj_opt.dircon->FindDecisionVariableIndex(w(i)) << endl;
   }
 
   // cout << "Solving DIRCON (based on MultipleShooting)\n";

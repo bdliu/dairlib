@@ -152,7 +152,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // sin(q(5)), cos(q(5))
   // sin(q(6)), cos(q(6))
 
-  /*VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
+  VectorX<U> feature(68);  // 1 + 12 + 10C2 = 1 + 12 + 55 = 68
   feature <<1,
             q(0),
             q(1),
@@ -230,7 +230,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
             sin(q(6)) * sin(q(6)),
             cos(q(6)) * sin(q(6)),
             // 10
-            cos(q(6)) * cos(q(6));*/
+            cos(q(6)) * cos(q(6));
 
   //////////// Version 8: debug B matrix ///////////////////////////////////////
   // VectorX<U> feature(1);
@@ -273,7 +273,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
   ///// Way 2: caluclate by hand //////////// Speed increased by 35 times!!!
   // Calculate the CoM by hand instead of by using MBP
-  VectorX<U> CoM_xz(2);
+  /*VectorX<U> CoM_xz(2);
   CoM_xz << q(0) + (0.3 * sin(q(2))) / 2.0 + (
            - 0.25 * sin(q(2) + q(3)) +
            - 0.5 * sin(q(2) + q(3)) - 0.25 * sin(q(2) + q(3) + q(5)) +
@@ -387,7 +387,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));
+          cos(q(6)) * cos(q(6));*/
 
   //////////// Version 10: features contain LIPM & swing foot //////////////////
   /*  // Get CoM position and stance foot position in autoDiff

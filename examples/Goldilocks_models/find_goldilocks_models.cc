@@ -44,6 +44,7 @@ DEFINE_int32(iter_start, 0, "The starting iteration #");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
+DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -85,8 +86,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
-  string init_file = "";
-  init_file = "w0.csv";
+  string init_file = FLAGS_init_file;
   // init_file = "w0_with_z.csv";
   string prefix = "";
 
@@ -315,6 +315,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
              ". Redo this iteration.\n\n";
         iter -= 1;
 
+        if(iter + 1 == iter_start)
+          cout << "Step_direction not defined yet. Next line gives seg fault\n";
         // Descent
         theta = prev_theta + current_iter_step_size * step_direction;
 

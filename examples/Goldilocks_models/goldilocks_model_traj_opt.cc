@@ -29,15 +29,22 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   num_knots_ = N;
 
   // Create decision variables
-  // s_vars_ = dircon->NewContinuousVariables(n_s * N, "s");
   if(n_tau == 0){
     // Create a dummy tau_var that will not be used in the constraint eval.
     // TODO(yminchen): increase the speed by removing dummy tau somehow
-    tau_vars_ = dircon->NewContinuousVariables(1 * N, "tau");
+    tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
   } else
     tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
 
+  // Add cost to tau
+  for (int i = 0; i < N; i++){
+    auto tau_i = reduced_model_input(i, n_tau);
+    dircon->AddQuadraticCost(MatrixXd::Identity(n_tau,n_tau),
+                             VectorXd::Zero(n_tau),
+                             tau_i);
+  }
 
+  // Constraints
   if(!is_get_nominal){
     // Create dynamics constraint (pointer)
     dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
