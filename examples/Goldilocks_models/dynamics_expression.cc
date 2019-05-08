@@ -105,8 +105,27 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   T feature(1);
   feature << s(0)*s(0)*s(0);*/
 
-  // Version 8: ns = 1, all combinations until quadratic
-  DRAKE_DEMAND(n_sDDot_ == 3);
+  // Version 8: ns = 2, all combinations until quadratic
+  DRAKE_DEMAND(n_sDDot_ == 2);
+  T feature(15);  // 1 + 4 + (4Choose2 + 4) = 1 + 4 + 10 = 15
+  feature << 1,   // constant
+          s(0),
+          s(1),
+          ds(0),
+          ds(1),  // linear
+          s(0) * s(0),
+          s(0) * s(1),
+          s(0) * ds(0),
+          s(0) * ds(1),
+          s(1) * s(1),
+          s(1) * ds(0),
+          s(1) * ds(1),
+          ds(0) * ds(0),
+          ds(0) * ds(1),
+          ds(1) * ds(1);  // quadratic
+
+  // Version 9: ns = 3, all combinations until quadratic
+  /*DRAKE_DEMAND(n_sDDot_ == 3);
   T feature(28);  // 1 + 6 + (6Choose2 + 6) = 1 + 6 + 21 = 28
   feature << 1,  // constant
           s(0),
@@ -135,7 +154,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
           ds(0) * ds(2),
           ds(1) * ds(1),
           ds(1) * ds(2),
-          ds(2) * ds(2);  // quadratic
+          ds(2) * ds(2);  // quadratic*/
 
   return feature;
 }

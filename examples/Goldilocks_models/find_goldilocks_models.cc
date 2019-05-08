@@ -41,10 +41,17 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter_start, 0, "The starting iteration #");
+DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
-DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
+DEFINE_bool(is_start_with_adjusting_stepsize, false, "");
+
+DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
+DEFINE_double(h_step, 1e-4, "The step size for outer loop");
+//                 // 1e-3 is small enough to avoid gittering at the end
+//                 // 1e-2 is a good compromise on both speed and gittering
+//                 // 1e-1 caused divergence when close to optimal sol
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -100,9 +107,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
-  double h_step = 1e-4; // 1e-3 is small enough to avoid gittering at the end
-  //                    // 1e-2 is a good compromise on both speed and gittering
-  //                    // 1e-1 caused divergence when close to optimal sol
+  double h_step = FLAGS_h_step;
   double eps_regularization = 1e-8; //1e-4
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
@@ -113,20 +118,20 @@ void findGoldilocksModels(int argc, char* argv[]) {
   cout << "eps_regularization = " << eps_regularization << endl;
 
   // Paramters for the inner loop optimization
-  int max_inner_iter = 500;
+  int max_inner_iter = FLAGS_max_inner_iter;
   double R = 10;  // Cost on input effort
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
-  int n_s = 3; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 1;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  B_tau(1,0) = 1;
-  B_tau(2,1) = 1;
+  B_tau(1, 0) = 1;
+  // B_tau(2,1) = 1;
   // B_tau(0,0) = 1;
 
   // Reduced order model setup
@@ -150,7 +155,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   theta_s(1) = 1;
   theta_s(2 + n_feature_s) = 1;
-  theta_s(3 + 2*n_feature_s) = 1;
+  // theta_s(3 + 2*n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
@@ -208,7 +213,19 @@ void findGoldilocksModels(int argc, char* argv[]) {
   VectorXd prev_theta = theta;
   VectorXd step_direction;
   double current_iter_step_size = h_step;
-  bool previous_is_success = true;
+  bool previous_iter_is_success = true;
+
+  if (FLAGS_is_start_with_adjusting_stepsize) {
+    MatrixXd prev_theta_s_mat =
+      readCSV(directory + to_string(iter_start - 1) + string("_theta_s.csv"));
+    MatrixXd prev_theta_sDDot_mat =
+      readCSV(directory + to_string(iter_start - 1) + string("_theta_sDDot.csv"));
+    prev_theta << prev_theta_s_mat.col(0), prev_theta_sDDot_mat.col(0);
+
+    MatrixXd step_direction_mat =
+      readCSV(directory + to_string(iter_start - 1) + string("_step_direction.csv"));
+    step_direction = step_direction_mat.col(0);
+  }
 
   // Start the gradient descent
   int iter;
@@ -243,79 +260,83 @@ void findGoldilocksModels(int argc, char* argv[]) {
     w_sol_vec.clear();
 
     // Run trajectory optimization for different tasks first
-    bool current_is_success = true;
-    for (int batch = 0; batch < current_batch; batch++) {
-      /// setup for each batch
-      double stride_length = is_get_nominal ? stride_length_0 :
-                             stride_length_0 + delta_stride_length_vec[batch];
-      if (!is_get_nominal && is_stochastic) stride_length += dist(e1);
-      cout << "stride_length = " << stride_length << endl;
+    bool samples_are_success = true;
+    if (FLAGS_is_start_with_adjusting_stepsize && (iter == iter_start)) {
+      samples_are_success = false;
+    } else {
+      for (int batch = 0; batch < current_batch; batch++) {
+        /// setup for each batch
+        double stride_length = is_get_nominal ? stride_length_0 :
+                               stride_length_0 + delta_stride_length_vec[batch];
+        if (!is_get_nominal && is_stochastic) stride_length += dist(e1);
+        cout << "stride_length = " << stride_length << endl;
 
-      prefix = to_string(iter) +  "_" + to_string(batch) + "_";
-      string init_file_pass_in;
-      if (is_get_nominal && previous_is_success)
-        init_file_pass_in = init_file;
-      else if (is_get_nominal && !previous_is_success)
-        init_file_pass_in = string("0_0_w.csv");
-      else if (iter == 1 && previous_is_success){
-        init_file_pass_in = string("0_0_w.csv");
-        // init_file_pass_in = string("");  // No initial guess for the first iter
-      }
-      else if (iter == 1 && !previous_is_success)
-        init_file_pass_in = to_string(iter) +  "_" +
-                            to_string(batch) + string("_w.csv");
-      else
-        init_file_pass_in = to_string(iter - 1) +  "_" +
-                            to_string(batch) + string("_w.csv");
-      //Testing
-      if (FLAGS_is_debug) {
-        // init_file_pass_in = to_string(iter) +  "_" +
-        //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
-        // init_file_pass_in = string("1_2_w.csv");
-        // stride_length = 0.3;
-        // init_file_pass_in = string("19_2_w.csv");
-        // init_file_pass_in = string("1_0_w.csv");
-        init_file_pass_in = string("1_0_w.csv");
-      }
+        prefix = to_string(iter) +  "_" + to_string(batch) + "_";
+        string init_file_pass_in;
+        if (is_get_nominal && previous_iter_is_success)
+          init_file_pass_in = init_file;
+        else if (is_get_nominal && !previous_iter_is_success)
+          init_file_pass_in = string("0_0_w.csv");
+        else if (iter == 1 && previous_iter_is_success) {
+          // init_file_pass_in = string("0_0_w.csv");
+          init_file_pass_in = string("");  // No initial guess for the first iter
+        }
+        else if (iter == 1 && !previous_iter_is_success)
+          init_file_pass_in = to_string(iter) +  "_" +
+                              to_string(batch) + string("_w.csv");
+        else
+          init_file_pass_in = to_string(iter - 1) +  "_" +
+                              to_string(batch) + string("_w.csv");
+        //Testing
+        if (FLAGS_is_debug) {
+          // init_file_pass_in = to_string(iter) +  "_" +
+          //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
+          // init_file_pass_in = string("1_2_w.csv");
+          // stride_length = 0.3;
+          // init_file_pass_in = string("19_2_w.csv");
+          // init_file_pass_in = string("1_0_w.csv");
+          init_file_pass_in = string("1_0_w.csv");
+        }
 
-      // Trajectory optimization with fixed model paramters
-      MathematicalProgramResult result =
-        trajOptGivenWeights(plant, plant_autoDiff,
-                            n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
-                            B_tau, theta_s, theta_sDDot,
-                            stride_length, duration, max_inner_iter_pass_in,
-                            directory, init_file_pass_in, prefix,
-                            w_sol_vec, A_vec, H_vec,
-                            y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
-                            Q_double, R,
-                            eps_regularization,
-                            is_get_nominal);
-      current_is_success = (current_is_success & result.is_success());
-      if ((iter > 1 && !current_is_success) || FLAGS_is_debug) break;
+        // Trajectory optimization with fixed model paramters
+        MathematicalProgramResult result =
+          trajOptGivenWeights(plant, plant_autoDiff,
+                              n_s, n_sDDot, n_tau,
+                              n_feature_s, n_feature_sDDot,
+                              B_tau, theta_s, theta_sDDot,
+                              stride_length, duration, max_inner_iter_pass_in,
+                              directory, init_file_pass_in, prefix,
+                              w_sol_vec, A_vec, H_vec,
+                              y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
+                              Q_double, R,
+                              eps_regularization,
+                              is_get_nominal);
+        samples_are_success = (samples_are_success & result.is_success());
+        if ((iter > 1 && !samples_are_success) || FLAGS_is_debug) break;
+      }
     }
     if (FLAGS_is_debug) break;
+    bool current_iter_is_success = samples_are_success;
 
     if (is_get_nominal) {
-      if (!current_is_success)
+      if (!current_iter_is_success)
         iter -= 1;
     }
     else {
       // Get the total cost if it's successful
       double total_cost = 0;
-      if (current_is_success) {
+      if (current_iter_is_success) {
         for (int batch = 0; batch < current_batch; batch++)
           total_cost += c_vec[batch](0) / current_batch;
         if (total_cost <= min_so_far) min_so_far = total_cost;
-        cout << "total_cost = " << total_cost << " (min so far: " << min_so_far <<
-             ")\n\n";
+        cout << "total_cost = " << total_cost << " (min so far: " <<
+             min_so_far << ")\n\n";
       }
 
-      // If the cost goes up, shrink the size and redo the traj opt.
-      // Otherwise, do outer loop optimization given the solution w.
-      if (!current_is_success && iter == 1) {
+      if (!current_iter_is_success && iter == 1) {
         iter -= 1;
       }
-      else if (!current_is_success) {
+      else if (!current_iter_is_success) {
         current_iter_step_size = current_iter_step_size / 2;
         // if(current_iter_step_size<1e-5){
         //   cout<<"switch to the other method.";
@@ -325,8 +346,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
              ". Redo this iteration.\n\n";
         iter -= 1;
 
-        if(iter + 1 == iter_start)
-          cout << "Step_direction not defined yet. Next line gives seg fault\n";
+        if (iter + 1 == iter_start)
+          cout << "Step_direction might not have been defined yet. "
+                  "Next line might give segmentation fault\n";
         // Descent
         theta = prev_theta + current_iter_step_size * step_direction;
 
@@ -692,45 +714,32 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
         // step_direction
         step_direction = is_newton ? newton_step : -costGradient;
+        prefix = to_string(iter) +  "_";
+        writeCSV(directory + prefix + string("step_direction.csv"), step_direction);
 
 
-
-        // TODO
-        // If the problem is infeasible, just decrease the step size!
-
-        // If it's infeasible in the first iteration, use the resultant solution
-        // as a initial guess and run it again.
-
-
-        // TODO(yminchen): only add the cost that has a optimal traj opt solution
-        // Terminate the optimization if more than have samples don't have sol.
-
-
-
-
-
+        // Calculate lambda and gradient norm
+        VectorXd lambda_square_vecXd(1); lambda_square_vecXd << lambda_square;
+        VectorXd norm_grad_cost(1); norm_grad_cost << costGradient.norm();
+        writeCSV(directory + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
+        writeCSV(directory + prefix + string("lambda_square.csv"), lambda_square_vecXd);
+        cout << "lambda_square = " << lambda_square << endl;
+        cout << "costGradient norm: " << norm_grad_cost << endl << endl;
 
         // Gradient descent
         prev_theta = theta;
-        current_iter_step_size = h_step;
+        // current_iter_step_size = h_step;
+        current_iter_step_size = h_step * sqrt(norm_grad_cost(0));  // Heuristic
         if (is_newton)
-          theta = theta + h_step * step_direction;
+          theta = theta + current_iter_step_size * step_direction;
         else
-          theta = theta + h_step * step_direction;
+          theta = theta + current_iter_step_size * step_direction;
 
         // Assign theta_s and theta_sDDot
         theta_s = theta.head(n_theta_s);
         theta_sDDot = theta.tail(n_theta_sDDot);
 
         // Check optimality
-        VectorXd lambda_square_vecXd(1); lambda_square_vecXd << lambda_square;
-        VectorXd norm_grad_cost(1); norm_grad_cost << costGradient.norm();
-        prefix = to_string(iter) +  "_";
-        writeCSV(directory + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
-        writeCSV(directory + prefix + string("lambda_square.csv"), lambda_square_vecXd);
-
-        cout << "lambda_square = " << lambda_square << endl;
-        cout << "costGradient norm: " << norm_grad_cost << endl << endl;
         if (is_newton) {
           if (lambda_square < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
@@ -746,7 +755,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       }  // end if goes goes down
 
     }  // end if(!is_get_nominal)
-    previous_is_success = current_is_success;
+    previous_iter_is_success = current_iter_is_success;
 
   }  // end for
 
