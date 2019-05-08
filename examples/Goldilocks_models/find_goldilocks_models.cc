@@ -100,15 +100,16 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
-  double h_step = 1e-2; // 1e-3 is small enough to avoid gittering at the end
+  double h_step = 1e-4; // 1e-3 is small enough to avoid gittering at the end
   //                    // 1e-2 is a good compromise on both speed and gittering
   //                    // 1e-1 caused divergence when close to optimal sol
-  double eps_regularization = 1e-4;
+  double eps_regularization = 1e-5; //1e-4
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
   bool is_stochastic = FLAGS_is_stochastic;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
+  cout << "Step size = " << h_step << endl;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
@@ -118,14 +119,14 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model parameters
   int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 1;
+  int n_tau = 0;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau(1,0) = 1;
   // B_tau(2,1) = 1;
-  B_tau(0,0) = 1;
+  // B_tau(0,0) = 1;
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);
@@ -146,8 +147,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-  theta_s(1) = 1;
-  // theta_s(2) = 1;
+  // theta_s(1) = 1;
+  theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
