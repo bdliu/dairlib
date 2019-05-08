@@ -118,15 +118,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
-  int n_s = 1; //2
+  int n_s = 3; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 0;
+  int n_tau = 2;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  // B_tau(1,0) = 1;
-  // B_tau(2,1) = 1;
+  B_tau(1,0) = 1;
+  B_tau(2,1) = 1;
   // B_tau(0,0) = 1;
 
   // Reduced order model setup
@@ -148,8 +148,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-  // theta_s(1) = 1;
-  theta_s(2) = 1; // LIPM
+  theta_s(1) = 1;
+  theta_s(2 + n_feature_s) = 1;
+  theta_s(3 + 2*n_feature_s) = 1;
+  // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
@@ -255,8 +257,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
         init_file_pass_in = init_file;
       else if (is_get_nominal && !previous_is_success)
         init_file_pass_in = string("0_0_w.csv");
-      else if (iter == 1 && previous_is_success)
+      else if (iter == 1 && previous_is_success){
         init_file_pass_in = string("0_0_w.csv");
+        // init_file_pass_in = string("");  // No initial guess for the first iter
+      }
       else if (iter == 1 && !previous_is_success)
         init_file_pass_in = to_string(iter) +  "_" +
                             to_string(batch) + string("_w.csv");
