@@ -103,13 +103,14 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double h_step = 1e-4; // 1e-3 is small enough to avoid gittering at the end
   //                    // 1e-2 is a good compromise on both speed and gittering
   //                    // 1e-1 caused divergence when close to optimal sol
-  double eps_regularization = 1e-5; //1e-4
+  double eps_regularization = 1e-8; //1e-4
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
   bool is_stochastic = FLAGS_is_stochastic;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;
+  cout << "eps_regularization = " << eps_regularization << endl;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = 500;
