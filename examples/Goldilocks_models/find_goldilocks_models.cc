@@ -353,7 +353,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
         if (iter + 1 == iter_start)
           cout << "Step_direction might not have been defined yet. "
-                  "Next line might give segmentation fault\n";
+               "Next line might give segmentation fault\n";
         // Descent
         theta = prev_theta + current_iter_step_size * step_direction;
 
@@ -421,12 +421,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
           auto solution_result2 = result2.get_solution_result();
           cout << solution_result2 << endl;
           cout << "Cost:" << result2.get_optimal_cost() << endl;
-          VectorXd w_sol_check = result2.GetSolution(quadprog.decision_variables());
-          cout << "w_sol norm:" << w_sol_check.norm() << endl;
-          // cout << "This should be zero\n" <<
-          //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-          cout << "if this is not zero, then w=0 is not optimal: " <<
-               w_sol_check.transpose()*b_vec[batch] << endl;
+          if (result2.is_success()) {
+            VectorXd w_sol_check = result2.GetSolution(
+                                     quadprog.decision_variables());
+            cout << "w_sol norm:" << w_sol_check.norm() << endl;
+            // cout << "This should be zero\n" <<
+            //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
+            cout << "if this is not zero, then w=0 is not optimal: " <<
+                 w_sol_check.transpose()*b_vec[batch] << endl;
+          }
 
 
 
