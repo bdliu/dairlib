@@ -46,6 +46,7 @@ DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
 DEFINE_bool(is_start_with_adjusting_stepsize, false, "");
+DEFINE_bool(is_manual_initial_theta, false, "Assign initial theta of our choice");
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -123,15 +124,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
-  int n_s = 2; //2
+  int n_s = 3; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 1;
+  int n_tau = 2;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   B_tau(1, 0) = 1;
-  // B_tau(2,1) = 1;
+  B_tau(2,1) = 1;
   // B_tau(0,0) = 1;
 
   // Reduced order model setup
@@ -155,7 +156,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   theta_s(1) = 1;
   theta_s(2 + n_feature_s) = 1;
-  // theta_s(3 + 2*n_feature_s) = 1;
+  theta_s(3 + 2*n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
@@ -164,13 +165,22 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
-    // if (iter_start > 0 && !FLAGS_is_debug) {
-    MatrixXd theta_s_mat =
-      readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
-    MatrixXd theta_sDDot_mat =
-      readCSV(directory + to_string(iter_start) + string("_theta_sDDot.csv"));
-    theta_s = theta_s_mat.col(0);
-    theta_sDDot = theta_sDDot_mat.col(0);
+    if (!FLAGS_is_manual_initial_theta){
+      MatrixXd theta_s_mat =
+        readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
+      MatrixXd theta_sDDot_mat =
+        readCSV(directory + to_string(iter_start) + string("_theta_sDDot.csv"));
+      theta_s = theta_s_mat.col(0);
+      theta_sDDot = theta_sDDot_mat.col(0);
+    }
+    else{
+      MatrixXd theta_s_0_mat =
+        readCSV(directory + string("theta_s_0.csv"));
+      MatrixXd theta_sDDot_0_mat =
+        readCSV(directory + string("theta_sDDot_0.csv"));
+      theta_s.head(theta_s_0_mat.rows()) = theta_s_0_mat.col(0);
+      theta_sDDot.head(theta_sDDot_0_mat.rows()) = theta_sDDot_0_mat.col(0);
+    }
   }
 
   // Vectors/Matrices for the outer loop
@@ -285,6 +295,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
         else if (iter == 1 && previous_iter_is_success) {
           // init_file_pass_in = string("0_0_w.csv");
           init_file_pass_in = string("");  // No initial guess for the first iter
+          // init_file_pass_in = string("w0.csv");  // w0 as initial guess for the first iter
         }
         else if (iter == 1 && !previous_iter_is_success)
           init_file_pass_in = to_string(iter) +  "_" +
