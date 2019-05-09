@@ -225,6 +225,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
     MatrixXd step_direction_mat =
       readCSV(directory + to_string(iter_start - 1) + string("_step_direction.csv"));
     step_direction = step_direction_mat.col(0);
+
+    // Below only works for Gradient Descent method (not Newton's method)
+    current_iter_step_size = h_step / sqrt(step_direction.norm());  // Heuristic
+    cout << "current_iter_step_size = " << current_iter_step_size << endl;
   }
 
   // Start the gradient descent
@@ -261,8 +265,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // Run trajectory optimization for different tasks first
     bool samples_are_success = true;
-    if (FLAGS_is_start_with_adjusting_stepsize && (iter == iter_start)) {
+    if (FLAGS_is_start_with_adjusting_stepsize) {
       samples_are_success = false;
+      FLAGS_is_start_with_adjusting_stepsize = false;
     } else {
       for (int batch = 0; batch < current_batch; batch++) {
         /// setup for each batch
@@ -729,7 +734,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // Gradient descent
         prev_theta = theta;
         // current_iter_step_size = h_step;
-        current_iter_step_size = h_step * sqrt(norm_grad_cost(0));  // Heuristic
+        current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
         if (is_newton)
           theta = theta + current_iter_step_size * step_direction;
         else
