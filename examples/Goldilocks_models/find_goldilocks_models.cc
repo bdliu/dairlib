@@ -298,12 +298,12 @@ void findGoldilocksModels(int argc, char* argv[]) {
           init_file_pass_in = init_file;
         else if (is_get_nominal && !previous_iter_is_success)
           init_file_pass_in = string("0_0_w.csv");
-        else if (iter == 1 && previous_iter_is_success) {
+        else if (!has_been_all_success && previous_iter_is_success) {
           // init_file_pass_in = string("0_0_w.csv");
           init_file_pass_in = string("");  // No initial guess for the first iter
           // init_file_pass_in = string("w0.csv");  // w0 as initial guess for the first iter
         }
-        else if (iter == 1 && !previous_iter_is_success)
+        else if (!has_been_all_success && !previous_iter_is_success)
           init_file_pass_in = to_string(iter) +  "_" +
                               to_string(sample) + string("_w.csv");
         else
