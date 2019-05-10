@@ -341,7 +341,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
     }
     if (FLAGS_is_debug) break;
 
-    if (samples_are_success) has_been_all_success = true;
+    if (samples_are_success && !is_get_nominal) has_been_all_success = true;
     bool current_iter_is_success;
     if (!FLAGS_proceed_with_failure) {
       current_iter_is_success = samples_are_success;
