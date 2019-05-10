@@ -367,28 +367,27 @@ void findGoldilocksModels(int argc, char* argv[]) {
              min_so_far << ")\n\n";
       }
 
-      if (!current_iter_is_success && iter == 1) {
+      if (!current_iter_is_success) {
         iter -= 1;
-      }
-      else if (!current_iter_is_success) {
-        current_iter_step_size = current_iter_step_size / 2;
-        // if(current_iter_step_size<1e-5){
-        //   cout<<"switch to the other method.";
-        //   is_newton = !is_newton;
-        // }
-        cout << "Step size shrinks to " << current_iter_step_size <<
-             ". Redo this iteration.\n\n";
-        iter -= 1;
+        if(has_been_all_success){
+            current_iter_step_size = current_iter_step_size / 2;
+            // if(current_iter_step_size<1e-5){
+            //   cout<<"switch to the other method.";
+            //   is_newton = !is_newton;
+            // }
+            cout << "Step size shrinks to " << current_iter_step_size <<
+                 ". Redo this iteration.\n\n";
 
-        if (iter + 1 == iter_start)
-          cout << "Step_direction might not have been defined yet. "
-               "Next line might give segmentation fault\n";
-        // Descent
-        theta = prev_theta + current_iter_step_size * step_direction;
+            if (iter + 1 == iter_start)
+              cout << "Step_direction might not have been defined yet. "
+                   "Next line might give segmentation fault\n";
+            // Descent
+            theta = prev_theta + current_iter_step_size * step_direction;
 
-        // Assign theta_s and theta_sDDot
-        theta_s = theta.head(n_theta_s);
-        theta_sDDot = theta.tail(n_theta_sDDot);
+            // Assign theta_s and theta_sDDot
+            theta_s = theta.head(n_theta_s);
+            theta_sDDot = theta.tail(n_theta_sDDot);
+        }
       }
       else {
         // Extract active and independent constraints
