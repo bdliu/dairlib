@@ -345,6 +345,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() << endl;
+  VectorXd is_success(1);
+  if(result.is_success()) is_success << 1; else is_success << 0;
+  writeCSV(directory + prefix + string("is_success.csv"), is_success);
 
   // The following line gives seg fault
   // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
@@ -386,11 +389,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
   // writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
 
-
-
-
-
-
   // Get the solution of all the decision variable
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
@@ -398,7 +396,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
   // Assume theta is fixed. Get the linear approximation of the cosntraints and
   // second order approximation of the cost.
-  if (!is_get_nominal) {
+  if (!is_get_nominal && result.is_success()) {
     // cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;

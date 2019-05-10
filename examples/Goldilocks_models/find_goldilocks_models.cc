@@ -45,8 +45,11 @@ DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
-DEFINE_bool(is_start_with_adjusting_stepsize, false, "");
-DEFINE_bool(is_manual_initial_theta, false, "Assign initial theta of our choice");
+DEFINE_bool(start_with_adjusting_stepsize, false, "");
+DEFINE_bool(is_manual_initial_theta, false,
+            "Assign initial theta of our choice");
+DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
+            "if there is a failed task");
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -99,7 +102,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   string prefix = "";
 
   // Parametres for tasks
-  int n_batch = 5;//1;
+  int n_sample = 5;//1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
@@ -132,7 +135,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   B_tau(1, 0) = 1;
-  B_tau(2,1) = 1;
+  B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
 
   // Reduced order model setup
@@ -156,7 +159,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   theta_s(1) = 1;
   theta_s(2 + n_feature_s) = 1;
-  theta_s(3 + 2*n_feature_s) = 1;
+  theta_s(3 + 2 * n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
@@ -165,7 +168,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_s = VectorXd::Random(n_theta_s);
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
-    if (!FLAGS_is_manual_initial_theta){
+    if (!FLAGS_is_manual_initial_theta) {
       MatrixXd theta_s_mat =
         readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
       MatrixXd theta_sDDot_mat =
@@ -173,7 +176,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
       theta_s = theta_s_mat.col(0);
       theta_sDDot = theta_sDDot_mat.col(0);
     }
-    else{
+    else {
       MatrixXd theta_s_0_mat =
         readCSV(directory + string("theta_s_0.csv"));
       MatrixXd theta_sDDot_0_mat =
@@ -201,10 +204,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double min_so_far;
   if (iter_start > 1  && !FLAGS_is_debug) {
     double old_cost = 0;
-    for (int i = 0; i < n_batch; i++) {
+    for (int i = 0; i < n_sample; i++) {
       MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
                            to_string(i) + string("_c.csv"));
-      old_cost += c(0, 0) / n_batch;
+      old_cost += c(0, 0) / n_sample;
     }
     min_so_far = old_cost;
     cout << "min_so_far = " << min_so_far << endl;
@@ -215,7 +218,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   std::uniform_real_distribution<> dist(
     -delta_stride_length / 2, delta_stride_length / 2);
   vector<double> delta_stride_length_vec;
-  for (int i = 0 - n_batch / 2; i < n_batch - n_batch / 2; i++)
+  for (int i = 0 - n_sample / 2; i < n_sample - n_sample / 2; i++)
     delta_stride_length_vec.push_back(i * delta_stride_length);
   int n_theta = n_theta_s + n_theta_sDDot;
   VectorXd theta(n_theta);
@@ -224,8 +227,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   VectorXd step_direction;
   double current_iter_step_size = h_step;
   bool previous_iter_is_success = true;
+  bool has_been_all_success = false;
+  bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
 
-  if (FLAGS_is_start_with_adjusting_stepsize) {
+  if (start_with_adjusting_stepsize) {
     MatrixXd prev_theta_s_mat =
       readCSV(directory + to_string(iter_start - 1) + string("_theta_s.csv"));
     MatrixXd prev_theta_sDDot_mat =
@@ -249,7 +254,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
-    int current_batch = is_get_nominal ? 1 : n_batch;
+    int n_sample = is_get_nominal ? 1 : n_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
 
     // store initial parameter values
@@ -275,18 +280,19 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // Run trajectory optimization for different tasks first
     bool samples_are_success = true;
-    if (FLAGS_is_start_with_adjusting_stepsize) {
+    bool a_sample_is_success = false;
+    if (start_with_adjusting_stepsize) {
       samples_are_success = false;
-      FLAGS_is_start_with_adjusting_stepsize = false;
+      start_with_adjusting_stepsize = false;
     } else {
-      for (int batch = 0; batch < current_batch; batch++) {
-        /// setup for each batch
+      for (int sample = 0; sample < n_sample; sample++) {
+        /// setup for each sample
         double stride_length = is_get_nominal ? stride_length_0 :
-                               stride_length_0 + delta_stride_length_vec[batch];
+                               stride_length_0 + delta_stride_length_vec[sample];
         if (!is_get_nominal && is_stochastic) stride_length += dist(e1);
         cout << "stride_length = " << stride_length << endl;
 
-        prefix = to_string(iter) +  "_" + to_string(batch) + "_";
+        prefix = to_string(iter) +  "_" + to_string(sample) + "_";
         string init_file_pass_in;
         if (is_get_nominal && previous_iter_is_success)
           init_file_pass_in = init_file;
@@ -299,14 +305,14 @@ void findGoldilocksModels(int argc, char* argv[]) {
         }
         else if (iter == 1 && !previous_iter_is_success)
           init_file_pass_in = to_string(iter) +  "_" +
-                              to_string(batch) + string("_w.csv");
+                              to_string(sample) + string("_w.csv");
         else
           init_file_pass_in = to_string(iter - 1) +  "_" +
-                              to_string(batch) + string("_w.csv");
+                              to_string(sample) + string("_w.csv");
         //Testing
         if (FLAGS_is_debug) {
           // init_file_pass_in = to_string(iter) +  "_" +
-          //                     to_string(batch) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
+          //                     to_string(sample) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
           // init_file_pass_in = string("1_2_w.csv");
           // stride_length = 0.3;
           // init_file_pass_in = string("19_2_w.csv");
@@ -328,22 +334,34 @@ void findGoldilocksModels(int argc, char* argv[]) {
                               eps_regularization,
                               is_get_nominal);
         samples_are_success = (samples_are_success & result.is_success());
-        if ((iter > 1 && !samples_are_success) || FLAGS_is_debug) break;
+        a_sample_is_success = (a_sample_is_success | result.is_success());
+        if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
+          break;
       }
     }
     if (FLAGS_is_debug) break;
-    bool current_iter_is_success = samples_are_success;
+
+    if (samples_are_success) has_been_all_success = true;
+    bool current_iter_is_success;
+    if (!FLAGS_proceed_with_failure) {
+      current_iter_is_success = samples_are_success;
+    } else {
+      current_iter_is_success = has_been_all_success ?
+                                samples_are_success : a_sample_is_success;
+    }
 
     if (is_get_nominal) {
       if (!current_iter_is_success)
         iter -= 1;
     }
     else {
+      int n_succ_sample = c_vec.size();
+
       // Get the total cost if it's successful
       double total_cost = 0;
       if (current_iter_is_success) {
-        for (int batch = 0; batch < current_batch; batch++)
-          total_cost += c_vec[batch](0) / current_batch;
+        for (int sample = 0; sample < n_succ_sample; sample++)
+          total_cost += c_vec[sample](0) / n_succ_sample;
         if (total_cost <= min_so_far) min_so_far = total_cost;
         cout << "total_cost = " << total_cost << " (min so far: " <<
              min_so_far << ")\n\n";
@@ -379,23 +397,23 @@ void findGoldilocksModels(int argc, char* argv[]) {
         vector<double> nl_vec;  // # of rows of active constraints for all tasks
         int nw = 0;  // sum of size of decision variables for all task
         int nl = 0;  // sum of # of rows of active constraints for all tasks
-        for (int batch = 0; batch < current_batch; batch++) {
-          DRAKE_ASSERT(b_vec[batch].cols() == 1);
-          DRAKE_ASSERT(lb_vec[batch].cols() == 1);
-          DRAKE_ASSERT(ub_vec[batch].cols() == 1);
-          DRAKE_ASSERT(y_vec[batch].cols() == 1);
-          DRAKE_ASSERT(w_sol_vec[batch].cols() == 1);
+        for (int sample = 0; sample < n_succ_sample; sample++) {
+          DRAKE_ASSERT(b_vec[sample].cols() == 1);
+          DRAKE_ASSERT(lb_vec[sample].cols() == 1);
+          DRAKE_ASSERT(ub_vec[sample].cols() == 1);
+          DRAKE_ASSERT(y_vec[sample].cols() == 1);
+          DRAKE_ASSERT(w_sol_vec[sample].cols() == 1);
 
-          int nt_i = B_vec[batch].cols();
-          int nw_i = A_vec[batch].cols();
+          int nt_i = B_vec[sample].cols();
+          int nw_i = A_vec[sample].cols();
           nw_vec.push_back(nw_i);
           nw += nw_i;
 
           int nl_i = 0;
           double tol = 1e-4;
-          for (int i = 0; i < y_vec[batch].rows(); i++) {
-            if (y_vec[batch](i) >= ub_vec[batch](i) - tol ||
-                y_vec[batch](i) <= lb_vec[batch](i) + tol)
+          for (int i = 0; i < y_vec[sample].rows(); i++) {
+            if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
+                y_vec[sample](i) <= lb_vec[sample](i) + tol)
               nl_i++;
           }
 
@@ -404,12 +422,12 @@ void findGoldilocksModels(int argc, char* argv[]) {
           VectorXd y_active(nl_i);
 
           nl_i = 0;
-          for (int i = 0; i < y_vec[batch].rows(); i++) {
-            if (y_vec[batch](i) >= ub_vec[batch](i) - tol ||
-                y_vec[batch](i) <= lb_vec[batch](i) + tol) {
-              A_active.row(nl_i) = A_vec[batch].row(i);
-              B_active.row(nl_i) = B_vec[batch].row(i);
-              y_active(nl_i) = y_vec[batch](i);
+          for (int i = 0; i < y_vec[sample].rows(); i++) {
+            if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
+                y_vec[sample](i) <= lb_vec[sample](i) + tol) {
+              A_active.row(nl_i) = A_vec[sample].row(i);
+              B_active.row(nl_i) = B_vec[sample].row(i);
+              y_active(nl_i) = y_vec[sample](i);
               nl_i++;
             }
           }
@@ -427,7 +445,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
                                         VectorXd::Zero(nl_i),
                                         VectorXd::Zero(nl_i),
                                         w2);
-          quadprog.AddQuadraticCost(H_vec[batch], b_vec[batch], w2);
+          quadprog.AddQuadraticCost(H_vec[sample], b_vec[sample], w2);
           const auto result2 = Solve(quadprog);
           auto solution_result2 = result2.get_solution_result();
           cout << solution_result2 << endl;
@@ -439,7 +457,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
             // cout << "This should be zero\n" <<
             //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
             cout << "if this is not zero, then w=0 is not optimal: " <<
-                 w_sol_check.transpose()*b_vec[batch] << endl;
+                 w_sol_check.transpose()*b_vec[sample] << endl;
           }
 
 
@@ -489,8 +507,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
           B_active_vec.push_back(B_full_row_rank);
           y_active_vec.push_back(y_full_row_rank);
 
-          cout << "A active and independent rows = " << A_active_vec[batch].rows() <<
-               endl;
+          cout << "A active and independent rows = " <<
+               A_active_vec[sample].rows() << endl;
         }  // end extracting active and independent constraints
         cout << endl;
 
@@ -509,15 +527,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // Fixed it by adding running cost by hand (but the timestep is fixed now).
         // Now H is always pd because we also added a regularization term.
         /*cout << "Checking if H is pd and symmetric\n";
-        for (int batch = 0; batch < current_batch; batch++) {
+        for (int sample = 0; sample < n_succ_sample; sample++) {
           // Check if H is symmetric
-          VectorXd One_w = VectorXd::Ones(nw_vec[batch]);
+          VectorXd One_w = VectorXd::Ones(nw_vec[sample]);
           double sum =
-            One_w.transpose() * (H_vec[batch] - H_vec[batch].transpose()) * One_w;
+            One_w.transpose() * (H_vec[sample] - H_vec[sample].transpose()) * One_w;
           if (sum != 0) cout << "H is not symmetric\n";
 
           // Check if H is pd
-          VectorXd eivals_real = H_vec[batch].eigenvalues().real();
+          VectorXd eivals_real = H_vec[sample].eigenvalues().real();
           for (int i = 0; i < eivals_real.size(); i++) {
             if (eivals_real(i) <= 0)
               cout << "H is not positive definite (with e-value = "
@@ -542,12 +560,12 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // accuracy is not as high as when we use inverse() directly. The reason is
         // that the condition number of A and invH is high, so AinvHA' makes it very
         // ill-conditioned.
-        for (int batch = 0; batch < current_batch; batch++) {
-          MatrixXd AinvHA = A_active_vec[batch] * solveInvATimesB(
-                              H_vec[batch], A_active_vec[batch].transpose());
-          VectorXd invQc = solveInvATimesB(H_vec[batch], b_vec[batch]);
-          MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[batch]);
-          VectorXd F = -solveInvATimesB(AinvHA, A_active_vec[batch] * invQc);
+        for (int sample = 0; sample < n_succ_sample; sample++) {
+          MatrixXd AinvHA = A_active_vec[sample] * solveInvATimesB(
+                              H_vec[sample], A_active_vec[sample].transpose());
+          VectorXd invQc = solveInvATimesB(H_vec[sample], b_vec[sample]);
+          MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[sample]);
+          VectorXd F = -solveInvATimesB(AinvHA, A_active_vec[sample] * invQc);
           // Testing
           Eigen::BDCSVD<MatrixXd> svd(AinvHA);
           cout << "AinvHA':\n";
@@ -558,10 +576,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
                   "is ill-conditioned.\n";
           // cout << "singular values are \n" << svd.singularValues() << endl;
 
-          MatrixXd Pi = -solveInvATimesB(H_vec[batch],
-                                         A_active_vec[batch].transpose() * E);
-          VectorXd qi = -solveInvATimesB(H_vec[batch],
-                                b_vec[batch] + A_active_vec[batch].transpose() * F);
+          MatrixXd Pi = -solveInvATimesB(H_vec[sample],
+                                         A_active_vec[sample].transpose() * E);
+          VectorXd qi = -solveInvATimesB(H_vec[sample],
+                                b_vec[sample] + A_active_vec[sample].transpose() * F);
           cout << "qi norm (this number should be close to 0) = "
                << qi.norm() << endl;
           P_vec.push_back(Pi);
@@ -570,27 +588,28 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
         // Method 3: use inverse() directly
         // H_ext = [H A'; A 0]
-        for (int batch = 0; batch < current_batch; batch++) {
-          int nl_i = nl_vec[batch];
-          int nw_i = nw_vec[batch];
+        for (int sample = 0; sample < n_succ_sample; sample++) {
+          int nl_i = nl_vec[sample];
+          int nw_i = nw_vec[sample];
           MatrixXd H_ext(nw_i + nl_i, nw_i + nl_i);
-          H_ext.block(0, 0, nw_i, nw_i) = H_vec[batch];
-          H_ext.block(0, nw_i, nw_i, nl_i) = A_active_vec[batch].transpose();
-          H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[batch];
+          H_ext.block(0, 0, nw_i, nw_i) = H_vec[sample];
+          H_ext.block(0, nw_i, nw_i, nl_i) = A_active_vec[sample].transpose();
+          H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[sample];
           H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
 
           // Testing
-          // Eigen::BDCSVD<MatrixXd> svd(H_vec[batch]);
+          // Eigen::BDCSVD<MatrixXd> svd(H_vec[sample]);
           // cout << "H:\n";
           // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
           // cout << "  smallest singular value is "
           //         << svd.singularValues().tail(1) << endl;
           // // cout << "singular values are \n" << svd.singularValues() << endl;
           // // Testing
-          if (batch == 0) {
+          if (sample == 0) {
             Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
             cout << "H_ext:\n";
-            cout << "  biggest singular value is " << svd_3.singularValues()(0) << endl;
+            cout << "  biggest singular value is " <<
+                 svd_3.singularValues()(0) << endl;
             cout << "  smallest singular value is "
                  << svd_3.singularValues().tail(1) << endl;
           }
@@ -607,8 +626,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
           MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
           MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
 
-          MatrixXd Pi = -inv_H_ext12 * B_active_vec[batch];
-          VectorXd qi = -inv_H_ext11 * b_vec[batch];
+          MatrixXd Pi = -inv_H_ext12 * B_active_vec[sample];
+          VectorXd qi = -inv_H_ext11 * b_vec[sample];
           P_vec.push_back(Pi);
           q_vec.push_back(qi);
 
@@ -685,8 +704,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
         /*// Check if Q_theta is pd
         cout << "Checking if Q_theta is psd...\n";
         MatrixXd Q_theta = MatrixXd::Zero(n_theta, n_theta);
-        for (int batch = 0; batch < current_batch; batch++)
-          Q_theta += P_vec[batch].transpose()*H_vec[batch]*P_vec[batch];
+        for (int sample = 0; sample < n_succ_sample; sample++)
+          Q_theta += P_vec[sample].transpose()*H_vec[sample]*P_vec[sample];
         VectorXd eivals_real = Q_theta.eigenvalues().real();
         for (int i = 0; i < eivals_real.size(); i++) {
           if (eivals_real(i) <= 0)
@@ -701,49 +720,49 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
 
 
-        // Get gradient of the cost wrt theta (assume H_vec[batch] symmetric)
+        // Get gradient of the cost wrt theta (assume H_vec[sample] symmetric)
         // cout << "Calculating gradient\n";
-        VectorXd costGradient = VectorXd::Zero(theta.size());
-        for (int batch = 0; batch < current_batch; batch++) {
-          costGradient += P_vec[batch].transpose() * b_vec[batch] / current_batch;
-          // costGradient +=
-          // P_vec[batch].transpose() * (b_vec[batch] + H_vec[batch] * q_vec[batch]);
+        VectorXd gradient_cost = VectorXd::Zero(theta.size());
+        for (int sample = 0; sample < n_succ_sample; sample++) {
+          gradient_cost += P_vec[sample].transpose() * b_vec[sample] / n_succ_sample;
+          // gradient_cost +=
+          // P_vec[sample].transpose() * (b_vec[sample] + H_vec[sample] * q_vec[sample]);
         }
-        // cout << "costGradient = \n" << costGradient;
+        // cout << "gradient_cost = \n" << gradient_cost;
 
         // Newton's method (not exactly the same, cause Q_theta is not pd but psd)
         // See your IOE611 lecture notes on page 7-17 to page 7-20
         // cout << "Getting Newton step\n";
         MatrixXd Q_theta = MatrixXd::Zero(n_theta, n_theta);
-        for (int batch = 0; batch < current_batch; batch++) {
+        for (int sample = 0; sample < n_succ_sample; sample++) {
           Q_theta +=
-            P_vec[batch].transpose() * H_vec[batch] * P_vec[batch] / current_batch;
+            P_vec[sample].transpose() * H_vec[sample] * P_vec[sample] / n_succ_sample;
         }
         double mu = 1e-4; // 1e-6 caused unstable and might diverge
         MatrixXd inv_Q_theta = (Q_theta + mu * MatrixXd::Identity(n_theta,
                                 n_theta)).inverse();
-        VectorXd newton_step = -inv_Q_theta * costGradient;
+        VectorXd newton_step = -inv_Q_theta * gradient_cost;
         // Testing
         /*Eigen::BDCSVD<MatrixXd> svd(inv_Q_theta);
         cout << "inv_Q_theta's smallest and biggest singular value " <<
              svd.singularValues().tail(1) << ", " <<
              svd.singularValues()(0) << endl;*/
         // Newton decrement (can be a criterion to terminate your newton steps)
-        double lambda_square = -costGradient.transpose() * newton_step;
+        double lambda_square = -gradient_cost.transpose() * newton_step;
 
         // step_direction
-        step_direction = is_newton ? newton_step : -costGradient;
+        step_direction = is_newton ? newton_step : -gradient_cost;
         prefix = to_string(iter) +  "_";
         writeCSV(directory + prefix + string("step_direction.csv"), step_direction);
 
 
         // Calculate lambda and gradient norm
         VectorXd lambda_square_vecXd(1); lambda_square_vecXd << lambda_square;
-        VectorXd norm_grad_cost(1); norm_grad_cost << costGradient.norm();
+        VectorXd norm_grad_cost(1); norm_grad_cost << gradient_cost.norm();
         writeCSV(directory + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
         writeCSV(directory + prefix + string("lambda_square.csv"), lambda_square_vecXd);
         cout << "lambda_square = " << lambda_square << endl;
-        cout << "costGradient norm: " << norm_grad_cost << endl << endl;
+        cout << "gradient_cost norm: " << norm_grad_cost << endl << endl;
 
         // Gradient descent
         prev_theta = theta;
