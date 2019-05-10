@@ -102,7 +102,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   string prefix = "";
 
   // Parametres for tasks
-  int n_sample = 5;//1;
+  int N_sample = 5;//1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
@@ -204,10 +204,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double min_so_far;
   if (iter_start > 1  && !FLAGS_is_debug) {
     double old_cost = 0;
-    for (int i = 0; i < n_sample; i++) {
+    for (int i = 0; i < N_sample; i++) {
       MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
                            to_string(i) + string("_c.csv"));
-      old_cost += c(0, 0) / n_sample;
+      old_cost += c(0, 0) / N_sample;
     }
     min_so_far = old_cost;
     cout << "min_so_far = " << min_so_far << endl;
@@ -218,7 +218,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   std::uniform_real_distribution<> dist(
     -delta_stride_length / 2, delta_stride_length / 2);
   vector<double> delta_stride_length_vec;
-  for (int i = 0 - n_sample / 2; i < n_sample - n_sample / 2; i++)
+  for (int i = 0 - N_sample / 2; i < N_sample - N_sample / 2; i++)
     delta_stride_length_vec.push_back(i * delta_stride_length);
   int n_theta = n_theta_s + n_theta_sDDot;
   VectorXd theta(n_theta);
@@ -254,7 +254,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
-    int n_sample = is_get_nominal ? 1 : n_sample;
+    int n_sample = is_get_nominal ? 1 : N_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
 
     // store initial parameter values
@@ -336,7 +336,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
         if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
-          break;
+            break;
       }
     }
     if (FLAGS_is_debug) break;
