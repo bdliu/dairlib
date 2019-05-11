@@ -89,7 +89,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     vector<MatrixXd> & B_vec,
     const double & Q_double, const double & R_double,
     double eps_reg,
-    bool is_get_nominal) {
+    bool is_get_nominal,
+    bool is_zero_touchdown_impact) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -314,6 +315,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     trajopt->SetInitialGuessForAllVariables(w0);
   }
 
+  // Zero impact at touchdown
+  if (is_zero_touchdown_impact)
+    trajopt->AddLinearConstraint(MatrixXd::Ones(1, 1),
+                                 VectorXd::Zero(1),
+                                 VectorXd::Zero(1),
+                                 trajopt->impulse_vars(0).tail(1));
 
   // Move the trajectory optmization problem into GoldilcocksModelTrajOpt
   // where we add the constraints for reduced order model
@@ -346,11 +353,15 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() << endl;
   VectorXd is_success(1);
-  if(result.is_success()) is_success << 1; else is_success << 0;
+  if (result.is_success()) is_success << 1;
+  else is_success << 0;
   writeCSV(directory + prefix + string("is_success.csv"), is_success);
 
   // The following line gives seg fault
   // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
+
+
+
 
 
 

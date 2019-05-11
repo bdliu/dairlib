@@ -50,6 +50,8 @@ DEFINE_bool(is_manual_initial_theta, false,
             "Assign initial theta of our choice");
 DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
             "if there is a failed task");
+DEFINE_bool(is_zero_touchdown_impact, false,
+            "No impact force at fist touchdown");
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -120,6 +122,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;
   cout << "eps_regularization = " << eps_regularization << endl;
+  FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
+                                        cout << "Non-zero touchdown impact\n";
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
@@ -332,11 +336,12 @@ void findGoldilocksModels(int argc, char* argv[]) {
                               y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
                               Q_double, R,
                               eps_regularization,
-                              is_get_nominal);
+                              is_get_nominal,
+                              FLAGS_is_zero_touchdown_impact);
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
         if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
-            break;
+          break;
       }
     }
     if (FLAGS_is_debug) break;
@@ -369,24 +374,24 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
       if (!current_iter_is_success) {
         iter -= 1;
-        if(has_been_all_success){
-            current_iter_step_size = current_iter_step_size / 2;
-            // if(current_iter_step_size<1e-5){
-            //   cout<<"switch to the other method.";
-            //   is_newton = !is_newton;
-            // }
-            cout << "Step size shrinks to " << current_iter_step_size <<
-                 ". Redo this iteration.\n\n";
+        if (has_been_all_success) {
+          current_iter_step_size = current_iter_step_size / 2;
+          // if(current_iter_step_size<1e-5){
+          //   cout<<"switch to the other method.";
+          //   is_newton = !is_newton;
+          // }
+          cout << "Step size shrinks to " << current_iter_step_size <<
+               ". Redo this iteration.\n\n";
 
-            if (iter + 1 == iter_start)
-              cout << "Step_direction might not have been defined yet. "
-                   "Next line might give segmentation fault\n";
-            // Descent
-            theta = prev_theta + current_iter_step_size * step_direction;
+          if (iter + 1 == iter_start)
+            cout << "Step_direction might not have been defined yet. "
+                 "Next line might give segmentation fault\n";
+          // Descent
+          theta = prev_theta + current_iter_step_size * step_direction;
 
-            // Assign theta_s and theta_sDDot
-            theta_s = theta.head(n_theta_s);
-            theta_sDDot = theta.tail(n_theta_sDDot);
+          // Assign theta_s and theta_sDDot
+          theta_s = theta.head(n_theta_s);
+          theta_sDDot = theta.tail(n_theta_sDDot);
         }
       }
       else {

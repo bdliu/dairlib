@@ -42,7 +42,8 @@ MathematicalProgramResult trajOptGivenWeights(
     vector<MatrixXd> & B_vec,
     const double & Q_double, const double & R_double,
     double eps_reg,
-    bool is_get_nominal);
+    bool is_get_nominal,
+    bool is_zero_touchdown_impact);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib
