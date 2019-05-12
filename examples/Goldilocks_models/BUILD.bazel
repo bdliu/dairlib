@@ -352,3 +352,14 @@ cc_library(
         "//systems/goldilocks_models",
     ],
 )
+
+cc_binary(
+    name = "scale_theta",
+    srcs = ["scale_theta.cc"],
+    deps = [
+        "//systems/goldilocks_models",
+        "@drake//common",
+        "@gflags",
+    ],
+)
+
