@@ -55,6 +55,10 @@ DEFINE_bool(is_zero_touchdown_impact, false,
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
+//                 // After adding tau
+//                 // 1e-4 doesn't diverge
+//                 // 1e-3 diverges
+//                 // Before adding tau
 //                 // 1e-3 is small enough to avoid gittering at the end
 //                 // 1e-2 is a good compromise on both speed and gittering
 //                 // 1e-1 caused divergence when close to optimal sol
@@ -132,14 +136,14 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
-  int n_s = 1; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 0;
+  int n_tau = 1;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  // B_tau(1, 0) = 1;
+  B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
 
