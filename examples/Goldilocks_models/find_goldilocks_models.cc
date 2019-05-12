@@ -58,6 +58,7 @@ DEFINE_double(h_step, 1e-4, "The step size for outer loop");
 //                 // 1e-3 is small enough to avoid gittering at the end
 //                 // 1e-2 is a good compromise on both speed and gittering
 //                 // 1e-1 caused divergence when close to optimal sol
+DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -114,7 +115,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
   double h_step = FLAGS_h_step;
-  double eps_regularization = 1e-8; //1e-4
+  double eps_regularization = FLAGS_eps_regularization;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
   bool is_stochastic = FLAGS_is_stochastic;
@@ -131,15 +132,15 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
-  int n_s = 3; //2
+  int n_s = 1; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  B_tau(1, 0) = 1;
-  B_tau(2, 1) = 1;
+  // B_tau(1, 0) = 1;
+  // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
 
   // Reduced order model setup
@@ -161,9 +162,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-  theta_s(1) = 1;
-  theta_s(2 + n_feature_s) = 1;
-  theta_s(3 + 2 * n_feature_s) = 1;
+  // theta_s(1) = 1;
+  // theta_s(2 + n_feature_s) = 1;
+  // theta_s(3 + 2 * n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // Testing intial theta
@@ -231,8 +232,13 @@ void findGoldilocksModels(int argc, char* argv[]) {
   VectorXd step_direction;
   double current_iter_step_size = h_step;
   bool previous_iter_is_success = true;
-  bool has_been_all_success = false;
+  bool has_been_all_success;
+  if(FLAGS_proceed_with_failure || (iter_start <= 1))
+    has_been_all_success = false;
+  else
+    has_been_all_success = true;
   bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
+  cout << "has_been_all_success = " << has_been_all_success << endl;
 
   if (start_with_adjusting_stepsize) {
     MatrixXd prev_theta_s_mat =

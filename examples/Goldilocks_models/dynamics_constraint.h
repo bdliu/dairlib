@@ -65,7 +65,7 @@ class DynamicsConstraint : public Constraint {
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& qvqvth,
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& qvtqvth,
               drake::AutoDiffVecXd* y) const override;
 
   void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
