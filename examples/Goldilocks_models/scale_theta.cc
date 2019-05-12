@@ -17,14 +17,14 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter, 0, "Which iteration");
-DEFINE_int32(n_s, 1, "dimension of the RoM");
-DEFINE_int32(num_linear_term, 0, "# of linear terms");
-DEFINE_int32(num_quadratic_term, 0, "# of quadratic terms");
+DEFINE_int32(n_s, 2, "dimension of the RoM");
+DEFINE_int32(num_linear_term, 4, "# of linear terms");
+DEFINE_int32(num_quadratic_term, 10, "# of quadratic terms");
 DEFINE_double(scaling_factor, 1, "Scaling factor");
 
 DEFINE_bool(is_active_model, true, "Model has input?");
 DEFINE_int32(n_tau, 1, "dimension of the input of the RoM");
-DEFINE_int32(num_traj_opt_knots, 0, "# of traj opt knot points");
+DEFINE_int32(num_traj_opt_knots, 20, "# of traj opt knot points");
 DEFINE_int32(num_batch, 5, "total number of batch");
 
 // Terminal command samples:
