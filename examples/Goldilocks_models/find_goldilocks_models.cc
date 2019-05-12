@@ -178,12 +178,10 @@ void findGoldilocksModels(int argc, char* argv[]) {
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
     if (!FLAGS_is_manual_initial_theta) {
-      MatrixXd theta_s_mat =
-        readCSV(directory + to_string(iter_start) + string("_theta_s.csv"));
-      MatrixXd theta_sDDot_mat =
-        readCSV(directory + to_string(iter_start) + string("_theta_sDDot.csv"));
-      theta_s = theta_s_mat.col(0);
-      theta_sDDot = theta_sDDot_mat.col(0);
+      theta_s = readCSV(directory + to_string(iter_start) +
+                        string("_theta_s.csv")).col(0);
+      theta_sDDot = readCSV(directory + to_string(iter_start) +
+                            string("_theta_sDDot.csv")).col(0);
     }
     else {
       MatrixXd theta_s_0_mat =
@@ -237,7 +235,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
   double current_iter_step_size = h_step;
   bool previous_iter_is_success = true;
   bool has_been_all_success;
-  if(FLAGS_proceed_with_failure || (iter_start <= 1))
+  if (FLAGS_proceed_with_failure || (iter_start <= 1))
     has_been_all_success = false;
   else
     has_been_all_success = true;
