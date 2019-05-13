@@ -844,7 +844,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
 
 
           // Some setup
-          has_been_all_success = false;
+          has_been_all_success = false;  // Just in case the next step is not feasible
           prev_theta.resize(n_theta_s);
           step_direction.resize(n_theta_s);
           min_so_far = 10000000;
