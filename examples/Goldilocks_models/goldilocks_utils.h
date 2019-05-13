@@ -40,6 +40,9 @@ void storeTau(const vector<VectorXd> & h_vec,
               const vector<VectorXd> & tau_vec,
               const string & directory,
               const string & prefix);
+
+VectorXd createPrimeNumbers(int num_prime);
+
 }  // namespace goldilocks_models
 } // dairlib
 

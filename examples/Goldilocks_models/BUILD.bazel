@@ -134,7 +134,8 @@ cc_library(
     srcs = ["traj_opt_given_weigths.cc"],
     hdrs = ["traj_opt_given_weigths.h"],
     deps = [
-        ":debug_tools",
+        ":goldilocks_utils",
+        ":dynamics_expression",
         "//examples/Goldilocks_models:goldilocks_model_traj_opt",
         "//systems/goldilocks_models",
         "//common",
@@ -339,12 +340,12 @@ cc_binary(
 
 
 cc_library(
-    name = "debug_tools",
+    name = "goldilocks_utils",
     srcs = [
-        "debug_tools.cc",
+        "goldilocks_utils.cc",
     ],
     hdrs = [
-        "debug_tools.h"
+        "goldilocks_utils.h"
     ],
     deps = [
         "@drake//common",

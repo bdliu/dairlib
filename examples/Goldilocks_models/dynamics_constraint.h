@@ -91,8 +91,9 @@ class DynamicsConstraint : public Constraint {
 
   // Extend the model by assuming the parameters of the new dynamics row are 0's
   // the new dynamics row = tau.
-  VectorXd computeTauToExtendModel();
-
+  VectorXd computeTauToExtendModel(
+    const VectorXd & x_i_double, const VectorXd & x_iplus1_double,
+    const VectorXd & h_i, const VectorXd & theta_s_append);
 
  private:
   AutoDiffVecXd getConstraintValueInAutoDiff(

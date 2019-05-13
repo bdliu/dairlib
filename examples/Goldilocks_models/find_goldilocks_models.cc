@@ -18,6 +18,7 @@
 #include "examples/Goldilocks_models/kinematics_expression.h"
 #include "examples/Goldilocks_models/dynamics_expression.h"
 
+using std::cin;
 using std::cout;
 using std::endl;
 using std::vector;
@@ -81,7 +82,7 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 //   return X;
 // }
 
-void findGoldilocksModels(int argc, char* argv[]) {
+int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Create MBP
@@ -154,7 +155,6 @@ void findGoldilocksModels(int argc, char* argv[]) {
   DynamicsExpression dyn_expression(n_sDDot, 0);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
-  VectorXd dummy_tau = VectorXd::Zero(n_tau);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot =
     dyn_expression.getFeature(dummy_s, dummy_s).size();
@@ -263,12 +263,25 @@ void findGoldilocksModels(int argc, char* argv[]) {
   bool extend_model = FLAGS_extend_model;
   if (extend_model) {
     int temp = (iter_start == 0) ? 1 : iter_start;
-    cout << "Will extend the model at iteration # " << temp << "by ";
+    cout << "\nWill extend the model at iteration # " << temp << " by ";
     VectorXd theta_s_append = readCSV(directory +
                                       string("theta_s_append.csv")).col(0);
     DRAKE_DEMAND(theta_s_append.rows() % n_feature_s == 0);
     int n_extend = theta_s_append.rows() / n_feature_s;
     cout << n_extend << " dimension.\n";
+
+    cout << "Make sure that you include old and the new version of dynamics "
+         "feasture.\nProceed? (Y/N)\n";
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+      cout << "Ending the program.\n";
+      return 0;
+    } else {
+      cout << "Start the iterating...\n";
+    }
+
+    has_been_all_success = true;
   }
 
   // Start the gradient descent
@@ -359,7 +372,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
                               eps_regularization,
                               is_get_nominal,
                               FLAGS_is_zero_touchdown_impact,
-                              FLAGS_extend_model);
+                              extend_model);
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
         if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
@@ -368,6 +381,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
     }
     if (FLAGS_is_debug) break;
 
+    // Logic for how to iterate
     if (samples_are_success && !is_get_nominal) has_been_all_success = true;
     bool current_iter_is_success;
     if (!FLAGS_proceed_with_failure) {
@@ -376,12 +390,80 @@ void findGoldilocksModels(int argc, char* argv[]) {
       current_iter_is_success = has_been_all_success ?
                                 samples_are_success : a_sample_is_success;
     }
+    previous_iter_is_success = current_iter_is_success;
 
+    //
     if (is_get_nominal) {
       if (!current_iter_is_success)
         iter -= 1;
-    }
-    else {
+    } else if (extend_model) {  // Extend the model
+      VectorXd theta_s_append = readCSV(directory +
+                                        string("theta_s_append.csv")).col(0);
+      int n_extend = theta_s_append.rows() / n_feature_s;
+
+      // update n_s and n_sDDot
+      int old_n_s = n_s;
+      n_s += n_extend;
+      n_sDDot += n_extend;
+      // update n_tau
+      n_tau += n_extend;
+      // update n_feature_sDDot
+      int old_n_feature_sDDot = n_feature_sDDot;
+      DynamicsExpression dyn_expression(n_sDDot, 0);
+      VectorXd dummy_s = VectorXd::Zero(n_s);
+      n_feature_sDDot = dyn_expression.getFeature(dummy_s, dummy_s).size();
+      // update n_theta_s and n_theta_sDDot
+      n_theta_s = n_s * n_feature_s;
+      n_theta_sDDot = n_sDDot * n_feature_sDDot;
+      n_theta = n_theta_s + n_theta_sDDot;
+      cout << "Updated n_s = " << n_s << endl;
+      cout << "Updated n_sDDot = " << n_sDDot << endl;
+      cout << "Updated n_tau = " << n_tau << endl;
+      cout << "Updated n_feature_sDDot = " << n_feature_sDDot << endl;
+      cout << "Updated n_theta_s = " << n_theta_s << endl;
+      cout << "Updated n_theta_sDDot = " << n_theta_sDDot << endl;
+      cout << "Updated n_theta = " << n_theta << endl;
+
+      // update B_tau
+      MatrixXd B_tau_old = B_tau;
+      B_tau.resize(n_sDDot, n_tau);
+      B_tau = MatrixXd::Zero(n_sDDot, n_tau);
+      B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
+      B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
+        MatrixXd::Identity(n_extend, n_extend);
+      cout << "Updated B_tau = " << B_tau << endl;
+      // update theta_s
+      MatrixXd theta_s_old = theta_s;
+      theta_s.resize(n_theta_s);
+      theta_s << theta_s_old, theta_s_append;
+      // update theta_sDDot
+      MatrixXd theta_sDDot_old = theta_sDDot;
+      theta_sDDot.resize(n_theta_sDDot);
+      theta_sDDot = VectorXd::Zero(n_theta_sDDot);
+      VectorXd new_idx = readCSV(directory +
+                                 string("theta_sDDot_new_index.csv")).col(0);
+      for (int i = 0; i < old_n_feature_sDDot; i++)
+        for (int j = 0; j < old_n_s; j++)
+          theta_sDDot(new_idx(i) + j * n_feature_sDDot) = theta_sDDot_old(
+                i + j * old_n_feature_sDDot);
+
+      // Some setup
+      cout << "Reset has_been_all_success to false, in case the next iter "
+           "is infeasible.\n";
+      prev_theta.resize(n_theta_s);
+      step_direction.resize(n_theta_s);
+      min_so_far = 10000000;
+
+      // So that we can re-run the current iter
+      iter -= 1;
+      has_been_all_success = false;
+      previous_iter_is_success = false;
+
+      // Never extend model again (we just extend it once)
+      extend_model = false;
+      continue;
+
+    } else {  // Update parameters
       int n_succ_sample = c_vec.size();
 
       // Get the total cost if it's successful
@@ -803,56 +885,6 @@ void findGoldilocksModels(int argc, char* argv[]) {
         theta_s = theta.head(n_theta_s);
         theta_sDDot = theta.tail(n_theta_sDDot);
 
-        // Extend the model
-        if (extend_model) {
-
-          VectorXd theta_s_append = readCSV(directory +
-                                            string("theta_s_append.csv")).col(0);
-          int n_extend = theta_s_append.rows() / n_feature_s;
-
-          // update n_s and n_sDDot
-          n_s += n_extend;
-          n_sDDot += n_extend;
-          // update n_tau
-          n_tau += n_extend;
-          // update n_theta_s and n_theta_sDDot
-          n_theta_s = n_s * n_feature_s;
-          n_theta_sDDot = n_sDDot * n_feature_sDDot;
-          n_theta = n_theta_s + n_theta_sDDot;
-
-          // update B_tau
-          MatrixXd B_tau_old = B_tau;
-          B_tau.resize(n_sDDot, n_tau);
-          B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-          B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
-          B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
-            MatrixXd::Identity(n_extend, n_extend);
-          // update theta_s
-          MatrixXd theta_s_old = theta_s;
-          theta_s.resize(n_theta_s);
-          theta_s << theta_s_old, theta_s_append;
-          // update theta_sDDot
-          MatrixXd theta_sDDot_old = theta_sDDot;
-          theta_sDDot.resize(n_theta_sDDot);
-          theta_sDDot << theta_sDDot_old,
-                      VectorXd::Zero(n_extend * n_feature_sDDot);
-
-          // TODO: finish below and also the function that create tau
-          // Store the new parameters
-
-          // Update the old parameters
-
-
-          // Some setup
-          has_been_all_success = false;  // Just in case the next step is not feasible
-          prev_theta.resize(n_theta_s);
-          step_direction.resize(n_theta_s);
-          min_so_far = 10000000;
-
-          // Never enter the loop again
-          extend_model = false;
-        }
-
         // Check optimality
         if (is_newton) {
           if (lambda_square < stopping_threshold) {
@@ -867,10 +899,7 @@ void findGoldilocksModels(int argc, char* argv[]) {
           }
         }
       }  // end if goes goes down
-
     }  // end if(!is_get_nominal)
-    previous_iter_is_success = current_iter_is_success;
-
   }  // end for
 
   // store parameter values
@@ -879,12 +908,11 @@ void findGoldilocksModels(int argc, char* argv[]) {
     writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
     writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
   }
+}  // int findGoldilocksModels
 
-}
 }  // namespace goldilocks_models
 }  // namespace dairlib
 
 int main(int argc, char* argv[]) {
-  dairlib::goldilocks_models::findGoldilocksModels(argc, argv);
-  return 0;
+  return dairlib::goldilocks_models::findGoldilocksModels(argc, argv);
 }

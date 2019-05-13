@@ -31,7 +31,8 @@
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
 
-#include "examples/Goldilocks_models/debug_tools.h"
+#include "examples/Goldilocks_models/goldilocks_utils.h"
+#include "examples/Goldilocks_models/dynamics_expression.h"
 
 using Eigen::Vector3d;
 using Eigen::VectorXd;
@@ -91,7 +92,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     double eps_reg,
     bool is_get_nominal,
     bool is_zero_touchdown_impact,
-    bool FLAGS_extend_model) {
+    bool extend_model) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -406,9 +407,90 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                      gm_traj_opt.dircon->decision_variables());
   writeCSV(directory + prefix + string("w.csv"), w_sol);
 
-  // Assume theta is fixed. Get the linear approximation of the cosntraints and
-  // second order approximation of the cost.
-  if (!is_get_nominal && result.is_success()) {
+  if (is_get_nominal || !result.is_success()) {
+    return result;
+  } else if (extend_model) {  // Extending the model
+    VectorXd theta_s_append = readCSV(directory +
+                                      string("theta_s_append.csv")).col(0);
+    int n_extend = theta_s_append.rows() / n_feature_s;
+
+    // Update trajectory optimization solution
+    // Assume that tau is at the end of the decision variable
+    VectorXd tau_new((n_tau + n_extend) * N);
+    int N_accum = 0;
+    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+        int i = N_accum + m;
+        // cout << "i = " << i << endl;
+        // Get tau_append
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
+        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto tau_iplus1 = gm_traj_opt.reduced_model_input(i + 1, n_tau);
+        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd tau_i_sol = result.GetSolution(tau_i);
+        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd tau_iplus1_sol = result.GetSolution(tau_iplus1);
+        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+
+        VectorXd tau_append_head =
+          gm_traj_opt.dynamics_constraint_at_head->computeTauToExtendModel(
+            x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
+        VectorXd tau_append_tail =
+          gm_traj_opt.dynamics_constraint_at_tail->computeTauToExtendModel(
+            x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
+        // cout << "tau_append_head = " << tau_append_head.transpose() << endl;
+        // cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
+        // tau_append_head and tau_append_tail are close but not the same.
+
+        // update tau
+        tau_new.segment(i * (n_tau + n_extend), n_tau) = tau_i_sol;
+        tau_new.segment(i * (n_tau + n_extend) + n_tau, n_extend) =
+          tau_append_head;
+        tau_new.segment((i + 1) * (n_tau + n_extend), n_tau) = tau_iplus1_sol;
+        tau_new.segment((i + 1) * (n_tau + n_extend) + n_tau, n_extend) =
+          tau_append_head;
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
+    }
+    // store new w_sol
+    VectorXd w_sol_new(w_sol.rows() + n_extend * N);
+    w_sol_new << w_sol.head(w_sol.rows() - n_tau * N), tau_new;
+    writeCSV(directory + prefix + string("w.csv"), w_sol_new);
+
+    // Create a file that shows the new index of theta_sDDot
+    // Assume that the new features include all the old features (in dynamics)
+    VectorXd prime_numbers = createPrimeNumbers(2 * (n_s + n_extend));
+
+    DynamicsExpression dyn_expr_old(n_sDDot, 0);
+    DynamicsExpression dyn_expr_new(n_sDDot + n_extend, 0);
+    VectorXd dummy_s_new = prime_numbers.head(n_s + n_extend);
+    VectorXd dummy_sDDot_new = prime_numbers.tail(n_s + n_extend);
+    VectorXd dummy_s_old = dummy_s_new.head(n_s);
+    VectorXd dummy_sDDot_old = dummy_sDDot_new.head(n_s);
+    VectorXd feat_old = dyn_expr_old.getFeature(dummy_s_old, dummy_sDDot_old);
+    VectorXd feat_new = dyn_expr_new.getFeature(dummy_s_new, dummy_sDDot_new);
+
+    VectorXd new_idx(feat_old.rows());
+    for (int i = 0; i < feat_old.rows(); i++) {
+      int idx = -1;
+      for (int j = 0; j < feat_new.rows(); j++) {
+        if (feat_old(i) == feat_new(j))
+          idx = j;
+      }
+      if (idx == -1)
+        cout << "Failed to create the index list automatically.\n";
+
+      DRAKE_DEMAND(idx > -1);
+      new_idx(i) = idx;
+    }
+    writeCSV(directory + string("theta_sDDot_new_index.csv"), new_idx);
+
+  } else {
+    // Assume theta is fixed. Get the linear approximation of
+    //      // the cosntraints and second order approximation of the cost.
     // cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;

@@ -1,4 +1,4 @@
-#include "examples/Goldilocks_models/debug_tools.h"
+#include "examples/Goldilocks_models/goldilocks_utils.h"
 
 namespace dairlib {
 namespace goldilocks_models  {
@@ -120,6 +120,16 @@ void storeTau(const vector<VectorXd> & h_vec,
 
   // Store into csv file
   writeCSV(directory + prefix + string("t_and_tau.csv"), t_and_tau);
+}
+
+
+VectorXd createPrimeNumbers(int num_prime) {
+  DRAKE_DEMAND(num_prime <= 25);
+
+  VectorXd prime_until_100(25);
+  prime_until_100 << 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53,
+                  59, 61, 67, 71, 73, 79, 83, 89, 97;
+  return prime_until_100.head(num_prime);
 }
 
 

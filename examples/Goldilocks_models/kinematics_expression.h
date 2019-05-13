@@ -36,7 +36,7 @@ class KinematicsExpression {
  public:
   explicit KinematicsExpression(int n_s, int n_feature);
   explicit KinematicsExpression(int n_s, int n_feature,
-      const MultibodyPlant<T> * plant);
+                                const MultibodyPlant<T> * plant);
   KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -46,6 +46,8 @@ class KinematicsExpression {
 
   template <typename U>
   VectorX<U> getFeature(const VectorX<U> & q) const;
+
+  void setModelDimension(int n_s_new) {n_s_ = n_s_new;};
 
  private:
   const MultibodyPlant<T> * plant_;

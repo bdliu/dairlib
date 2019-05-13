@@ -392,6 +392,42 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
   return gradWrtTheta;
 }
 
+VectorXd DynamicsConstraint::computeTauToExtendModel(
+  const VectorXd & x_i_double, const VectorXd & x_iplus1_double,
+  const VectorXd & h_i, const VectorXd & theta_s_append) {
+
+  // Reset the model dimension, so that we can get the extended part of the model
+  int n_extend = theta_s_append.rows() / n_feature_s_;
+  kin_expression_.setModelDimension(n_extend);
+
+  // Get x_i, x_iplus1 in autoDiff (to get s and ds)
+  AutoDiffVecXd x_i = initializeAutoDiff(x_i_double);
+  AutoDiffVecXd x_iplus1 = initializeAutoDiff(x_iplus1_double);
+
+  // Get s and ds at knot i and i+1
+  VectorXd s_i = VectorXd::Zero(n_extend);
+  VectorXd ds_i = VectorXd::Zero(n_extend);
+  VectorXd s_iplus1 = VectorXd::Zero(n_extend);
+  VectorXd ds_iplus1 = VectorXd::Zero(n_extend);
+  getSAndSDotInDouble(x_i, s_i, ds_i, 0, theta_s_append);
+  getSAndSDotInDouble(x_iplus1, s_iplus1, ds_iplus1, 0, theta_s_append);
+
+  // Set the model dimension back just in case
+  kin_expression_.setModelDimension(n_s_);
+
+  // Get constraint value (without h(s,ds) and tau)
+  if (is_head_) {
+    return 2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
+           (h_i(0) * h_i(0));
+  } else {
+    return (6 * (s_i - s_iplus1) + h_i(0) * (4 * ds_iplus1 + 2 * ds_i)) /
+           (h_i(0) * h_i(0));
+  }
+}
+
+
+
+
 
 
 
