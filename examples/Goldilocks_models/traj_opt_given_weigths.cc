@@ -90,7 +90,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     const double & Q_double, const double & R_double,
     double eps_reg,
     bool is_get_nominal,
-    bool is_zero_touchdown_impact) {
+    bool is_zero_touchdown_impact,
+    bool FLAGS_extend_model) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(

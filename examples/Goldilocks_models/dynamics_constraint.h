@@ -89,6 +89,10 @@ class DynamicsConstraint : public Constraint {
     return dyn_expression_.getFeature(s, ds);
   };
 
+  // Extend the model by assuming the parameters of the new dynamics row are 0's
+  // the new dynamics row = tau.
+  VectorXd computeTauToExtendModel();
+
 
  private:
   AutoDiffVecXd getConstraintValueInAutoDiff(

@@ -46,6 +46,8 @@ DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
 DEFINE_bool(start_with_adjusting_stepsize, false, "");
+DEFINE_bool(extend_model, false, "Extend the model in iteration # iter_start "
+            "which is not equal to 0.");
 DEFINE_bool(is_manual_initial_theta, false,
             "Assign initial theta of our choice");
 DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
@@ -239,9 +241,9 @@ void findGoldilocksModels(int argc, char* argv[]) {
     has_been_all_success = false;
   else
     has_been_all_success = true;
-  bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
   cout << "has_been_all_success = " << has_been_all_success << endl;
 
+  bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
   if (start_with_adjusting_stepsize) {
     MatrixXd prev_theta_s_mat =
       readCSV(directory + to_string(iter_start - 1) + string("_theta_s.csv"));
@@ -256,6 +258,17 @@ void findGoldilocksModels(int argc, char* argv[]) {
     // Below only works for Gradient Descent method (not Newton's method)
     current_iter_step_size = h_step / sqrt(step_direction.norm());  // Heuristic
     cout << "current_iter_step_size = " << current_iter_step_size << endl;
+  }
+
+  bool extend_model = FLAGS_extend_model;
+  if (extend_model) {
+    int temp = (iter_start == 0) ? 1 : iter_start;
+    cout << "Will extend the model at iteration # " << temp << "by ";
+    VectorXd theta_s_append = readCSV(directory +
+                                      string("theta_s_append.csv")).col(0);
+    DRAKE_DEMAND(theta_s_append.rows() % n_feature_s == 0);
+    int n_extend = theta_s_append.rows() / n_feature_s;
+    cout << n_extend << " dimension.\n";
   }
 
   // Start the gradient descent
@@ -345,7 +358,8 @@ void findGoldilocksModels(int argc, char* argv[]) {
                               Q_double, R,
                               eps_regularization,
                               is_get_nominal,
-                              FLAGS_is_zero_touchdown_impact);
+                              FLAGS_is_zero_touchdown_impact,
+                              FLAGS_extend_model);
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
         if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
@@ -788,6 +802,56 @@ void findGoldilocksModels(int argc, char* argv[]) {
         // Assign theta_s and theta_sDDot
         theta_s = theta.head(n_theta_s);
         theta_sDDot = theta.tail(n_theta_sDDot);
+
+        // Extend the model
+        if (extend_model) {
+
+          VectorXd theta_s_append = readCSV(directory +
+                                            string("theta_s_append.csv")).col(0);
+          int n_extend = theta_s_append.rows() / n_feature_s;
+
+          // update n_s and n_sDDot
+          n_s += n_extend;
+          n_sDDot += n_extend;
+          // update n_tau
+          n_tau += n_extend;
+          // update n_theta_s and n_theta_sDDot
+          n_theta_s = n_s * n_feature_s;
+          n_theta_sDDot = n_sDDot * n_feature_sDDot;
+          n_theta = n_theta_s + n_theta_sDDot;
+
+          // update B_tau
+          MatrixXd B_tau_old = B_tau;
+          B_tau.resize(n_sDDot, n_tau);
+          B_tau = MatrixXd::Zero(n_sDDot, n_tau);
+          B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
+          B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
+            MatrixXd::Identity(n_extend, n_extend);
+          // update theta_s
+          MatrixXd theta_s_old = theta_s;
+          theta_s.resize(n_theta_s);
+          theta_s << theta_s_old, theta_s_append;
+          // update theta_sDDot
+          MatrixXd theta_sDDot_old = theta_sDDot;
+          theta_sDDot.resize(n_theta_sDDot);
+          theta_sDDot << theta_sDDot_old,
+                      VectorXd::Zero(n_extend * n_feature_sDDot);
+
+          // TODO: finish below and also the function that create tau
+          // Store the new parameters
+
+          // Update the old parameters
+
+
+          // Some setup
+          has_been_all_success = false;
+          prev_theta.resize(n_theta_s);
+          step_direction.resize(n_theta_s);
+          min_so_far = 10000000;
+
+          // Never enter the loop again
+          extend_model = false;
+        }
 
         // Check optimality
         if (is_newton) {
