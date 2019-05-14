@@ -53,6 +53,7 @@ DEFINE_bool(is_manual_initial_theta, false,
             "Assign initial theta of our choice");
 DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
             "if there is a failed task");
+DEFINE_bool(previous_iter_is_success, true, "Is the previous iter successful?");
 DEFINE_bool(is_zero_touchdown_impact, false,
             "No impact force at fist touchdown");
 
@@ -118,6 +119,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
+  cout << "\nOptimization setting:\n";
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = 10000;
   double stopping_threshold = 1e-4;
@@ -139,14 +141,15 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double Q_double = 10; // Cost on velocity
 
   // Reduced order model parameters
+  cout << "\nReduced-order model setting:\n";
+  cout << "Warning: Need to make sure that the implementation in "
+       "DynamicsExpression agrees with n_s and n_tau.\n";
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_tau = 2;
-  cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
-       "Need to make sure that the implementation in DynamicsExpression agrees "
-       "with n_s and n_tau.\n";
+  cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  B_tau = MatrixXd::Identity(2,2);
+  B_tau = MatrixXd::Identity(2, 2);
   // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
@@ -216,6 +219,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   vector<MatrixXd> B_active_vec;
 
   // Some setup
+  cout << "\nOther settings:\n";
   double min_so_far;
   if (iter_start > 1  && !FLAGS_is_debug) {
     double old_cost = 0;
@@ -241,7 +245,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   VectorXd prev_theta = theta;
   VectorXd step_direction;
   double current_iter_step_size = h_step;
-  bool previous_iter_is_success = true;
+  bool previous_iter_is_success = FLAGS_previous_iter_is_success;
   bool has_been_all_success;
   if (FLAGS_proceed_with_failure || (iter_start <= 1))
     has_been_all_success = false;
@@ -266,6 +270,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     cout << "current_iter_step_size = " << current_iter_step_size << endl;
   }
 
+  cout << endl;
   bool extend_model = FLAGS_extend_model;
   if (extend_model) {
     int temp = (iter_start == 0) ? 1 : iter_start;
