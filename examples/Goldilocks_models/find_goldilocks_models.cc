@@ -141,14 +141,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model parameters
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 0;
+  int n_tau = 2;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
+  B_tau = MatrixXd::Identity(2,2);
   // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
+  cout << "B_tau = \n" << B_tau << endl;
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);
