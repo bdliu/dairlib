@@ -416,7 +416,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
     // Update trajectory optimization solution
     // Assume that tau is at the end of the decision variable
-    VectorXd tau_new((n_tau + n_extend) * N);
+    VectorXd tau_new = VectorXd::Zero((n_tau + n_extend) * N);
     int N_accum = 0;
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
       for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
@@ -440,17 +440,25 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd tau_append_tail =
           gm_traj_opt.dynamics_constraint_at_tail->computeTauToExtendModel(
             x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
-        // cout << "tau_append_head = " << tau_append_head.transpose() << endl;
-        // cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
+        cout << "tau_append_head = " << tau_append_head.transpose() << endl;
+        cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
         // tau_append_head and tau_append_tail are close but not the same.
 
-        // update tau
+        // Update tau
+        // Since tau_append_head and tau_append_tail are slightly different, we
+        // take the average of them at all knots except for the two ends.
+        double scale_head = 0.5;
+        double scale_tail = 0.5;
+        if (i == 0)
+          scale_head = 1;
+        else if (i == N - 2)
+          scale_tail = 1;
         tau_new.segment(i * (n_tau + n_extend), n_tau) = tau_i_sol;
-        tau_new.segment(i * (n_tau + n_extend) + n_tau, n_extend) =
-          tau_append_head;
+        tau_new.segment(i * (n_tau + n_extend) + n_tau, n_extend) +=
+          scale_head * tau_append_head;
         tau_new.segment((i + 1) * (n_tau + n_extend), n_tau) = tau_iplus1_sol;
-        tau_new.segment((i + 1) * (n_tau + n_extend) + n_tau, n_extend) =
-          tau_append_head;
+        tau_new.segment((i + 1) * (n_tau + n_extend) + n_tau, n_extend) +=
+          scale_tail * tau_append_tail;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
@@ -458,6 +466,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // store new w_sol
     VectorXd w_sol_new(w_sol.rows() + n_extend * N);
     w_sol_new << w_sol.head(w_sol.rows() - n_tau * N), tau_new;
+    writeCSV(directory + prefix + string("w (no extension).csv"), w_sol);
     writeCSV(directory + prefix + string("w.csv"), w_sol_new);
 
     // Create a file that shows the new index of theta_sDDot

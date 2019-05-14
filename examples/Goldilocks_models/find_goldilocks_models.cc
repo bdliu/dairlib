@@ -431,12 +431,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
       B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
       B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
         MatrixXd::Identity(n_extend, n_extend);
-      cout << "Updated B_tau = " << B_tau << endl;
+      cout << "Updated B_tau = \n" << B_tau << endl;
       // update theta_s
+      prefix = to_string(iter) +  "_";
+      writeCSV(directory + prefix + string("theta_s (no extension).csv"),
+               theta_s);
       MatrixXd theta_s_old = theta_s;
       theta_s.resize(n_theta_s);
       theta_s << theta_s_old, theta_s_append;
       // update theta_sDDot
+      writeCSV(directory + prefix + string("theta_sDDot (no extension).csv"),
+               theta_sDDot);
       MatrixXd theta_sDDot_old = theta_sDDot;
       theta_sDDot.resize(n_theta_sDDot);
       theta_sDDot = VectorXd::Zero(n_theta_sDDot);
@@ -908,6 +913,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
     writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
     writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
   }
+
+  return 0;
 }  // int findGoldilocksModels
 
 }  // namespace goldilocks_models
