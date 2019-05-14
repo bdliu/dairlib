@@ -91,7 +91,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   //            ds(1) * ds(1);
 
   // Version 6: ns = 1, all combinations until quadratic
-  if (n_sDDot_ == 1) {
+  /*if (n_sDDot_ == 1) {
     // DRAKE_DEMAND(n_sDDot_ == 1);
     T feature(6);
     feature << 1,     // constant
@@ -101,7 +101,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
             ds(0) * s(0),
             ds(0) * ds(0);
     return feature;
-  }
+  }*/
 
   // Version 7: testing (debug B matrix)
   /*DRAKE_DEMAND(n_sDDot_ == 1);
@@ -111,7 +111,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   // return feature;
 
   // Version 8: ns = 2, all combinations until quadratic
-  if (n_sDDot_ == 2) {
+  /*if (n_sDDot_ == 2) {
     // DRAKE_DEMAND(n_sDDot_ == 2);
     T feature(15);  // 1 + 4 + (4Choose2 + 4) = 1 + 4 + 10 = 15
     feature << 1,   // constant
@@ -130,10 +130,10 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
             ds(0) * ds(1),
             ds(1) * ds(1);  // quadratic
     return feature;
-  }
+  }*/
 
   // Version 9: ns = 3, all combinations until quadratic
-  if (n_sDDot_ == 3) {
+  /*if (n_sDDot_ == 3) {
     // DRAKE_DEMAND(n_sDDot_ == 3);
     T feature(28);  // 1 + 6 + (6Choose2 + 6) = 1 + 6 + 21 = 28
     feature << 1,  // constant
@@ -165,7 +165,29 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
             ds(1) * ds(2),
             ds(2) * ds(2);  // quadratic
     return feature;
-  }
+  }*/
+
+  // Version 10: ns = 2, 2D LIPM with all quadratic combination
+  DRAKE_DEMAND(n_sDDot_ == 2);
+  T feature(16);  // 1 + 1 + 4 + (4Choose2 + 4) = 1 + 1 + 4 + 10 = 16
+  feature << (9.80665/s(1))*s(0),
+          1,   // constant
+          s(0),
+          s(1),
+          ds(0),
+          ds(1),  // linear
+          s(0) * s(0),
+          s(0) * s(1),
+          s(0) * ds(0),
+          s(0) * ds(1),
+          s(1) * s(1),
+          s(1) * ds(0),
+          s(1) * ds(1),
+          ds(0) * ds(0),
+          ds(0) * ds(1),
+          ds(1) * ds(1);  // quadratic
+  return feature;
+
 
 }
 

@@ -141,12 +141,12 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model parameters
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 1;
+  int n_tau = 0;
   cout << "Warning: n_s = " << n_s << ", n_tau = " << n_tau << ". " <<
        "Need to make sure that the implementation in DynamicsExpression agrees "
        "with n_s and n_tau.\n";
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  B_tau(1, 0) = 1;
+  // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
 
@@ -173,6 +173,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // theta_s(3 + 2 * n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
+  // // 2D LIPM
+  theta_s(0) = 1;
+  theta_s(1 + n_feature_s) = 1;
+  theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
@@ -347,6 +351,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
         else
           init_file_pass_in = to_string(iter - 1) +  "_" +
                               to_string(sample) + string("_w.csv");
+        // cout << "init_file = " << init_file_pass_in << endl;
+
         //Testing
         if (FLAGS_is_debug) {
           // init_file_pass_in = to_string(iter) +  "_" +
