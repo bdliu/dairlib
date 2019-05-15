@@ -310,13 +310,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   }
   trajopt->AddQuadraticCost(eps_reg*I_x*timestep/2,VectorXd::Zero(n_x),xf);*/
 
-
-  // initial guess if the file exists
-  if (!init_file.empty()) {
-    MatrixXd w0 = readCSV(directory + init_file);
-    trajopt->SetInitialGuessForAllVariables(w0);
-  }
-
   // Zero impact at touchdown
   if (is_zero_touchdown_impact)
     trajopt->AddLinearConstraint(MatrixXd::Ones(1, 1),
@@ -342,6 +335,12 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     // cout << "Check the order of decisiion variable: \n";
     // for (int i = 0; i < w.size(); i++)
     //   cout << gm_traj_opt.dircon->FindDecisionVariableIndex(w(i)) << endl;
+  }
+
+  // initial guess if the file exists
+  if (!init_file.empty()) {
+    MatrixXd w0 = readCSV(directory + init_file);
+    gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
   // cout << "Solving DIRCON (based on MultipleShooting)\n";
