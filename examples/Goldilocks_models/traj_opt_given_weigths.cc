@@ -77,17 +77,17 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int n_feature_s,
     int n_feature_sDDot,
     MatrixXd B_tau,
-    Eigen::VectorXd & theta_s, Eigen::VectorXd & theta_sDDot,
+    const VectorXd & theta_s, const VectorXd & theta_sDDot,
     double stride_length, double duration, int max_iter,
     string directory,
-    string init_file, std::string prefix,
-    vector<VectorXd> & w_sol_vec,
-    vector<MatrixXd> & A_vec, vector<MatrixXd> & H_vec,
-    vector<VectorXd> & y_vec,
-    vector<VectorXd> & lb_vec, vector<VectorXd> & ub_vec,
-    vector<VectorXd> & b_vec,
-    vector<VectorXd> & c_vec,
-    vector<MatrixXd> & B_vec,
+    string init_file, string prefix,
+    vector<VectorXd> * w_sol_vec,
+    vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,
+    vector<VectorXd> * y_vec,
+    vector<VectorXd> * lb_vec, vector<VectorXd> * ub_vec,
+    vector<VectorXd> * b_vec,
+    vector<VectorXd> * c_vec,
+    vector<MatrixXd> * B_vec,
     const double & Q_double, const double & R_double,
     double eps_reg,
     bool is_get_nominal,
@@ -406,6 +406,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
   writeCSV(directory + prefix + string("w.csv"), w_sol);
+  if (result.is_success())
+    writeCSV(directory + prefix + string("w (success).csv"), w_sol);
 
   if (is_get_nominal || !result.is_success()) {
     return result;
@@ -562,15 +564,15 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     }
 
     // Push the solution to the vector
-    w_sol_vec.push_back(w_sol);
-    H_vec.push_back(H);
-    b_vec.push_back(b);
-    c_vec.push_back(c);
-    A_vec.push_back(A);
-    lb_vec.push_back(lb);
-    ub_vec.push_back(ub);
-    y_vec.push_back(y);
-    B_vec.push_back(B);
+    w_sol_vec->push_back(w_sol);
+    H_vec->push_back(H);
+    b_vec->push_back(b);
+    c_vec->push_back(c);
+    A_vec->push_back(A);
+    lb_vec->push_back(lb);
+    ub_vec->push_back(ub);
+    y_vec->push_back(y);
+    B_vec->push_back(B);
 
     // Store the vectors and matrices
     // cout << "\nStoring vectors and matrices into csv.\n";

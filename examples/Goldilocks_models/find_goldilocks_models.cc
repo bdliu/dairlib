@@ -358,7 +358,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
         else
           init_file_pass_in = to_string(iter - 1) +  "_" +
                               to_string(sample) + string("_w.csv");
-        // cout << "init_file = " << init_file_pass_in << endl;
+        cout << "init_file = " << init_file_pass_in << endl;
 
         //Testing
         if (FLAGS_is_debug) {
@@ -379,8 +379,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               B_tau, theta_s, theta_sDDot,
                               stride_length, duration, max_inner_iter_pass_in,
                               directory, init_file_pass_in, prefix,
-                              w_sol_vec, A_vec, H_vec,
-                              y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec,
+                              &w_sol_vec, &A_vec, &H_vec,
+                              &y_vec, &lb_vec, &ub_vec, &b_vec, &c_vec, &B_vec,
                               Q_double, R,
                               eps_regularization,
                               is_get_nominal,
