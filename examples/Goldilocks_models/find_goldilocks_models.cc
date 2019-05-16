@@ -306,7 +306,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   for (iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
     if (iter != 0)
-      cout << "theta_sDDot = " << theta_sDDot.head(10).transpose() << endl;
+      cout << "theta_sDDot.head(10) = " << theta_sDDot.head(10).transpose() << endl;
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;

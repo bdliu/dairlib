@@ -18,13 +18,21 @@ using drake::MatrixX;
 
 template <typename T>
 DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
-    const Body<T>& body, Vector3d pt, bool isXZ) :
+    const Body<T>& body, Vector3d pt, bool isXZ, Vector3d ground_rpy) :
     DirconKinematicData<T>(plant, isXZ ? 2 : 3),
     body_(body),
     pt_(pt),
     isXZ_(isXZ) {
   TXZ_ << 1, 0, 0,
           0, 0, 1;
+
+  Eigen::AngleAxisd rollAngle(ground_rpy(0), Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(ground_rpy(1), Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(ground_rpy(2), Eigen::Vector3d::UnitZ());
+  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+  inv_rot_mat_ground_ = q.matrix().transpose();
+
+  TXZ_and_ground_incline_ = TXZ_ * inv_rot_mat_ground_;
 }
 
 template <typename T>
@@ -48,13 +56,13 @@ void DirconPositionData<T>::updateConstraint(const Context<T>& context) {
       this->plant_.CalcBiasForFrameGeometricJacobianExpressedInWorld(
           context, body_.body_frame(), pt_cast).tail(3);
   if (isXZ_) {
-    this->c_ = TXZ_*pt_transform;
-    this->J_ = TXZ_*J3d;
-    this->Jdotv_ = TXZ_*J3d_times_v;
+    this->c_ = TXZ_and_ground_incline_ * pt_transform;
+    this->J_ = TXZ_and_ground_incline_ * J3d;
+    this->Jdotv_ = TXZ_and_ground_incline_ * J3d_times_v;
   } else {
-    this->c_ = pt_transform;
-    this->J_ = J3d;
-    this->Jdotv_ = J3d_times_v;
+    this->c_ = inv_rot_mat_ground_ * pt_transform;
+    this->J_ = inv_rot_mat_ground_ * J3d;
+    this->Jdotv_ = inv_rot_mat_ground_ * J3d_times_v;
   }
   this->cdot_ = this->J_*v;
 }
@@ -72,6 +80,10 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
     Matrix2d A_fric;
     A_fric << (mu*normal_xz + d_xz).transpose(),
               (mu*normal_xz - d_xz).transpose();
+    std::cout << "(mu*normal_xz + d_xz) = " << (mu*normal_xz + d_xz).transpose() << std::endl;
+    std::cout << "(mu*normal_xz - d_xz) = " << (mu*normal_xz - d_xz).transpose() << std::endl;
+    std::cout << "A_fric = \n" << A_fric << std::endl;
+
     Vector2d lb_fric = Vector2d::Zero();
     Vector2d ub_fric = Vector2d::Constant(
         std::numeric_limits<double>::infinity());

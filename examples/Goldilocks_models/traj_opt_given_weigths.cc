@@ -125,14 +125,21 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   pt << 0, 0, -.5;
   bool isXZ = true;
 
+  Vector3d ground_rpy(0, 0.1, 0);  // gournd incline in roll pitch yaw
+  Eigen::AngleAxisd rollAngle(ground_rpy(0), Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(ground_rpy(1), Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(ground_rpy(2), Eigen::Vector3d::UnitZ());
+  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+  
   auto leftFootConstraint = DirconPositionData<double>(plant, left_lower_leg,
-                            pt, isXZ);
+                            pt, isXZ, ground_rpy);
   auto rightFootConstraint = DirconPositionData<double>(plant,
                              right_lower_leg,
-                             pt, isXZ);
+                             pt, isXZ, ground_rpy);
 
   Vector3d normal;
   normal << 0, 0, 1;
+  normal = q.matrix() * normal;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
