@@ -405,8 +405,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   VectorXd w_sol = result.GetSolution(
                      gm_traj_opt.dircon->decision_variables());
   writeCSV(directory + prefix + string("w.csv"), w_sol);
-  if (result.is_success())
-    writeCSV(directory + prefix + string("w (success).csv"), w_sol);
+  // if (result.is_success())
+  //   writeCSV(directory + prefix + string("w (success).csv"), w_sol);
 
   if (is_get_nominal || !result.is_success()) {
     return result;

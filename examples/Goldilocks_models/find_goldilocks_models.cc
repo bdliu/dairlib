@@ -453,13 +453,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "Updated B_tau = \n" << B_tau << endl;
       // update theta_s
       prefix = to_string(iter) +  "_";
-      writeCSV(directory + prefix + string("theta_s (no extension).csv"),
+      writeCSV(directory + prefix + string("theta_s (before extension).csv"),
                theta_s);
       MatrixXd theta_s_old = theta_s;
       theta_s.resize(n_theta_s);
       theta_s << theta_s_old, theta_s_append;
       // update theta_sDDot
-      writeCSV(directory + prefix + string("theta_sDDot (no extension).csv"),
+      writeCSV(directory + prefix + string("theta_sDDot (before extension).csv"),
                theta_sDDot);
       MatrixXd theta_sDDot_old = theta_sDDot;
       theta_sDDot.resize(n_theta_sDDot);
@@ -470,12 +470,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
         for (int j = 0; j < old_n_s; j++)
           theta_sDDot(new_idx(i) + j * n_feature_sDDot) = theta_sDDot_old(
                 i + j * old_n_feature_sDDot);
+      // update theta
+      theta.resize(n_theta);
+      theta << theta_s, theta_sDDot;
 
       // Some setup
       cout << "Reset has_been_all_success to false, in case the next iter "
            "is infeasible.\n";
-      prev_theta.resize(n_theta_s);
-      step_direction.resize(n_theta_s);
+      prev_theta.resize(n_theta);
+      prev_theta = theta;
+      step_direction.resize(n_theta);
       min_so_far = 10000000;
 
       // So that we can re-run the current iter
