@@ -11,12 +11,13 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   std::unique_ptr<HybridDircon<double>> dircon_in,
   const MultibodyPlant<AutoDiffXd> * plant,
   const std::vector<int> & num_time_samples,
-  bool is_get_nominal):
+  bool is_get_nominal,
+  bool is_add_tau_in_cost):
   n_s_(n_s),
   n_sDDot_(n_sDDot),
   n_tau_(n_tau),
   n_feature_s_(n_feature_s),
-  n_feature_sDDot_(n_feature_sDDot){
+  n_feature_sDDot_(n_feature_sDDot) {
 
   // Get total sample ponits
   int N = 0;
@@ -34,20 +35,21 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
 
   // Add cost for the input tau
-  for (int i = 0; i < N; i++){
+  for (int i = 0; i < N; i++) {
     auto tau_i = reduced_model_input(i, n_tau);
-    dircon->AddQuadraticCost(MatrixXd::Identity(n_tau,n_tau),
-                             VectorXd::Zero(n_tau),
-                             tau_i);
+    tau_cost_bindings.push_back(dircon->AddQuadraticCost(
+                                  MatrixXd::Identity(n_tau, n_tau),
+                                  VectorXd::Zero(n_tau),
+                                  tau_i));
   }
 
   // Constraints
-  if(!is_get_nominal){
+  if (!is_get_nominal) {
     // Create dynamics constraint (pointer)
     dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
-                                   n_s, n_feature_s, theta_s,
-                                   n_sDDot, n_feature_sDDot, theta_sDDot,
-                                   n_tau, B_tau, plant, true);
+                                    n_s, n_feature_s, theta_s,
+                                    n_sDDot, n_feature_sDDot, theta_sDDot,
+                                    n_tau, B_tau, plant, true);
     // dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
     //                                n_s, n_feature_s, theta_s,
     //                                n_sDDot, n_feature_sDDot, theta_sDDot,
@@ -58,16 +60,17 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     for (unsigned int i = 0; i < num_time_samples.size() ; i++) {
       // cout << "i = " << i << endl;
       // cout << "N_accum = " << N_accum << endl;
-      for (int j = 0; j < num_time_samples[i]-1 ; j++) {
+      for (int j = 0; j < num_time_samples[i] - 1 ; j++) {
         // cout << "    j = " << j << endl;
-        auto x_at_knot_k = dircon->state_vars_by_mode(i,j);
-        auto tau_at_knot_k = reduced_model_input(N_accum+j, n_tau);
-        auto x_at_knot_kplus1 = dircon->state_vars_by_mode(i,j+1);
-        auto tau_at_knot_kplus1 = reduced_model_input(N_accum+j+1, n_tau);
-        auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum+j);
+        auto x_at_knot_k = dircon->state_vars_by_mode(i, j);
+        auto tau_at_knot_k = reduced_model_input(N_accum + j, n_tau);
+        auto x_at_knot_kplus1 = dircon->state_vars_by_mode(i, j + 1);
+        auto tau_at_knot_kplus1 = reduced_model_input(N_accum + j + 1, n_tau);
+        auto h_btwn_knot_k_iplus1 = dircon->timestep(N_accum + j);
         dynamics_constraint_at_head_bindings.push_back(dircon->AddConstraint(
-          dynamics_constraint_at_head, {x_at_knot_k, tau_at_knot_k,
-            x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1}));
+              dynamics_constraint_at_head, {x_at_knot_k, tau_at_knot_k,
+                                            x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1
+                                           }));
         // dynamics_constraint_at_tail_bindings.push_back(dircon->AddConstraint(
         //   dynamics_constraint_at_tail, {x_at_knot_k, tau_at_knot_k,
         //     x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1}));

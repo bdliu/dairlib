@@ -44,7 +44,8 @@ MathematicalProgramResult trajOptGivenWeights(
     double eps_reg,
     bool is_get_nominal,
     bool is_zero_touchdown_impact,
-    bool extend_model);
+    bool extend_model,
+    bool is_add_tau_in_cost);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib

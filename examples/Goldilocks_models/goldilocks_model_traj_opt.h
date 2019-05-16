@@ -43,6 +43,7 @@ using drake::systems::trajectory_optimization::MultipleShooting;
 using drake::trajectories::PiecewisePolynomial;
 using drake::solvers::Binding;
 using drake::solvers::Constraint;
+using drake::solvers::Cost;
 using drake::solvers::VectorXDecisionVariable;
 using drake::solvers::MatrixXDecisionVariable;
 using drake::symbolic::Variable;
@@ -79,7 +80,8 @@ class GoldilcocksModelTrajOpt {
       std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,
       const std::vector<int>& num_time_samples,
-      bool is_get_nominal);
+      bool is_get_nominal,
+      bool is_add_tau_in_cost);
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_input(
       int index, int n_tau) const;
@@ -93,6 +95,8 @@ class GoldilcocksModelTrajOpt {
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
   // std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
   // std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
+  
+  std::vector<Binding<Cost>> tau_cost_bindings;
 
  private:
   int num_knots_;

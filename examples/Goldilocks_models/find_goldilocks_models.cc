@@ -56,6 +56,7 @@ DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
 DEFINE_bool(previous_iter_is_success, true, "Is the previous iter successful?");
 DEFINE_bool(is_zero_touchdown_impact, false,
             "No impact force at fist touchdown");
+DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
@@ -391,7 +392,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               eps_regularization,
                               is_get_nominal,
                               FLAGS_is_zero_touchdown_impact,
-                              extend_model);
+                              extend_model,
+                              FLAGS_is_add_tau_in_cost);
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
         if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)

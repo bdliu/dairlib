@@ -92,7 +92,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     double eps_reg,
     bool is_get_nominal,
     bool is_zero_touchdown_impact,
-    bool extend_model) {
+    bool extend_model,
+    bool is_add_tau_in_cost) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -322,7 +323,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   GoldilcocksModelTrajOpt gm_traj_opt(
     n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
     B_tau, theta_s, theta_sDDot,
-    std::move(trajopt), &plant_autoDiff, num_time_samples, is_get_nominal);
+    std::move(trajopt), &plant_autoDiff, num_time_samples,
+    is_get_nominal, is_add_tau_in_cost);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
@@ -352,7 +354,18 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   cout << "Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
-  cout << "Cost:" << result.get_optimal_cost() << endl;
+  double tau_cost = 0;
+  if (is_add_tau_in_cost) {
+    for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
+      auto tau_i = binding.variables();
+      VectorXd tau_i_double = result.GetSolution(tau_i);
+      VectorXd y_val(1);
+      binding.evaluator()->Eval(tau_i_double, &y_val);
+      tau_cost += y_val(0);
+    }
+  }
+  cout << "Cost:" << result.get_optimal_cost() <<
+       " (tau cost = " << tau_cost << ")\n";
   VectorXd is_success(1);
   if (result.is_success()) is_success << 1;
   else is_success << 0;
