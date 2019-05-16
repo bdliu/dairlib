@@ -182,6 +182,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   theta_s(0) = 1;
   theta_s(1 + n_feature_s) = 1;
   theta_sDDot(0) = 1;
+  // // 2D LIPM with 2D swing foot
+  // ...
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
@@ -299,7 +301,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   int iter;
   for (iter = iter_start; iter <= max_outer_iter; iter++)  {
     cout << "*********** Iteration " << iter << " *************" << endl;
-    if (iter != 0) cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
+    if (iter != 0)
+      cout << "theta_sDDot = " << theta_sDDot.head(10).transpose() << endl;
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
@@ -574,8 +577,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
           quadprog.AddQuadraticCost(H_vec[sample], b_vec[sample], w2);
           const auto result2 = Solve(quadprog);
           auto solution_result2 = result2.get_solution_result();
-          cout << solution_result2 << endl;
-          cout << "Cost:" << result2.get_optimal_cost() << endl;
+          cout << solution_result2 << " | ";
+          cout << "Cost:" << result2.get_optimal_cost() << " | ";
           if (result2.is_success()) {
             VectorXd w_sol_check = result2.GetSolution(
                                      quadprog.decision_variables());

@@ -441,7 +441,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         // VectorXd tau_append_tail =
         //   gm_traj_opt.dynamics_constraint_at_tail->computeTauToExtendModel(
         //     x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
-        cout << "tau_append_head = " << tau_append_head.transpose() << endl;
+        // cout << "tau_append_head = " << tau_append_head.transpose() << endl;
         // cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
 
         // Update tau

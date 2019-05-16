@@ -168,25 +168,81 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   }*/
 
   // Version 10: ns = 2, 2D LIPM with all quadratic combination
-  DRAKE_DEMAND(n_sDDot_ == 2);
-  T feature(16);  // 1 + 1 + 4 + (4Choose2 + 4) = 1 + 1 + 4 + 10 = 16
-  feature << (9.80665/s(1))*s(0),
-          1,   // constant
-          s(0),
-          s(1),
-          ds(0),
-          ds(1),  // linear
-          s(0) * s(0),
-          s(0) * s(1),
-          s(0) * ds(0),
-          s(0) * ds(1),
-          s(1) * s(1),
-          s(1) * ds(0),
-          s(1) * ds(1),
-          ds(0) * ds(0),
-          ds(0) * ds(1),
-          ds(1) * ds(1);  // quadratic
-  return feature;
+  if (n_sDDot_ == 2) {
+    // DRAKE_DEMAND(n_sDDot_ == 2);
+    T feature(16);  // 1 + 1 + 4 + (4Choose2 + 4) = 1 + 1 + 4 + 10 = 16
+    feature << (9.80665/s(1))*s(0),
+            1,   // constant
+            s(0),
+            s(1),
+            ds(0),
+            ds(1),  // linear
+            s(0) * s(0),
+            s(0) * s(1),
+            s(0) * ds(0),
+            s(0) * ds(1),
+            s(1) * s(1),
+            s(1) * ds(0),
+            s(1) * ds(1),
+            ds(0) * ds(0),
+            ds(0) * ds(1),
+            ds(1) * ds(1);  // quadratic
+    return feature;
+  }
+
+  // Version 11: ns = 2, 2D LIPM with all quadratic combination
+  if (n_sDDot_ == 4) {
+    // DRAKE_DEMAND(n_sDDot_ == 4);
+    T feature(46);  // 1 + 1 + 8 + (8Choose2 + 8) = 1 + 1 + 8 + 36 = 46
+    feature << (9.80665/s(1))*s(0),
+            1,   // constant
+            s(0),
+            s(1),
+            s(2),
+            s(3),
+            ds(0),
+            ds(1),
+            ds(2),
+            ds(3),  // linear
+            s(0) * s(0),
+            s(0) * s(1),
+            s(0) * s(2),
+            s(0) * s(3),
+            s(0) * ds(0),
+            s(0) * ds(1),
+            s(0) * ds(2),
+            s(0) * ds(3),
+            s(1) * s(1),
+            s(1) * s(2),
+            s(1) * s(3),
+            s(1) * ds(0),
+            s(1) * ds(1),
+            s(1) * ds(2),
+            s(1) * ds(3),
+            s(2) * s(2),
+            s(2) * s(3),
+            s(2) * ds(0),
+            s(2) * ds(1),
+            s(2) * ds(2),
+            s(2) * ds(3),
+            s(3) * s(3),
+            s(3) * ds(0),
+            s(3) * ds(1),
+            s(3) * ds(2),
+            s(3) * ds(3),
+            ds(0) * ds(0),
+            ds(0) * ds(1),
+            ds(0) * ds(2),
+            ds(0) * ds(3),
+            ds(1) * ds(1),
+            ds(1) * ds(2),
+            ds(1) * ds(3),
+            ds(2) * ds(2),
+            ds(2) * ds(3),
+            ds(3) * ds(3);  // quadratic
+
+    return feature;
+  }
 
 
 }
