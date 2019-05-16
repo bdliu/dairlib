@@ -438,28 +438,19 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         VectorXd tau_append_head =
           gm_traj_opt.dynamics_constraint_at_head->computeTauToExtendModel(
             x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
-        VectorXd tau_append_tail =
-          gm_traj_opt.dynamics_constraint_at_tail->computeTauToExtendModel(
-            x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
+        // VectorXd tau_append_tail =
+        //   gm_traj_opt.dynamics_constraint_at_tail->computeTauToExtendModel(
+        //     x_i_sol, x_iplus1_sol, h_i_sol, theta_s_append);
         cout << "tau_append_head = " << tau_append_head.transpose() << endl;
-        cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
-        // tau_append_head and tau_append_tail are close but not the same.
+        // cout << "tau_append_tail = " << tau_append_tail.transpose() << endl;
 
         // Update tau
-        // Since tau_append_head and tau_append_tail are slightly different, we
-        // take the average of them at all knots except for the two ends.
-        double scale_head = 0.5;
-        double scale_tail = 0.5;
-        if (i == 0)
-          scale_head = 1;
-        else if (i == N - 2)
-          scale_tail = 1;
         tau_new.segment(i * (n_tau + n_extend), n_tau) = tau_i_sol;
         tau_new.segment(i * (n_tau + n_extend) + n_tau, n_extend) +=
-          scale_head * tau_append_head;
-        tau_new.segment((i + 1) * (n_tau + n_extend), n_tau) = tau_iplus1_sol;
-        tau_new.segment((i + 1) * (n_tau + n_extend) + n_tau, n_extend) +=
-          scale_tail * tau_append_tail;
+          tau_append_head;
+        // tau_new.segment((i + 1) * (n_tau + n_extend), n_tau) = tau_iplus1_sol;
+        // tau_new.segment((i + 1) * (n_tau + n_extend) + n_tau, n_extend) +=
+        //   tau_append_tail;
       }
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
@@ -522,9 +513,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                           *gm_traj_opt.dircon.get(),
                           gm_traj_opt.dynamics_constraint_at_head_bindings[0]);
     // cout << "ind_head = " << ind_head(0) << endl;
-    VectorXd ind_tail = solvers::GetConstraintRows(
-                          *gm_traj_opt.dircon.get(),
-                          gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
+    // VectorXd ind_tail = solvers::GetConstraintRows(
+    //                       *gm_traj_opt.dircon.get(),
+    //                       gm_traj_opt.dynamics_constraint_at_tail_bindings[0]);
     // cout << "ind_tail = " << ind_tail(0) << endl;
     int N_accum = 0;
     for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
@@ -546,15 +537,15 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         MatrixXd dyn_gradient_head =
           gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
             x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
-        MatrixXd dyn_gradient_tail =
-          gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-            x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
+        // MatrixXd dyn_gradient_tail =
+        //   gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+        //     x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
 
         // Fill in B matrix
-        B.block(ind_head(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+        B.block(ind_head(0) + i * n_sDDot, 0, n_sDDot, n_theta)
           = dyn_gradient_head;
-        B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
-          = dyn_gradient_tail;
+        // B.block(ind_tail(0) + i * 2 * n_sDDot, 0, n_sDDot, n_theta)
+        //   = dyn_gradient_tail;
         // cout << "row " << ind_head(0) + i * 2 * n_sDDot << endl;
         // cout << "row " << ind_tail(0) + i * 2 * n_sDDot << endl << endl;
       }
@@ -664,9 +655,9 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
           MatrixXd grad_head_byFD =
             gm_traj_opt.dynamics_constraint_at_head->getGradientWrtTheta(
               x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
-          MatrixXd grad_tail_byFD =
-            gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
-              x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
+          // MatrixXd grad_tail_byFD =
+          //   gm_traj_opt.dynamics_constraint_at_tail->getGradientWrtTheta(
+          //     x_i_sol, tau_i_sol, x_iplus1_sol, tau_iplus1_sol, h_i_sol);
 
           // From hand calculation (theta_s part)
           double phis_i = x_i_sol(1) * x_i_sol(1);
@@ -677,14 +668,14 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
             (-6 * (phis_i - phis_iplus1) -
              2 * h_i * (2 * dphis_i + dphis_iplus1)) / (h_i * h_i) -
             theta_sDDot(0) * (3 * pow(theta_s(0), 2) * pow(phis_i, 3));
-          double grad_tail_exact =
-            (6 * (phis_i - phis_iplus1) +
-             2 * h_i * (dphis_i + 2 * dphis_iplus1)) / (h_i * h_i) -
-            theta_sDDot(0) * (3 * pow(theta_s(0), 2) * pow(phis_iplus1, 3));
+          // double grad_tail_exact =
+          //   (6 * (phis_i - phis_iplus1) +
+          //    2 * h_i * (dphis_i + 2 * dphis_iplus1)) / (h_i * h_i) -
+          //   theta_sDDot(0) * (3 * pow(theta_s(0), 2) * pow(phis_iplus1, 3));
 
           // From hand calculation (theta_sddot part)
           double dyn_feature_i = pow(theta_s(0) * phis_i, 3);
-          double dyn_feature_iplus1 = pow(theta_s(0) * phis_iplus1, 3);
+          // double dyn_feature_iplus1 = pow(theta_s(0) * phis_iplus1, 3);
 
           // Compare the values
           cout << grad_head_byFD << " (by finite difference)" << endl;
@@ -692,11 +683,11 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                " (analytically (exact solution))" << endl;
           cout << "  differnce = " << grad_head_byFD(0, 0) - grad_head_exact <<
                ", " << grad_head_byFD(0, 1) + dyn_feature_i << endl;
-          cout << grad_tail_byFD << " (by finite difference)" << endl;
-          cout << grad_tail_exact << " " << -dyn_feature_iplus1 <<
-               " (analytically (exact solution))" << endl;
-          cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_exact <<
-               ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
+          // cout << grad_tail_byFD << " (by finite difference)" << endl;
+          // cout << grad_tail_exact << " " << -dyn_feature_iplus1 <<
+          //      " (analytically (exact solution))" << endl;
+          // cout << "  differnce = " << grad_tail_byFD(0, 0) - grad_tail_exact <<
+          //      ", " << grad_tail_byFD(0, 1) + dyn_feature_iplus1 << endl;
         }
         N_accum += num_time_samples[l];
         N_accum -= 1;  // due to overlaps between modes

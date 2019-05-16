@@ -91,8 +91,8 @@ class GoldilcocksModelTrajOpt {
 
   std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
-  std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
-  std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
+  // std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
+  // std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
 
  private:
   int num_knots_;

@@ -48,10 +48,10 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
                                    n_s, n_feature_s, theta_s,
                                    n_sDDot, n_feature_sDDot, theta_sDDot,
                                    n_tau, B_tau, plant, true);
-    dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
-                                   n_s, n_feature_s, theta_s,
-                                   n_sDDot, n_feature_sDDot, theta_sDDot,
-                                   n_tau, B_tau, plant, false);
+    // dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
+    //                                n_s, n_feature_s, theta_s,
+    //                                n_sDDot, n_feature_sDDot, theta_sDDot,
+    //                                n_tau, B_tau, plant, false);
 
     // Add dynamics constraint for all segments (between knots)
     int N_accum = 0;
@@ -68,9 +68,9 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
         dynamics_constraint_at_head_bindings.push_back(dircon->AddConstraint(
           dynamics_constraint_at_head, {x_at_knot_k, tau_at_knot_k,
             x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1}));
-        dynamics_constraint_at_tail_bindings.push_back(dircon->AddConstraint(
-          dynamics_constraint_at_tail, {x_at_knot_k, tau_at_knot_k,
-            x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1}));
+        // dynamics_constraint_at_tail_bindings.push_back(dircon->AddConstraint(
+        //   dynamics_constraint_at_tail, {x_at_knot_k, tau_at_knot_k,
+        //     x_at_knot_kplus1, tau_at_knot_kplus1, h_btwn_knot_k_iplus1}));
       }
       N_accum += num_time_samples[i];
       N_accum -= 1;  // due to overlaps between modes

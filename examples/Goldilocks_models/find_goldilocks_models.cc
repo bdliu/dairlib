@@ -146,10 +146,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
        "DynamicsExpression agrees with n_s and n_tau.\n";
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  B_tau = MatrixXd::Identity(2, 2);
+  // B_tau = MatrixXd::Identity(2, 2);
   // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
@@ -348,8 +348,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
         else if (is_get_nominal && !previous_iter_is_success)
           init_file_pass_in = string("0_0_w.csv");
         else if (!has_been_all_success && previous_iter_is_success) {
-          // init_file_pass_in = string("0_0_w.csv");
-          init_file_pass_in = string("");  // No initial guess for the first iter
+          init_file_pass_in = string("0_0_w.csv");  // Use nominal traj
+          // init_file_pass_in = string("");  // No initial guess for the first iter
           // init_file_pass_in = string("w0.csv");  // w0 as initial guess for the first iter
         }
         else if (!has_been_all_success && !previous_iter_is_success)
