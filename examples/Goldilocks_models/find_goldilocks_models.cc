@@ -159,6 +159,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
+  cout << "Warning: Need to make sure that you use the right initial theta.\n";
   int n_s = 4; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_tau = 2;
@@ -196,11 +197,15 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // // 2D LIPM
+  // theta_s(0) = 1;
+  // theta_s(1 + n_feature_s) = 1;
+  // theta_sDDot(0) = 1;
+  // // 2D LIPM with 2D swing foot
   theta_s(0) = 1;
   theta_s(1 + n_feature_s) = 1;
+  theta_s(2 + 2 *n_feature_s) = 1;
+  theta_s(3 + 3 * n_feature_s) = 1;
   theta_sDDot(0) = 1;
-  // // 2D LIPM with 2D swing foot
-  // ...
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);

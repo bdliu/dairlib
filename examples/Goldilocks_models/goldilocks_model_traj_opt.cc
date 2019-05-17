@@ -35,12 +35,14 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
 
   // Add cost for the input tau
-  for (int i = 0; i < N; i++) {
-    auto tau_i = reduced_model_input(i, n_tau);
-    tau_cost_bindings.push_back(dircon->AddQuadraticCost(
-                                  MatrixXd::Identity(n_tau, n_tau),
-                                  VectorXd::Zero(n_tau),
-                                  tau_i));
+  if (is_add_tau_in_cost) {
+    for (int i = 0; i < N; i++) {
+      auto tau_i = reduced_model_input(i, n_tau);
+      tau_cost_bindings.push_back(dircon->AddQuadraticCost(
+                                    MatrixXd::Identity(n_tau, n_tau),
+                                    VectorXd::Zero(n_tau),
+                                    tau_i));
+    }
   }
 
   // Constraints

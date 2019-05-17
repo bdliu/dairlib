@@ -124,12 +124,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   Vector3d pt;
   pt << 0, 0, -.5;
   bool isXZ = true;
-
   Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
-  Eigen::AngleAxisd rollAngle(ground_rp(0), Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(ground_rp(1), Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
-  Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
 
   auto leftFootConstraint = DirconPositionData<double>(plant, left_lower_leg,
                             pt, isXZ, ground_rp);
@@ -139,8 +134,6 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
   Vector3d normal;
   normal << 0, 0, 1;
-  // normal = q.matrix() * normal;
-  // cout << "normal = " << normal.transpose() << endl;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
@@ -396,6 +389,37 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
+
+
+  // Testing
+  /*bool is_check_tau = true;
+  if (is_check_tau) {
+    int N_accum = 0;
+    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+        int i = N_accum + m;
+        cout << "i = " << i << endl;
+        // Get tau_append
+        auto x_i = gm_traj_opt.dircon->state_vars_by_mode(l, m);
+        auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
+        auto x_iplus1 = gm_traj_opt.dircon->state_vars_by_mode(l, m + 1);
+        auto tau_iplus1 = gm_traj_opt.reduced_model_input(i + 1, n_tau);
+        auto h_btwn_knot_i_iplus1 = gm_traj_opt.dircon->timestep(i);
+        VectorXd x_i_sol = result.GetSolution(x_i);
+        VectorXd tau_i_sol = result.GetSolution(tau_i);
+        VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
+        VectorXd tau_iplus1_sol = result.GetSolution(tau_iplus1);
+        VectorXd h_i_sol = result.GetSolution(h_btwn_knot_i_iplus1);
+
+        VectorXd tau_append_head =
+          gm_traj_opt.dynamics_constraint_at_head->computeTauToExtendModel(
+            x_i_sol, x_iplus1_sol, h_i_sol, theta_s);
+        cout << "tau_head = " << tau_append_head.transpose() << endl;
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
+    }
+  }*/
 
   // Testing: print out the timesteps
   // for(int i = 0; i<N-1 ; i++){
