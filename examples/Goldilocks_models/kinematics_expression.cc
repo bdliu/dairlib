@@ -548,6 +548,85 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           // 10
           cos(q(6)) * cos(q(6));
 
+  //////////// Version 11: Previous version without x and z ////////////////////
+  /*VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+  feature << feature_base,
+          1,
+          sin(q(2)),
+          cos(q(2)),
+          sin(q(3)),
+          cos(q(3)),
+          sin(q(4)),
+          cos(q(4)),
+          sin(q(5)),
+          cos(q(5)),
+          sin(q(6)),
+          cos(q(6)),  // linear until here, below are quadratic
+          // 1
+          sin(q(2)) * sin(q(2)),
+          cos(q(2)) * sin(q(2)),
+          sin(q(3)) * sin(q(2)),
+          cos(q(3)) * sin(q(2)),
+          sin(q(4)) * sin(q(2)),
+          cos(q(4)) * sin(q(2)),
+          sin(q(5)) * sin(q(2)),
+          cos(q(5)) * sin(q(2)),
+          sin(q(6)) * sin(q(2)),
+          cos(q(6)) * sin(q(2)),
+          // 2
+          cos(q(2)) * cos(q(2)),
+          sin(q(3)) * cos(q(2)),
+          cos(q(3)) * cos(q(2)),
+          sin(q(4)) * cos(q(2)),
+          cos(q(4)) * cos(q(2)),
+          sin(q(5)) * cos(q(2)),
+          cos(q(5)) * cos(q(2)),
+          sin(q(6)) * cos(q(2)),
+          cos(q(6)) * cos(q(2)),
+          // 3
+          sin(q(3)) * sin(q(3)),
+          cos(q(3)) * sin(q(3)),
+          sin(q(4)) * sin(q(3)),
+          cos(q(4)) * sin(q(3)),
+          sin(q(5)) * sin(q(3)),
+          cos(q(5)) * sin(q(3)),
+          sin(q(6)) * sin(q(3)),
+          cos(q(6)) * sin(q(3)),
+          // 4
+          cos(q(3)) * cos(q(3)),
+          sin(q(4)) * cos(q(3)),
+          cos(q(4)) * cos(q(3)),
+          sin(q(5)) * cos(q(3)),
+          cos(q(5)) * cos(q(3)),
+          sin(q(6)) * cos(q(3)),
+          cos(q(6)) * cos(q(3)),
+          // 5
+          sin(q(4)) * sin(q(4)),
+          cos(q(4)) * sin(q(4)),
+          sin(q(5)) * sin(q(4)),
+          cos(q(5)) * sin(q(4)),
+          sin(q(6)) * sin(q(4)),
+          cos(q(6)) * sin(q(4)),
+          // 6
+          cos(q(4)) * cos(q(4)),
+          sin(q(5)) * cos(q(4)),
+          cos(q(5)) * cos(q(4)),
+          sin(q(6)) * cos(q(4)),
+          cos(q(6)) * cos(q(4)),
+          // 7
+          sin(q(5)) * sin(q(5)),
+          cos(q(5)) * sin(q(5)),
+          sin(q(6)) * sin(q(5)),
+          cos(q(6)) * sin(q(5)),
+          // 8
+          cos(q(5)) * cos(q(5)),
+          sin(q(6)) * cos(q(5)),
+          cos(q(6)) * cos(q(5)),
+          // 9
+          sin(q(6)) * sin(q(6)),
+          cos(q(6)) * sin(q(6)),
+          // 10
+          cos(q(6)) * cos(q(6));*/
 
   return feature;
 }

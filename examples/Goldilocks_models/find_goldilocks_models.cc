@@ -160,17 +160,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
   cout << "Warning: Need to make sure that you use the right initial theta.\n";
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
   // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
-  B_tau(2, 0) = 1;
-  B_tau(3, 1) = 1;
+  // B_tau(2, 0) = 1;
+  // B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
 
   // Reduced order model setup
@@ -203,8 +203,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // // 2D LIPM with 2D swing foot
   theta_s(0) = 1;
   theta_s(1 + n_feature_s) = 1;
-  theta_s(2 + 2 *n_feature_s) = 1;
-  theta_s(3 + 3 * n_feature_s) = 1;
+  // theta_s(2 + 2 *n_feature_s) = 1;
+  // theta_s(3 + 3 * n_feature_s) = 1;
   theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);

@@ -17,7 +17,7 @@ if len(sys.argv) == 3:
     is_iter_end = 1
 
 
-batch_max = 5
+batch_max = 9
 min_dist = 0.24
 delta_dist = 0.03
 
