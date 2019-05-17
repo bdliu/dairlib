@@ -639,8 +639,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         cout << "Extracting active and independent rows of A\n";
         vector<double> nw_vec;  // size of decision var of traj opt for all tasks
         vector<double> nl_vec;  // # of rows of active constraints for all tasks
-        int nw = 0;  // sum of size of decision variables for all task
-        int nl = 0;  // sum of # of rows of active constraints for all tasks
         for (int sample = 0; sample < n_succ_sample; sample++) {
           DRAKE_ASSERT(b_vec[sample].cols() == 1);
           DRAKE_ASSERT(lb_vec[sample].cols() == 1);
@@ -651,7 +649,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
           int nt_i = B_vec[sample].cols();
           int nw_i = A_vec[sample].cols();
           nw_vec.push_back(nw_i);
-          nw += nw_i;
 
           int nl_i = 0;
           double tol = 1e-4;
@@ -735,7 +732,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
           nl_i = full_row_rank_idx.size();
           nl_vec.push_back(nl_i);
-          nl += nl_i;
 
           // Assign the rows
           MatrixXd A_full_row_rank(nl_i, nw_i);
@@ -757,8 +753,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         cout << endl;
 
 
-        // cout << "nw = " << nw << endl;
-        // cout << "nl = " << nl << endl;
 
         // Reference for solving a sparse linear system
         // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html

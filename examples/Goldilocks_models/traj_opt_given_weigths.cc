@@ -350,7 +350,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
-  cout << "Solving DIRCON (based on MultipleShooting)\n";
+  // cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
