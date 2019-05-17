@@ -107,6 +107,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Random number generator
   std::random_device randgen;
   std::default_random_engine e1(randgen());
+  std::random_device randgen2;
+  std::default_random_engine e2(randgen2());
 
   // Files parameters
   const string directory = "examples/Goldilocks_models/data/";
@@ -114,12 +116,22 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // init_file = "w0_with_z.csv";
   string prefix = "";
 
-  // Parametres for tasks
-  int N_sample = 5;//1;
-  double delta_stride_length = 0.03;
+  // Parametres for tasks (stride length and ground incline)
+  cout << "\nTasks settings:\n";
+  int N_sample_sl = 3;
+  int N_sample_gi = 3;
+  int N_sample = N_sample_sl * N_sample_gi; //1;
+  double delta_stride_length = 0.05;
   double stride_length_0 = 0.3;
-  double ground_incline = 0;
+  double delta_ground_incline = 0.2;
+  double ground_incline_0 = 0;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
+  cout << "N_sample_sl = " << N_sample_sl << endl;
+  cout << "N_sample_gi = " << N_sample_gi << endl;
+  cout << "delta_stride_length = " << delta_stride_length << endl;
+  cout << "stride_length_0 = " << stride_length_0 << endl;
+  cout << "delta_ground_incline = " << delta_ground_incline << endl;
+  cout << "ground_incline_0 = " << ground_incline_0 << endl;
 
   // Paramters for the outer loop optimization
   cout << "\nOptimization setting:\n";
@@ -241,11 +253,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
   else {
     min_so_far = 10000000;
   }
-  std::uniform_real_distribution<> dist(
+  // Tasks setup
+  std::uniform_real_distribution<> dist_sl(
     -delta_stride_length / 2, delta_stride_length / 2);
   vector<double> delta_stride_length_vec;
-  for (int i = 0 - N_sample / 2; i < N_sample - N_sample / 2; i++)
+  for (int i = 0 - N_sample_sl / 2; i < N_sample_sl - N_sample_sl / 2; i++)
     delta_stride_length_vec.push_back(i * delta_stride_length);
+  std::uniform_real_distribution<> dist_gi(
+    -delta_ground_incline / 2, delta_ground_incline / 2);
+  vector<double> delta_ground_incline_vec;
+  for (int i = 0 - N_sample_gi / 2; i < N_sample_gi - N_sample_gi / 2; i++)
+    delta_ground_incline_vec.push_back(i * delta_ground_incline);
+  // Some setup
   int n_theta = n_theta_s + n_theta_sDDot;
   VectorXd theta(n_theta);
   theta << theta_s, theta_sDDot;
@@ -345,9 +364,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
       for (int sample = 0; sample < n_sample; sample++) {
         /// setup for each sample
         double stride_length = is_get_nominal ? stride_length_0 :
-                               stride_length_0 + delta_stride_length_vec[sample];
-        if (!is_get_nominal && is_stochastic) stride_length += dist(e1);
-        cout << "stride_length = " << stride_length << endl;
+                               stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
+        double ground_incline = is_get_nominal ? ground_incline_0 :
+                                ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
+        if (!is_get_nominal && is_stochastic) {
+          stride_length += dist_sl(e1);
+          ground_incline += dist_gi(e2);
+        }
 
         prefix = to_string(iter) +  "_" + to_string(sample) + "_";
         string init_file_pass_in;
@@ -366,7 +389,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         else
           init_file_pass_in = to_string(iter - 1) +  "_" +
                               to_string(sample) + string("_w.csv");
-        cout << "init_file = " << init_file_pass_in << endl;
 
         //Testing
         if (FLAGS_is_debug) {
@@ -379,13 +401,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
           init_file_pass_in = string("1_0_w.csv");
         }
 
+        cout << "stride_length = " << stride_length << " | ";
+        cout << "ground_incline = " << ground_incline << " | ";
+        cout << "init_file = " << init_file_pass_in << endl;
+
         // Trajectory optimization with fixed model paramters
         MathematicalProgramResult result =
           trajOptGivenWeights(plant, plant_autoDiff,
                               n_s, n_sDDot, n_tau,
                               n_feature_s, n_feature_sDDot,
                               B_tau, theta_s, theta_sDDot,
-                              ground_incline, stride_length,
+                              stride_length, ground_incline,
                               duration, max_inner_iter_pass_in,
                               directory, init_file_pass_in, prefix,
                               &w_sol_vec, &A_vec, &H_vec,

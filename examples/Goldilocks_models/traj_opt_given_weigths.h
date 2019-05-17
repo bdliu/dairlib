@@ -31,7 +31,7 @@ MathematicalProgramResult trajOptGivenWeights(
     int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
     MatrixXd B_tau,
     const VectorXd & theta_s, const VectorXd & theta_sDDot,
-    double gournd_incline, double stride_length, double duration, int max_iter,
+    double stride_length, double ground_incline, double duration, int max_iter,
     std::string directory, std::string init_file, std::string prefix,
     vector<VectorXd> * w_sol_vec,
     vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,

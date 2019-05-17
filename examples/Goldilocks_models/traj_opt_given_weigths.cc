@@ -78,7 +78,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     int n_feature_sDDot,
     MatrixXd B_tau,
     const VectorXd & theta_s, const VectorXd & theta_sDDot,
-    double gournd_incline, double stride_length, double duration, int max_iter,
+    double stride_length, double ground_incline, double duration, int max_iter,
     string directory,
     string init_file, string prefix,
     vector<VectorXd> * w_sol_vec,
@@ -125,7 +125,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   pt << 0, 0, -.5;
   bool isXZ = true;
 
-  Eigen::Vector2d ground_rp(0, gournd_incline);  // gournd incline in roll pitch
+  Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
   Eigen::AngleAxisd rollAngle(ground_rp(0), Vector3d::UnitX());
   Eigen::AngleAxisd pitchAngle(ground_rp(1), Vector3d::UnitY());
   Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
@@ -140,7 +140,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   Vector3d normal;
   normal << 0, 0, 1;
   normal = q.matrix() * normal;
-  cout << "normal = " << normal.transpose() << endl;
+  // cout << "normal = " << normal.transpose() << endl;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
   rightFootConstraint.addFixedNormalFrictionConstraints(normal, mu);
