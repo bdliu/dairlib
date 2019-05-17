@@ -80,9 +80,6 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
     Matrix2d A_fric;
     A_fric << (mu*normal_xz + d_xz).transpose(),
               (mu*normal_xz - d_xz).transpose();
-    std::cout << "(mu*normal_xz + d_xz) = " << (mu*normal_xz + d_xz).transpose() << std::endl;
-    std::cout << "(mu*normal_xz - d_xz) = " << (mu*normal_xz - d_xz).transpose() << std::endl;
-    std::cout << "A_fric = \n" << A_fric << std::endl;
 
     Vector2d lb_fric = Vector2d::Zero();
     Vector2d ub_fric = Vector2d::Constant(
