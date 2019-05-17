@@ -361,7 +361,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  cout << "Solve time:" << elapsed.count() << " | ";
+  cout << "  Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
   double tau_cost = 0;

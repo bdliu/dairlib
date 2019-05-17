@@ -17,9 +17,14 @@ if len(sys.argv) == 3:
     is_iter_end = 1
 
 
-batch_max = 9
-min_dist = 0.24
-delta_dist = 0.03
+n_sampel_sl = 3  # should be > 0
+n_sampel_gi = 3  # should be > 0
+batch_max = n_sampel_sl * n_sampel_gi
+min_dist = 0.25
+delta_dist = 0.05
+min_incline = -0.2
+delta_incline = 0.2
+
 
 directory = 'data/'
 
@@ -47,7 +52,10 @@ while 1:
 
         length = len(cost)
         t = range(iter_start,length+iter_start)
-        ax1.plot(t,cost, label='stride length = '+str(min_dist+batch*delta_dist)+' (m)')
+        if n_sampel_gi > 1:
+            ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m), ground incline = '+str(min_incline+(batch/n_sampel_gi)*delta_incline)+' (rad)')
+        else:
+            ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m)')
 
         # plot total cost
         if batch == batch_max-1:

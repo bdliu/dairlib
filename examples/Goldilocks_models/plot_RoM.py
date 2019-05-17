@@ -5,31 +5,35 @@ import os
 import time
 import sys
 
+# This script plots 's', 'ds', 'dds', or 'tau'.
 
 iteration_start = 1
-iteration_end = 17
+iteration_end = 35
 if len(sys.argv) == 2:
     iteration_start = int(sys.argv[1])
 elif len(sys.argv) == 3:
     iteration_start = int(sys.argv[1])
     iteration_end = int(sys.argv[2])
 
-
+name_idx = 3
 batch = 0
 directory = 'data/'
+
+name_list = ['s', 'ds', 'dds', 'tau']
+name = name_list[name_idx]
 
 # Get the max and min
 max_list = []
 min_list = []
 for iteration in range(iteration_start,iteration_end+1):
-    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv'):
-        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv', delimiter=",")
+    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv'):
+        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv', delimiter=",")
         n_rows = (matrix.shape)[0]
 
         for index in range(1,n_rows):
-            dds_i_th_element = matrix[index,:]
-            max_list.append(np.amax(dds_i_th_element))
-            min_list.append(np.amin(dds_i_th_element))
+            i_th_element = matrix[index,:]
+            max_list.append(np.amax(i_th_element))
+            min_list.append(np.amin(i_th_element))
 max_val = max(max_list)
 min_val = min(min_list)
 
@@ -38,14 +42,14 @@ fig = plt.figure(1)
 
 for iteration in range(iteration_start,iteration_end+1):
     ax = fig.gca()
-    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv'):
-        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_dds.csv', delimiter=",")
+    if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv'):
+        matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv', delimiter=",")
         n_rows = (matrix.shape)[0]
 
         for index in range(1,n_rows):
             t = matrix[0,:]
-            dds_i_th_element = matrix[index,:]
-            ax.plot(t,dds_i_th_element, label='dds_'+str(index))
+            i_th_element = matrix[index,:]
+            ax.plot(t,i_th_element, label=name+'_'+str(index))
             ax.tick_params(axis='x', labelsize=15)
             ax.tick_params(axis='y', labelsize=15)
 
@@ -55,7 +59,7 @@ for iteration in range(iteration_start,iteration_end+1):
         cost.append(matrix)
 
     plt.xlabel('t (seconds)', fontsize=15)
-    plt.ylabel('dds', fontsize=15)
+    plt.ylabel(name, fontsize=15)
     # plt.title('Generalized position trajectories.')
     plt.title('Iteration #'+str(iteration)+': cost = '+str(cost[0]))
     leg = plt.legend()
