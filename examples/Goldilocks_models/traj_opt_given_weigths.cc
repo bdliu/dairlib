@@ -125,7 +125,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   pt << 0, 0, -.5;
   bool isXZ = true;
 
-  Vector3d ground_rpy(0, 0, 0);  // gournd incline in roll pitch yaw
+  Vector3d ground_rpy(0, 0.1, 0);  // gournd incline in roll pitch yaw
   Eigen::AngleAxisd rollAngle(ground_rpy(0), Eigen::Vector3d::UnitX());
   Eigen::AngleAxisd pitchAngle(ground_rpy(1), Eigen::Vector3d::UnitY());
   Eigen::AngleAxisd yawAngle(ground_rpy(2), Eigen::Vector3d::UnitZ());
@@ -215,8 +215,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
 
   //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
-  trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
-                                 positions_map.at("planar_z")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
+  //                                positions_map.at("planar_z")));
   trajopt->AddLinearConstraint(x0(positions_map.at("planar_roty")) == xf(
                                  positions_map.at("planar_roty")));
   trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) == xf(
@@ -352,8 +352,8 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     VectorXd w0 = readCSV(directory + init_file).col(0);
     int n_dec = gm_traj_opt.dircon->decision_variables().rows();
     if (n_dec > w0.rows()) {
-      cout << "dim(initial guess) is smaller than dim(decision var). "
-           "Fill the rest with zero's\n";
+      cout << "dim(initial guess) < dim(decision var). "
+           "Fill the rest with zero's.\n";
       VectorXd old_w0 = w0;
       w0.resize(n_dec);
       w0 = VectorXd::Zero(n_dec);
