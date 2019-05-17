@@ -139,7 +139,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
   Vector3d normal;
   normal << 0, 0, 1;
-  normal = q.matrix() * normal;
+  // normal = q.matrix() * normal;
   // cout << "normal = " << normal.transpose() << endl;
   double mu = 1;
   leftFootConstraint.addFixedNormalFrictionConstraints(normal, mu);

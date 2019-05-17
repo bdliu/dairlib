@@ -57,8 +57,8 @@ void DirconPositionData<T>::updateConstraint(const Context<T>& context) {
           context, body_.body_frame(), pt_cast).tail(3);
   if (isXZ_) {
     this->c_ = TXZ_and_ground_incline_ * pt_transform;
-    this->J_ = TXZ_ * J3d;
-    this->Jdotv_ = TXZ_ * J3d_times_v;
+    this->J_ = TXZ_and_ground_incline_ * J3d;
+    this->Jdotv_ = TXZ_and_ground_incline_ * J3d_times_v;
   } else {
     this->c_ = inv_rot_mat_ground_ * pt_transform;
     this->J_ = J3d;
