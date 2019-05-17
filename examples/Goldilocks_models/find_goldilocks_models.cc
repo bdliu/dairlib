@@ -118,6 +118,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   int N_sample = 5;//1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
+  double ground_incline = 0;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
 
   // Paramters for the outer loop optimization
@@ -384,7 +385,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               n_s, n_sDDot, n_tau,
                               n_feature_s, n_feature_sDDot,
                               B_tau, theta_s, theta_sDDot,
-                              stride_length, duration, max_inner_iter_pass_in,
+                              ground_incline, stride_length,
+                              duration, max_inner_iter_pass_in,
                               directory, init_file_pass_in, prefix,
                               &w_sol_vec, &A_vec, &H_vec,
                               &y_vec, &lb_vec, &ub_vec, &b_vec, &c_vec, &B_vec,

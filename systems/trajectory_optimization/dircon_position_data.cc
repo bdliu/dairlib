@@ -18,7 +18,7 @@ using drake::MatrixX;
 
 template <typename T>
 DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
-    const Body<T>& body, Vector3d pt, bool isXZ, Vector3d ground_rpy) :
+    const Body<T>& body, Vector3d pt, bool isXZ, Vector2d ground_rp) :
     DirconKinematicData<T>(plant, isXZ ? 2 : 3),
     body_(body),
     pt_(pt),
@@ -26,9 +26,9 @@ DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
   TXZ_ << 1, 0, 0,
           0, 0, 1;
 
-  Eigen::AngleAxisd rollAngle(ground_rpy(0), Eigen::Vector3d::UnitX());
-  Eigen::AngleAxisd pitchAngle(ground_rpy(1), Eigen::Vector3d::UnitY());
-  Eigen::AngleAxisd yawAngle(ground_rpy(2), Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxisd rollAngle(ground_rp(0), Vector3d::UnitX());
+  Eigen::AngleAxisd pitchAngle(ground_rp(1), Vector3d::UnitY());
+  Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
   Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
   inv_rot_mat_ground_ = q.matrix().transpose();
 
