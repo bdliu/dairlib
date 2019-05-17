@@ -49,6 +49,7 @@ DEFINE_bool(is_debug, false, "Debugging or not");
 DEFINE_bool(start_with_adjusting_stepsize, false, "");
 DEFINE_bool(extend_model, false, "Extend the model in iteration # iter_start "
             "which is not equal to 0.");
+DEFINE_int32(extend_model_iter, -1, "The starting iteration #");
 DEFINE_bool(is_manual_initial_theta, false,
             "Assign initial theta of our choice");
 DEFINE_bool(proceed_with_failure, false, "In the beginning, update theta even"
@@ -303,8 +304,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   cout << endl;
   bool extend_model = FLAGS_extend_model;
+  int extend_model_iter = (FLAGS_extend_model_iter == -1) ?
+                          iter_start : FLAGS_extend_model_iter;
   if (extend_model) {
-    int temp = (iter_start == 0) ? 1 : iter_start;
+    int temp = (extend_model_iter == 0) ? 1 : extend_model_iter;
     cout << "\nWill extend the model at iteration # " << temp << " by ";
     VectorXd theta_s_append = readCSV(directory +
                                       string("theta_s_append.csv")).col(0);
@@ -337,6 +340,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
     bool is_get_nominal = iter == 0 ? true : false;
     int n_sample = is_get_nominal ? 1 : N_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
+    bool extend_model_this_iter = (extend_model && (iter == extend_model_iter)) ?
+                                  true : false;
 
     // store initial parameter values
     prefix = to_string(iter) +  "_";
@@ -425,7 +430,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               eps_regularization,
                               is_get_nominal,
                               FLAGS_is_zero_touchdown_impact,
-                              extend_model,
+                              extend_model_this_iter,
                               FLAGS_is_add_tau_in_cost);
         samples_are_success = (samples_are_success & result.is_success());
         a_sample_is_success = (a_sample_is_success | result.is_success());
@@ -450,7 +455,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     if (is_get_nominal) {
       if (!current_iter_is_success)
         iter -= 1;
-    } else if (extend_model) {  // Extend the model
+    } else if (extend_model_this_iter) {  // Extend the model
       VectorXd theta_s_append = readCSV(directory +
                                         string("theta_s_append.csv")).col(0);
       int n_extend = theta_s_append.rows() / n_feature_s;
