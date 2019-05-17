@@ -71,29 +71,24 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
-    MultibodyPlant<AutoDiffXd> & plant_autoDiff,
-    int n_s, int n_sDDot, int n_tau,
-    int n_feature_s,
-    int n_feature_sDDot,
-    MatrixXd B_tau,
-    const VectorXd & theta_s, const VectorXd & theta_sDDot,
-    double stride_length, double ground_incline, double duration, int max_iter,
-    string directory,
-    string init_file, string prefix,
-    vector<VectorXd> * w_sol_vec,
-    vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,
-    vector<VectorXd> * y_vec,
-    vector<VectorXd> * lb_vec, vector<VectorXd> * ub_vec,
-    vector<VectorXd> * b_vec,
-    vector<VectorXd> * c_vec,
-    vector<MatrixXd> * B_vec,
-    const double & Q_double, const double & R_double,
-    double eps_reg,
-    bool is_get_nominal,
-    bool is_zero_touchdown_impact,
-    bool extend_model,
-    bool is_add_tau_in_cost) {
+void trajOptGivenWeights(const MultibodyPlant<double> & plant,
+                         const MultibodyPlant<AutoDiffXd> & plant_autoDiff,
+                         int n_s, int n_sDDot, int n_tau,
+                         int n_feature_s,
+                         int n_feature_sDDot,
+                         MatrixXd B_tau,
+                         const VectorXd & theta_s, const VectorXd & theta_sDDot,
+                         double stride_length, double ground_incline,
+                         double duration, int max_iter,
+                         string directory,
+                         string init_file, string prefix,
+                         double Q_double, double R_double,
+                         double eps_reg,
+                         bool is_get_nominal,
+                         bool is_zero_touchdown_impact,
+                         bool extend_model,
+                         bool is_add_tau_in_cost,
+                         int batch) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -355,15 +350,13 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
-  // cout << "Solving DIRCON (based on MultipleShooting)\n";
+  cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  cout << "  Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
-  cout << solution_result <<  " | ";
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
     for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
@@ -374,7 +367,13 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
       tau_cost += y_val(0);
     }
   }
-  cout << "Cost:" << result.get_optimal_cost() <<
+  cout << "batch# = " << batch << endl
+       << "    stride_length = " << stride_length << " | "
+       << "ground_incline = " << ground_incline << " | "
+       << "init_file = " << init_file << endl
+       << "    Solve time:" << elapsed.count() << " | "
+       << solution_result <<  " | "
+       << "Cost:" << result.get_optimal_cost() <<
        " (tau cost = " << tau_cost << ")\n";
   VectorXd is_success(1);
   if (result.is_success()) is_success << 1;
@@ -463,7 +462,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
   //   writeCSV(directory + prefix + string("w (success).csv"), w_sol);
 
   if (is_get_nominal || !result.is_success()) {
-    return result;
+    return;
   } else if (extend_model) {  // Extending the model
     VectorXd theta_s_append = readCSV(directory +
                                       string("theta_s_append.csv")).col(0);
@@ -608,7 +607,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     }
 
     // Push the solution to the vector
-    w_sol_vec->push_back(w_sol);
+    /*w_sol_vec->push_back(w_sol);
     H_vec->push_back(H);
     b_vec->push_back(b);
     c_vec->push_back(c);
@@ -616,20 +615,18 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
     lb_vec->push_back(lb);
     ub_vec->push_back(ub);
     y_vec->push_back(y);
-    B_vec->push_back(B);
+    B_vec->push_back(B);*/
 
     // Store the vectors and matrices
     // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
-
-    /*writeCSV(directory + prefix + string("H.csv"), H);
+    writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
-    writeCSV(directory + prefix + string("y.csv"), y);*/
-    // writeCSV(directory + prefix + string("B.csv"), B);
-
+    writeCSV(directory + prefix + string("y.csv"), y);
+    writeCSV(directory + prefix + string("B.csv"), B);
 
     // Store s, ds, dds and tau into csv files
     // cout << "\nStoring s, ds and dds into csv.\n";
@@ -1133,8 +1130,7 @@ MathematicalProgramResult trajOptGivenWeights(MultibodyPlant<double> & plant,
 
 
 
-
-  return result;
+  return;
 }
 
 }  // namespace goldilocks_models

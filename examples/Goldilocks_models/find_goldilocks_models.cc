@@ -1,4 +1,6 @@
 #include <gflags/gflags.h>
+#include <stdio.h>  // For removing files
+#include <thread>  // multi-threading
 
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -58,6 +60,7 @@ DEFINE_bool(previous_iter_is_success, true, "Is the previous iter successful?");
 DEFINE_bool(is_zero_touchdown_impact, false,
             "No impact force at fist touchdown");
 DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
+DEFINE_bool(is_multithread, false, "Use multi-thread or not");
 
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
@@ -119,10 +122,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Parametres for tasks (stride length and ground incline)
   cout << "\nTasks settings:\n";
-  int N_sample_sl = 3;
-  int N_sample_gi = 3;
+  int N_sample_sl = 5;
+  int N_sample_gi = 1;
   int N_sample = N_sample_sl * N_sample_gi; //1;
-  double delta_stride_length = 0.05;
+  double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
   double delta_ground_incline = 0.2;
   double ground_incline_0 = 0;
@@ -161,17 +164,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
   cout << "Warning: Need to make sure that you use the right initial theta.\n";
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 1;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
-  // B_tau(1, 0) = 1;
+  B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
-  B_tau(2, 0) = 1;
-  B_tau(3, 1) = 1;
+  // B_tau(2, 0) = 1;
+  // B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
 
   // Reduced order model setup
@@ -371,6 +374,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
       samples_are_success = false;
       start_with_adjusting_stepsize = false;
     } else {
+      // Create vector of threads for multithreading
+      std::vector<std::thread> threads;
+      bool is_multithread = FLAGS_is_multithread;
+
       for (int sample = 0; sample < n_sample; sample++) {
         /// setup for each sample
         double stride_length = is_get_nominal ? stride_length_0 :
@@ -411,12 +418,26 @@ int findGoldilocksModels(int argc, char* argv[]) {
           init_file_pass_in = string("1_0_w.csv");
         }
 
-        cout << "stride_length = " << stride_length << " | ";
-        cout << "ground_incline = " << ground_incline << " | ";
-        cout << "init_file = " << init_file_pass_in << endl;
-
         // Trajectory optimization with fixed model paramters
-        MathematicalProgramResult result =
+        if (is_multithread) {
+          cout << "add task to thread\n";
+          threads.push_back(std::thread(trajOptGivenWeights,
+                                        std::ref(plant), std::ref(plant_autoDiff),
+                                        n_s, n_sDDot, n_tau,
+                                        n_feature_s, n_feature_sDDot, B_tau,
+                                        std::ref(theta_s), std::ref(theta_sDDot),
+                                        stride_length, ground_incline,
+                                        duration, max_inner_iter_pass_in,
+                                        directory, init_file_pass_in, prefix,
+                                        Q_double, R,
+                                        eps_regularization,
+                                        is_get_nominal,
+                                        FLAGS_is_zero_touchdown_impact,
+                                        extend_model_this_iter,
+                                        FLAGS_is_add_tau_in_cost,
+                                        sample));
+          cout << "Finished adding task to thread\n";
+        } else {
           trajOptGivenWeights(plant, plant_autoDiff,
                               n_s, n_sDDot, n_tau,
                               n_feature_s, n_feature_sDDot,
@@ -424,18 +445,36 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               stride_length, ground_incline,
                               duration, max_inner_iter_pass_in,
                               directory, init_file_pass_in, prefix,
-                              &w_sol_vec, &A_vec, &H_vec,
-                              &y_vec, &lb_vec, &ub_vec, &b_vec, &c_vec, &B_vec,
                               Q_double, R,
                               eps_regularization,
                               is_get_nominal,
                               FLAGS_is_zero_touchdown_impact,
                               extend_model_this_iter,
-                              FLAGS_is_add_tau_in_cost);
-        samples_are_success = (samples_are_success & result.is_success());
-        a_sample_is_success = (a_sample_is_success | result.is_success());
-        if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
-          break;
+                              FLAGS_is_add_tau_in_cost,
+                              sample);
+          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          int sample_success =
+            (readCSV(directory + prefix + string("is_success.csv")))(0, 0);
+          samples_are_success = (samples_are_success & (sample_success == 1));
+          a_sample_is_success = (a_sample_is_success | (sample_success == 1));
+          if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
+            break;
+        }
+      }  // for(int sample...)
+
+      if (is_multithread) {
+        for (int sample = 0; sample < n_sample; sample++) {
+          threads[sample].join();
+          // delete threads[sample];
+
+          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          int sample_success =
+            (readCSV(directory + prefix + string("is_success.csv")))(0, 0);
+          samples_are_success = (samples_are_success & (sample_success == 1));
+          a_sample_is_success = (a_sample_is_success | (sample_success == 1));
+          // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
+          //   break;
+        }  // for(int sample...)
       }
     }
     if (FLAGS_is_debug) break;
@@ -532,6 +571,35 @@ int findGoldilocksModels(int argc, char* argv[]) {
       continue;
 
     } else {  // Update parameters
+      // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
+      for (int sample = 0; sample < n_sample; sample++) {
+        prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+        VectorXd success =
+          readCSV(directory + prefix + string("is_success.csv")).col(0);
+        if (success(0)) {
+          w_sol_vec.push_back(readCSV(directory + prefix + string("w.csv")));
+          A_vec.push_back(readCSV(directory + prefix + string("A.csv")));
+          H_vec.push_back(readCSV(directory + prefix + string("H.csv")));
+          y_vec.push_back(readCSV(directory + prefix + string("y.csv")));
+          lb_vec.push_back(readCSV(directory + prefix + string("lb.csv")));
+          ub_vec.push_back(readCSV(directory + prefix + string("ub.csv")));
+          b_vec.push_back(readCSV(directory + prefix + string("b.csv")));
+          c_vec.push_back(readCSV(directory + prefix + string("c.csv")));
+          B_vec.push_back(readCSV(directory + prefix + string("B.csv")));
+
+          bool rm = true;
+          rm = (remove( (directory + prefix + string("A.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("H.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("y.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("lb.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("ub.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("b.csv")).c_str() ) == 0) & rm;
+          rm = (remove( (directory + prefix + string("B.csv")).c_str() ) == 0) & rm;
+          if ( !rm )
+            cout << "Error deleting files\n";
+        }
+      }
+
       int n_succ_sample = c_vec.size();
 
       // Get the total cost if it's successful
