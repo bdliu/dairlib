@@ -120,7 +120,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   std::default_random_engine e2(randgen2());
 
   // Files parameters
-  const string directory = "examples/Goldilocks_models/data/";
+  const string dir = "examples/Goldilocks_models/data/";
   string init_file = FLAGS_init_file;
   // init_file = "w0_with_z.csv";
   string prefix = "";
@@ -222,16 +222,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   if (iter_start > 0) {
     if (!FLAGS_is_manual_initial_theta) {
-      theta_s = readCSV(directory + to_string(iter_start) +
+      theta_s = readCSV(dir + to_string(iter_start) +
                         string("_theta_s.csv")).col(0);
-      theta_sDDot = readCSV(directory + to_string(iter_start) +
+      theta_sDDot = readCSV(dir + to_string(iter_start) +
                             string("_theta_sDDot.csv")).col(0);
     }
     else {
       MatrixXd theta_s_0_mat =
-        readCSV(directory + string("theta_s_0.csv"));
+        readCSV(dir + string("theta_s_0.csv"));
       MatrixXd theta_sDDot_0_mat =
-        readCSV(directory + string("theta_sDDot_0.csv"));
+        readCSV(dir + string("theta_sDDot_0.csv"));
       theta_s.head(theta_s_0_mat.rows()) = theta_s_0_mat.col(0);
       theta_sDDot.head(theta_sDDot_0_mat.rows()) = theta_sDDot_0_mat.col(0);
     }
@@ -257,7 +257,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   if (iter_start > 1  && !FLAGS_is_debug) {
     double old_cost = 0;
     for (int i = 0; i < N_sample; i++) {
-      MatrixXd c = readCSV(directory + to_string(iter_start - 1) +  "_" +
+      MatrixXd c = readCSV(dir + to_string(iter_start - 1) +  "_" +
                            to_string(i) + string("_c.csv"));
       old_cost += c(0, 0) / N_sample;
     }
@@ -296,13 +296,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
   bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
   if (start_with_adjusting_stepsize) {
     MatrixXd prev_theta_s_mat =
-      readCSV(directory + to_string(iter_start - 1) + string("_theta_s.csv"));
+      readCSV(dir + to_string(iter_start - 1) + string("_theta_s.csv"));
     MatrixXd prev_theta_sDDot_mat =
-      readCSV(directory + to_string(iter_start - 1) + string("_theta_sDDot.csv"));
+      readCSV(dir + to_string(iter_start - 1) + string("_theta_sDDot.csv"));
     prev_theta << prev_theta_s_mat.col(0), prev_theta_sDDot_mat.col(0);
 
     MatrixXd step_direction_mat =
-      readCSV(directory + to_string(iter_start - 1) + string("_step_direction.csv"));
+      readCSV(dir + to_string(iter_start - 1) + string("_step_direction.csv"));
     step_direction = step_direction_mat.col(0);
 
     // Below only works for Gradient Descent method (not Newton's method)
@@ -319,7 +319,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   if (extend_model) {
     cout << "\nWill extend the model at iteration # " << extend_model_iter <<
          " by ";
-    VectorXd theta_s_append = readCSV(directory +
+    VectorXd theta_s_append = readCSV(dir +
                                       string("theta_s_append.csv")).col(0);
     DRAKE_DEMAND(theta_s_append.rows() % n_feature_s == 0);
     int n_extend = theta_s_append.rows() / n_feature_s;
@@ -360,8 +360,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // store initial parameter values
     prefix = to_string(iter) +  "_";
     if (!FLAGS_is_debug) {
-      writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-      writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+      writeCSV(dir + prefix + string("theta_s.csv"), theta_s);
+      writeCSV(dir + prefix + string("theta_sDDot.csv"), theta_sDDot);
     }
 
     // Clear the vectors/matrices before trajectory optimization
@@ -441,7 +441,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                                         std::ref(theta_s), std::ref(theta_sDDot),
                                         stride_length, ground_incline,
                                         duration, max_inner_iter_pass_in,
-                                        directory, init_file_pass_in, prefix,
+                                        dir, init_file_pass_in, prefix,
                                         Q_double, R,
                                         eps_regularization,
                                         is_get_nominal,
@@ -457,7 +457,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               B_tau, theta_s, theta_sDDot,
                               stride_length, ground_incline,
                               duration, max_inner_iter_pass_in,
-                              directory, init_file_pass_in, prefix,
+                              dir, init_file_pass_in, prefix,
                               Q_double, R,
                               eps_regularization,
                               is_get_nominal,
@@ -467,7 +467,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               sample);
           prefix = to_string(iter) +  "_" + to_string(sample) + "_";
           int sample_success =
-            (readCSV(directory + prefix + string("is_success.csv")))(0, 0);
+            (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
           if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
@@ -482,7 +482,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
           prefix = to_string(iter) +  "_" + to_string(sample) + "_";
           int sample_success =
-            (readCSV(directory + prefix + string("is_success.csv")))(0, 0);
+            (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
           // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
@@ -508,15 +508,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
       if (!current_iter_is_success)
         iter -= 1;
     } else if (extend_model_this_iter) {  // Extend the model
-      VectorXd theta_s_append = readCSV(directory +
+      VectorXd theta_s_append = readCSV(dir +
                                         string("theta_s_append.csv")).col(0);
       int n_extend = theta_s_append.rows() / n_feature_s;
 
-      // update n_s and n_sDDot
+      // update n_s, n_sDDot and n_tau
       int old_n_s = n_s;
       n_s += n_extend;
       n_sDDot += n_extend;
-      // update n_tau
       n_tau += n_extend;
       // update n_feature_sDDot
       int old_n_feature_sDDot = n_feature_sDDot;
@@ -545,18 +544,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "Updated B_tau = \n" << B_tau << endl;
       // update theta_s
       prefix = to_string(iter) +  "_";
-      writeCSV(directory + prefix + string("theta_s (before extension).csv"),
+      writeCSV(dir + prefix + string("theta_s (before extension).csv"),
                theta_s);
       MatrixXd theta_s_old = theta_s;
       theta_s.resize(n_theta_s);
       theta_s << theta_s_old, theta_s_append;
       // update theta_sDDot
-      writeCSV(directory + prefix + string("theta_sDDot (before extension).csv"),
+      writeCSV(dir + prefix + string("theta_sDDot (before extension).csv"),
                theta_sDDot);
       MatrixXd theta_sDDot_old = theta_sDDot;
       theta_sDDot.resize(n_theta_sDDot);
       theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-      VectorXd new_idx = readCSV(directory +
+      VectorXd new_idx = readCSV(dir +
                                  string("theta_sDDot_new_index.csv")).col(0);
       for (int i = 0; i < old_n_feature_sDDot; i++)
         for (int j = 0; j < old_n_s; j++)
@@ -588,26 +587,26 @@ int findGoldilocksModels(int argc, char* argv[]) {
       for (int sample = 0; sample < n_sample; sample++) {
         prefix = to_string(iter) +  "_" + to_string(sample) + "_";
         VectorXd success =
-          readCSV(directory + prefix + string("is_success.csv")).col(0);
+          readCSV(dir + prefix + string("is_success.csv")).col(0);
         if (success(0)) {
-          w_sol_vec.push_back(readCSV(directory + prefix + string("w.csv")));
-          A_vec.push_back(readCSV(directory + prefix + string("A.csv")));
-          H_vec.push_back(readCSV(directory + prefix + string("H.csv")));
-          y_vec.push_back(readCSV(directory + prefix + string("y.csv")));
-          lb_vec.push_back(readCSV(directory + prefix + string("lb.csv")));
-          ub_vec.push_back(readCSV(directory + prefix + string("ub.csv")));
-          b_vec.push_back(readCSV(directory + prefix + string("b.csv")));
-          c_vec.push_back(readCSV(directory + prefix + string("c.csv")));
-          B_vec.push_back(readCSV(directory + prefix + string("B.csv")));
+          w_sol_vec.push_back(readCSV(dir + prefix + string("w.csv")));
+          A_vec.push_back(readCSV(dir + prefix + string("A.csv")));
+          H_vec.push_back(readCSV(dir + prefix + string("H.csv")));
+          y_vec.push_back(readCSV(dir + prefix + string("y.csv")));
+          lb_vec.push_back(readCSV(dir + prefix + string("lb.csv")));
+          ub_vec.push_back(readCSV(dir + prefix + string("ub.csv")));
+          b_vec.push_back(readCSV(dir + prefix + string("b.csv")));
+          c_vec.push_back(readCSV(dir + prefix + string("c.csv")));
+          B_vec.push_back(readCSV(dir + prefix + string("B.csv")));
 
           bool rm = true;
-          rm = (remove( (directory + prefix + string("A.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("H.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("y.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("lb.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("ub.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("b.csv")).c_str() ) == 0) & rm;
-          rm = (remove( (directory + prefix + string("B.csv")).c_str() ) == 0) & rm;
+          rm = (remove((dir + prefix + string("A.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("H.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("y.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("lb.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("ub.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("b.csv")).c_str()) == 0) & rm;
+          rm = (remove((dir + prefix + string("B.csv")).c_str()) == 0) & rm;
           if ( !rm )
             cout << "Error deleting files\n";
         }
@@ -1004,14 +1003,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // step_direction
         step_direction = is_newton ? newton_step : -gradient_cost;
         prefix = to_string(iter) +  "_";
-        writeCSV(directory + prefix + string("step_direction.csv"), step_direction);
+        writeCSV(dir + prefix + string("step_direction.csv"), step_direction);
 
 
         // Calculate lambda and gradient norm
         VectorXd lambda_square_vecXd(1); lambda_square_vecXd << lambda_square;
         VectorXd norm_grad_cost(1); norm_grad_cost << gradient_cost.norm();
-        writeCSV(directory + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
-        writeCSV(directory + prefix + string("lambda_square.csv"), lambda_square_vecXd);
+        writeCSV(dir + prefix + string("norm_grad_cost.csv"), norm_grad_cost);
+        writeCSV(dir + prefix + string("lambda_square.csv"), lambda_square_vecXd);
         cout << "lambda_square = " << lambda_square << endl;
         cout << "gradient_cost norm: " << norm_grad_cost << endl << endl;
 
@@ -1048,8 +1047,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // store parameter values
   prefix = to_string(iter + 1) +  "_";
   if (!FLAGS_is_debug) {
-    writeCSV(directory + prefix + string("theta_s.csv"), theta_s);
-    writeCSV(directory + prefix + string("theta_sDDot.csv"), theta_sDDot);
+    writeCSV(dir + prefix + string("theta_s.csv"), theta_s);
+    writeCSV(dir + prefix + string("theta_sDDot.csv"), theta_sDDot);
   }
 
   return 0;
