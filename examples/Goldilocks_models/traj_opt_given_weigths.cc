@@ -82,6 +82,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                          double duration, int max_iter,
                          string directory,
                          string init_file, string prefix,
+                         vector<VectorXd> * w_sol_vec,
+                         vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,
+                         vector<VectorXd> * y_vec,
+                         vector<VectorXd> * lb_vec, vector<VectorXd> * ub_vec,
+                         vector<VectorXd> * b_vec,
+                         vector<VectorXd> * c_vec,
+                         vector<MatrixXd> * B_vec,
                          double Q_double, double R_double,
                          double eps_reg,
                          bool is_get_nominal,
@@ -607,7 +614,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     }
 
     // Push the solution to the vector
-    /*w_sol_vec->push_back(w_sol);
+    w_sol_vec->push_back(w_sol);
     H_vec->push_back(H);
     b_vec->push_back(b);
     c_vec->push_back(c);
@@ -615,18 +622,18 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     lb_vec->push_back(lb);
     ub_vec->push_back(ub);
     y_vec->push_back(y);
-    B_vec->push_back(B);*/
+    B_vec->push_back(B);
 
     // Store the vectors and matrices
     // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
-    writeCSV(directory + prefix + string("H.csv"), H);
+    /*writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
     writeCSV(directory + prefix + string("y.csv"), y);
-    writeCSV(directory + prefix + string("B.csv"), B);
+    writeCSV(directory + prefix + string("B.csv"), B);*/
 
     // Store s, ds, dds and tau into csv files
     // cout << "\nStoring s, ds and dds into csv.\n";

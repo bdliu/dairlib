@@ -434,7 +434,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // Trajectory optimization with fixed model paramters
         if (is_multithread) {
           cout << "add task to thread\n";
-          threads.push_back(std::thread(trajOptGivenWeights,
+          /*threads.push_back(std::thread(trajOptGivenWeights,
                                         std::ref(plant), std::ref(plant_autoDiff),
                                         n_s, n_sDDot, n_tau,
                                         n_feature_s, n_feature_sDDot, B_tau,
@@ -448,7 +448,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                                         FLAGS_is_zero_touchdown_impact,
                                         extend_model_this_iter,
                                         FLAGS_is_add_tau_in_cost,
-                                        sample));
+                                        sample));*/
           cout << "Finished adding task to thread\n";
         } else {
           trajOptGivenWeights(plant, plant_autoDiff,
@@ -458,6 +458,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
                               stride_length, ground_incline,
                               duration, max_inner_iter_pass_in,
                               dir, init_file_pass_in, prefix,
+                              &w_sol_vec, &A_vec, &H_vec,
+                              &y_vec, &lb_vec, &ub_vec, &b_vec, &c_vec, &B_vec,
                               Q_double, R,
                               eps_regularization,
                               is_get_nominal,
@@ -584,7 +586,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
     } else {  // Update parameters
       // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
-      for (int sample = 0; sample < n_sample; sample++) {
+      /*for (int sample = 0; sample < n_sample; sample++) {
         prefix = to_string(iter) +  "_" + to_string(sample) + "_";
         VectorXd success =
           readCSV(dir + prefix + string("is_success.csv")).col(0);
@@ -610,7 +612,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           if ( !rm )
             cout << "Error deleting files\n";
         }
-      }
+      }*/
 
       int n_succ_sample = c_vec.size();
 
