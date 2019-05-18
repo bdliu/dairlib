@@ -328,8 +328,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
     } else {
       cout << "Start the iterating...\n";
     }
-
-    has_been_all_success = true;
   }
 
   // Start the gradient descent
@@ -343,8 +341,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
     bool is_get_nominal = iter == 0 ? true : false;
     int n_sample = is_get_nominal ? 1 : N_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
-    bool extend_model_this_iter = (extend_model && (iter == extend_model_iter)) ?
-                                  true : false;
+    bool extend_model_this_iter =
+      (extend_model && (iter == extend_model_iter) && !is_get_nominal) ?
+      true : false;
 
     // store initial parameter values
     prefix = to_string(iter) +  "_";
@@ -403,6 +402,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
         else if (!has_been_all_success && !previous_iter_is_success)
           init_file_pass_in = to_string(iter) +  "_" +
                               to_string(sample) + string("_w.csv");
+        else if (iter == 1)
+          init_file_pass_in = string("0_0_w.csv");
         else
           init_file_pass_in = to_string(iter - 1) +  "_" +
                               to_string(sample) + string("_w.csv");
