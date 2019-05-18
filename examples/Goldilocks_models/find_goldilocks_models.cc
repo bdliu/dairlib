@@ -1,6 +1,8 @@
 #include <gflags/gflags.h>
 #include <stdio.h>  // For removing files
 #include <thread>  // multi-threading
+#include <chrono>
+#include <ctime>
 
 #include "examples/Goldilocks_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -62,6 +64,9 @@ DEFINE_bool(is_zero_touchdown_impact, false,
 DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
 DEFINE_bool(is_multithread, false, "Use multi-thread or not");
 
+DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
+DEFINE_int32(N_sample_gi, 3, "Sampling # for ground incline");
+
 DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -122,8 +127,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Parametres for tasks (stride length and ground incline)
   cout << "\nTasks settings:\n";
-  int N_sample_sl = 3;
-  int N_sample_gi = 3;
+  int N_sample_sl = FLAGS_N_sample_sl;
+  int N_sample_gi = FLAGS_N_sample_gi;
   int N_sample = N_sample_sl * N_sample_gi; //1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
@@ -309,9 +314,11 @@ int findGoldilocksModels(int argc, char* argv[]) {
   bool extend_model = FLAGS_extend_model;
   int extend_model_iter = (FLAGS_extend_model_iter == -1) ?
                           iter_start : FLAGS_extend_model_iter;
+  extend_model_iter = (extend_model_iter == 0) ? 1 : extend_model_iter;
+  bool has_visit_this_iter = false;
   if (extend_model) {
-    int temp = (extend_model_iter == 0) ? 1 : extend_model_iter;
-    cout << "\nWill extend the model at iteration # " << temp << " by ";
+    cout << "\nWill extend the model at iteration # " << extend_model_iter <<
+         " by ";
     VectorXd theta_s_append = readCSV(directory +
                                       string("theta_s_append.csv")).col(0);
     DRAKE_DEMAND(theta_s_append.rows() % n_feature_s == 0);
@@ -333,7 +340,11 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Start the gradient descent
   int iter;
   for (iter = iter_start; iter <= max_outer_iter; iter++)  {
-    cout << "*********** Iteration " << iter << " *************" << endl;
+    // Print info about iteration # and current time
+    auto end = std::chrono::system_clock::now();
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    cout << "Current time: " << std::ctime(&end_time);
+    cout << "************ Iteration " << iter << " *************" << endl;
     if (iter != 0)
       cout << "theta_sDDot.head(10) = " << theta_sDDot.head(10).transpose() << endl;
 
@@ -342,8 +353,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
     int n_sample = is_get_nominal ? 1 : N_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
     bool extend_model_this_iter =
-      (extend_model && (iter == extend_model_iter) && !is_get_nominal) ?
+      (extend_model && (iter == extend_model_iter) && !has_visit_this_iter) ?
       true : false;
+    if (iter == extend_model_iter) has_visit_this_iter = true;
 
     // store initial parameter values
     prefix = to_string(iter) +  "_";
