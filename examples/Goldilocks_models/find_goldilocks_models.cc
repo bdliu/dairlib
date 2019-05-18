@@ -122,12 +122,12 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Parametres for tasks (stride length and ground incline)
   cout << "\nTasks settings:\n";
-  int N_sample_sl = 5;
-  int N_sample_gi = 1;
+  int N_sample_sl = 3;
+  int N_sample_gi = 3;
   int N_sample = N_sample_sl * N_sample_gi; //1;
   double delta_stride_length = 0.03;
   double stride_length_0 = 0.3;
-  double delta_ground_incline = 0.2;
+  double delta_ground_incline = 0.1;
   double ground_incline_0 = 0;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
   cout << "N_sample_sl = " << N_sample_sl << endl;
@@ -166,11 +166,11 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "Warning: Need to make sure that you use the right initial theta.\n";
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 1;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
-  B_tau(1, 0) = 1;
+  // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
   // B_tau(2, 0) = 1;
