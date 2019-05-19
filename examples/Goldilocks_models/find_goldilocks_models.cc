@@ -130,9 +130,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
   int N_sample_sl = FLAGS_N_sample_sl;
   int N_sample_gi = FLAGS_N_sample_gi;
   int N_sample = N_sample_sl * N_sample_gi; //1;
-  double delta_stride_length = 0.03/2;
+  double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
-  double delta_ground_incline = 0.1/2;
+  double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
   double duration = 0.746; // Fix the duration now since we add cost ourselves
   cout << "N_sample_sl = " << N_sample_sl << endl;
@@ -156,6 +156,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;
   cout << "eps_regularization = " << eps_regularization << endl;
+  cout << "is_add_tau_in_cost = " << FLAGS_is_add_tau_in_cost << endl;
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
 
@@ -200,27 +201,29 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Initial guess of theta
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-  // theta_s(1) = 1;
-  // theta_s(2 + n_feature_s) = 1;
-  // theta_s(3 + 2 * n_feature_s) = 1;
-  // theta_s(2) = 1; // LIPM
-  // theta_sDDot(0) = 1;
-  // // 2D LIPM
-  // theta_s(0) = 1;
-  // theta_s(1 + n_feature_s) = 1;
-  // theta_sDDot(0) = 1;
-  // // 2D LIPM with 2D swing foot
-  theta_s(0) = 1;
-  theta_s(1 + n_feature_s) = 1;
-  // theta_s(2 + 2 *n_feature_s) = 1;
-  // theta_s(3 + 3 * n_feature_s) = 1;
-  theta_sDDot(0) = 1;
-  // // Testing intial theta
-  // theta_s = 0.25*VectorXd::Ones(n_theta_s);
-  // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
-  // theta_s = VectorXd::Random(n_theta_s);
-  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
-  if (iter_start > 0) {
+  if (iter_start == 0) {
+    // theta_s(1) = 1;
+    // theta_s(2 + n_feature_s) = 1;
+    // theta_s(3 + 2 * n_feature_s) = 1;
+    // theta_s(2) = 1; // LIPM
+    // theta_sDDot(0) = 1;
+    // // 2D LIPM
+    // theta_s(0) = 1;
+    // theta_s(1 + n_feature_s) = 1;
+    // theta_sDDot(0) = 1;
+    // // 2D LIPM with 2D swing foot
+    theta_s(0) = 1;
+    theta_s(1 + n_feature_s) = 1;
+    // theta_s(2 + 2 *n_feature_s) = 1;
+    // theta_s(3 + 3 * n_feature_s) = 1;
+    theta_sDDot(0) = 1;
+    // // Testing intial theta
+    // theta_s = 0.25*VectorXd::Ones(n_theta_s);
+    // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
+    // theta_s = VectorXd::Random(n_theta_s);
+    // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  }
+  else {
     if (!FLAGS_is_manual_initial_theta) {
       theta_s = readCSV(dir + to_string(iter_start) +
                         string("_theta_s.csv")).col(0);
