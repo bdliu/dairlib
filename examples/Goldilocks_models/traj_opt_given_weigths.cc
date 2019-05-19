@@ -357,13 +357,19 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
+  cout << "batch# = " << batch << endl;
+  cout << "    stride_length = " << stride_length << " | "
+       << "ground_incline = " << ground_incline << " | "
+       << "init_file = " << init_file << endl;
   // cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
+  cout << "    Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
+  cout << solution_result <<  " | ";
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
     for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
@@ -374,13 +380,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
       tau_cost += y_val(0);
     }
   }
-  cout << "batch# = " << batch << endl
-       << "    stride_length = " << stride_length << " | "
-       << "ground_incline = " << ground_incline << " | "
-       << "init_file = " << init_file << endl
-       << "    Solve time:" << elapsed.count() << " | "
-       << solution_result <<  " | "
-       << "Cost:" << result.get_optimal_cost() <<
+  cout << "Cost:" << result.get_optimal_cost() <<
        " (tau cost = " << tau_cost << ")\n";
   VectorXd is_success(1);
   if (result.is_success()) is_success << 1;

@@ -67,7 +67,7 @@ DEFINE_bool(is_multithread, false, "Use multi-thread or not");
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 3, "Sampling # for ground incline");
 
-DEFINE_int32(max_inner_iter, 500, "Max iteration # for traj opt");
+DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
 //                 // After adding tau
@@ -169,17 +169,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
   cout << "Warning: Need to make sure that you use the right initial theta.\n";
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
   // B_tau(1, 0) = 1;
   // B_tau(2, 1) = 1;
   // B_tau(0,0) = 1;
-  B_tau(2, 0) = 1;
-  B_tau(3, 1) = 1;
+  // B_tau(2, 0) = 1;
+  // B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
 
   // Reduced order model setup
