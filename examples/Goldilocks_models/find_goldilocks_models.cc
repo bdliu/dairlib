@@ -107,7 +107,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     -9.81 * Eigen::Vector3d::UnitZ());
   plant.WeldFrames(
     plant.world_frame(), plant.GetFrameByName("base"),
-    drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+    drake::math::RigidTransform<double>());
   plant.Finalize();
 
   // Create autoDiff version of the plant
