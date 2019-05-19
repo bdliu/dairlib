@@ -20,10 +20,10 @@ if len(sys.argv) == 3:
 n_sampel_sl = 3  # should be > 0
 n_sampel_gi = 3  # should be > 0
 batch_max = n_sampel_sl * n_sampel_gi
-min_dist = 0.25
-delta_dist = 0.05
-min_incline = -0.2
-delta_incline = 0.2
+min_dist = 0.27
+delta_dist = 0.03
+min_incline = -0.1
+delta_incline = 0.1
 
 
 directory = 'data/'
