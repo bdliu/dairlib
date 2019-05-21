@@ -1,0 +1,18 @@
+
+
+cc_library(
+    name = "RoM_traj_opt",
+    srcs = ["RoM_traj_opt.cc"],
+    hdrs = ["RoM_traj_opt.h"],
+    deps = [
+        "@drake//common",
+        "@drake//solvers",
+        "@drake//systems/framework",
+        "@drake//systems/trajectory_optimization",
+        ":kinematics_expression",
+        ":dynamics_expression",
+        ":dynamics_constraint",
+    ],
+)
+
+

@@ -412,7 +412,7 @@ int main() {
   double stride_length = 0.3;
   double duration = .5;
   int iter = 500;
-  string directory = "examples/Goldilocks_models/data/";
+  string directory = "examples/Goldilocks_models/find_models/data/";
   string init_file = "";
   // string init_file = "testing_z.csv";
   string output_prefix = "testing_";

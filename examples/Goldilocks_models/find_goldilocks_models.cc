@@ -4,7 +4,7 @@
 #include <chrono>
 #include <ctime>
 
-#include "examples/Goldilocks_models/traj_opt_given_weigths.h"
+#include "examples/Goldilocks_models/find_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
 
 #include "drake/solvers/mathematical_program.h"
@@ -120,7 +120,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   std::default_random_engine e2(randgen2());
 
   // Files parameters
-  const string dir = "examples/Goldilocks_models/data/";
+  const string dir = "examples/Goldilocks_models/find_models/data/";
   string init_file = FLAGS_init_file;
   // init_file = "w0_with_z.csv";
   string prefix = "";

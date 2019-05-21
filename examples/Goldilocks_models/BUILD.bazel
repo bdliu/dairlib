@@ -1,7 +1,7 @@
 
 cc_binary(
     name = "visualize_gait_RBP",
-    srcs = ["visualize_gait_RBP.cc"],
+    srcs = ["find_models/visualize_gait_RBP.cc"],
     data = ["PlanarWalkerWithTorso.urdf"],
     deps = [
         "//systems/goldilocks_models",
@@ -23,7 +23,7 @@ cc_binary(
 
 cc_binary(
     name = "visualize_gait_MBP",
-    srcs = ["visualize_gait_MBP.cc"],
+    srcs = ["find_models/visualize_gait_MBP.cc"],
     data = ["PlanarWalkerWithTorso.urdf"],
     deps = [
         "//common",
@@ -102,8 +102,8 @@ cc_binary(
 
 cc_library(
     name = "goldilocks_model_traj_opt",
-    srcs = ["goldilocks_model_traj_opt.cc"],
-    hdrs = ["goldilocks_model_traj_opt.h"],
+    srcs = ["find_models/goldilocks_model_traj_opt.cc"],
+    hdrs = ["find_models/goldilocks_model_traj_opt.h"],
     deps = [
         "//common",
         "//systems/primitives",
@@ -131,8 +131,8 @@ cc_library(
 
 cc_library(
     name = "traj_opt_given_weigths",
-    srcs = ["traj_opt_given_weigths.cc"],
-    hdrs = ["traj_opt_given_weigths.h"],
+    srcs = ["find_models/traj_opt_given_weigths.cc"],
+    hdrs = ["find_models/traj_opt_given_weigths.h"],
     deps = [
         ":goldilocks_utils",
         ":dynamics_expression",
@@ -170,6 +170,31 @@ cc_binary(
         ":traj_opt_given_weigths",
         "//systems/goldilocks_models",
         "//systems/trajectory_optimization:dircon",
+        "@drake//common",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",
+        "@drake//solvers:mathematical_program",
+        "@drake//multibody/parsing",
+        ":kinematics_expression",
+        ":dynamics_expression",
+    ],
+)
+
+cc_binary(
+    name = "plan_with_RoM_FoM",
+    srcs = ["plan_with_RoM_FoM.cc"],
+    data = [
+        "PlanarWalkerWithTorso.urdf",
+    ],
+    deps = [
+        "//systems/goldilocks_models",
+        "//common",
         "@drake//common",
         "@drake//lcm",
         "@drake//manipulation/util",
@@ -356,7 +381,7 @@ cc_library(
 
 cc_binary(
     name = "scale_theta",
-    srcs = ["scale_theta.cc"],
+    srcs = ["find_models/scale_theta.cc"],
     deps = [
         "//systems/goldilocks_models",
         "@drake//common",
