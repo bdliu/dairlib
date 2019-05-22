@@ -36,16 +36,14 @@ DynamicsConstraint::DynamicsConstraint(
 }
 
 
-void DynamicsConstraint::DoEval(const
-                                Eigen::Ref<const Eigen::VectorXd>& q,
+void DynamicsConstraint::DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
                                 Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
   Eval(initializeAutoDiff(q), &y_t);
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void DynamicsConstraint::DoEval(const
-                                Eigen::Ref<const AutoDiffVecXd>& ytyth,
+void DynamicsConstraint::DoEval(const Eigen::Ref<const AutoDiffVecXd>& ytyth,
                                 AutoDiffVecXd* y) const {
   // Extract elements
   AutoDiffVecXd y_i = ytyth.head(n_y_);
@@ -58,8 +56,7 @@ void DynamicsConstraint::DoEval(const
   *y = getConstraintValueInAutoDiff(y_i, tau_i, y_iplus1, tau_iplus1, h_i);
 }
 
-void DynamicsConstraint::DoEval(const
-                                Eigen::Ref<const VectorX<Variable>>& x,
+void DynamicsConstraint::DoEval(const Eigen::Ref<const VectorX<Variable>>& x,
                                 VectorX<Expression>*y) const {
   throw std::logic_error(
     "This constraint class does not support symbolic evaluation.");

@@ -30,16 +30,14 @@ KinematicsConstraint::KinematicsConstraint(
 }
 
 
-void KinematicsConstraint::DoEval(const
-                                  Eigen::Ref<const Eigen::VectorXd>& q,
+void KinematicsConstraint::DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
                                   Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
   Eval(initializeAutoDiff(q), &y_t);
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void KinematicsConstraint::DoEval(const
-                                  Eigen::Ref<const AutoDiffVecXd>& rq,
+void KinematicsConstraint::DoEval(const Eigen::Ref<const AutoDiffVecXd>& rq,
                                   AutoDiffVecXd* y) const {
   // Extract elements
   AutoDiffVecXd r = rq.head(n_r_);
