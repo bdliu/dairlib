@@ -54,9 +54,10 @@ namespace planning {
 
 class KinematicsConstraint : public Constraint {
  public:
-  KinematicsConstraint(int n_r, int n_q, int n_feature_kin,
-                     const VectorXd & theta_kin,
-                     const std::string& description = "");
+  KinematicsConstraint(bool left_stance,
+                       int n_r, int n_q, int n_feature_kin,
+                       const VectorXd & theta_kin,
+                       const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
@@ -67,6 +68,7 @@ class KinematicsConstraint : public Constraint {
               VectorX<Expression>*y) const override;
 
  private:
+  bool left_stance_;
   int n_r_;
   int n_q_;
   VectorXd theta_kin_;
