@@ -73,13 +73,13 @@ class RomTrajOptWithFomImpactMap :
 
  private:
   // Implements a running cost at all timesteps using trapezoidal integration.
+  void DoAddRunningCost(const drake::symbolic::Expression& e) override;
   const int num_modes_;
   const std::vector<int> mode_lengths_;
   std::vector<int> mode_start_;
-  void DoAddRunningCost(const drake::symbolic::Expression& e) override;
   const drake::solvers::VectorXDecisionVariable ds_post_impact_vars_;
-  const n_s_;
-  const n_tau_;
+  const int n_s_;
+  const int n_tau_;
   const drake::multibody::MultibodyPlant<double>& plant_;
 };
 

@@ -55,7 +55,6 @@ RomTrajOptWithFomImpactMap<double>::RomTrajOptWithFomImpactMap(
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
 
-
   // Initialization is looped over the modes
   int counter = 0;
   for (int i = 0; i < num_modes_; i++) {
@@ -72,11 +71,11 @@ RomTrajOptWithFomImpactMap<double>::RomTrajOptWithFomImpactMap(
                           timestep(mode_start_[i] + j + 1));
     }
 
-    //Adding dynamic constraints
+    // Add dynamics constraints at collocation points
+    auto constraint = std::make_shared<DynamicConstraint<T>>(plant_, );
+    DRAKE_ASSERT(static_cast<int>(constraint->num_constraints()) == num_states());
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
       int time_index = mode_start_[i] + j;
-      vector<VectorXDecisionVariable> x_next;
-
       AddConstraint(constraint,
                     {h_vars().segment(time_index,1),
                      state_vars_by_mode(i, j),
@@ -85,9 +84,7 @@ RomTrajOptWithFomImpactMap<double>::RomTrajOptWithFomImpactMap(
                      force_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i) * 2),
                      collocation_force_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i)),
                      collocation_slack_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i))});
-
     }
-
 
     counter += mode_lengths_[i] - 1;
   }

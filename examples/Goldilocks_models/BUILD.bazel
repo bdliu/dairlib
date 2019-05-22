@@ -1,52 +1,4 @@
-
-cc_binary(
-    name = "visualize_gait_RBP",
-    srcs = ["find_models/visualize_gait_RBP.cc"],
-    data = ["PlanarWalkerWithTorso.urdf"],
-    deps = [
-        "//systems/goldilocks_models",
-        "@drake//attic/multibody:rigid_body_tree",
-        "@drake//attic/multibody:rigid_body_tree_construction",
-        "@drake//attic/multibody/parsers",
-        "@drake//attic/multibody/rigid_body_plant:drake_visualizer",
-        "@drake//common",
-        "@drake//lcm",
-        "@drake//manipulation/util",
-        "@drake//systems/analysis:simulator",
-        "@drake//systems/framework",
-        "@drake//systems/primitives",
-        "@drake//systems/trajectory_optimization",
-        "@gflags",
-    ],
-)
-
-
-cc_binary(
-    name = "visualize_gait_MBP",
-    srcs = ["find_models/visualize_gait_MBP.cc"],
-    data = ["PlanarWalkerWithTorso.urdf"],
-    deps = [
-        "//common",
-        "//systems/primitives",
-        "//systems/goldilocks_models",
-        "//systems/trajectory_optimization:dircon",
-        "@drake//attic/multibody/parsers",
-        "@drake//common",
-        "@drake//math",
-        "@drake//lcm",
-        "@drake//manipulation/util",
-        "@drake//solvers",
-        "@drake//systems/analysis:simulator",
-        "@drake//systems/framework",
-        "@drake//systems/primitives",
-        "@drake//systems/trajectory_optimization",
-        "@gflags",     
-        "@drake//multibody/parsing",
-        "@drake//geometry:geometry_visualization",
-        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
-    ],
-)
-
+package(default_visibility = ["//visibility:public"])
 
 cc_binary(
     name = "simple_traj_opt_RBP",
@@ -100,65 +52,6 @@ cc_binary(
 )
 
 
-cc_library(
-    name = "goldilocks_model_traj_opt",
-    srcs = ["find_models/goldilocks_model_traj_opt.cc"],
-    hdrs = ["find_models/goldilocks_model_traj_opt.h"],
-    deps = [
-        "//common",
-        "//systems/primitives",
-        "//systems/goldilocks_models",
-        "//systems/trajectory_optimization:dircon",
-        "//solvers:optimization_utils",
-        "@drake//attic/multibody/parsers",
-        "@drake//common",
-        "@drake//math",
-        "@drake//manipulation/util",
-        "@drake//solvers",
-        "@drake//systems/analysis:simulator",
-        "@drake//systems/framework",
-        "@drake//systems/primitives",
-        "@drake//systems/trajectory_optimization",
-        "@drake//multibody/parsing",
-        "@drake//geometry:geometry_visualization",
-        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
-	    ":kinematics_constraint",
-	    ":dynamics_constraint",
-    ],
-)
-
-
-
-cc_library(
-    name = "traj_opt_given_weigths",
-    srcs = ["find_models/traj_opt_given_weigths.cc"],
-    hdrs = ["find_models/traj_opt_given_weigths.h"],
-    deps = [
-        ":goldilocks_utils",
-        ":dynamics_expression",
-        "//examples/Goldilocks_models:goldilocks_model_traj_opt",
-        "//systems/goldilocks_models",
-        "//common",
-        "//systems/primitives",
-        "//systems/trajectory_optimization:dircon",
-        "//solvers:optimization_utils",
-        "@drake//attic/multibody/parsers",
-        "@drake//common",
-        "@drake//math",
-        "@drake//lcm",
-        "@drake//manipulation/util",
-        "@drake//solvers",
-        "@drake//systems/analysis:simulator",
-        "@drake//systems/framework",
-        "@drake//systems/primitives",
-        "@drake//systems/trajectory_optimization",
-        "@drake//multibody/parsing",
-        "@drake//geometry:geometry_visualization",
-        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
-    ],
-)
-#        "@gurobi//:gurobi_cxx",
-
 
 cc_binary(
     name = "find_goldilocks_models",
@@ -167,7 +60,7 @@ cc_binary(
         "PlanarWalkerWithTorso.urdf",
     ],
     deps = [
-        ":traj_opt_given_weigths",
+        "//examples/Goldilocks_models/find_models:traj_opt_given_weigths",
         "//systems/goldilocks_models",
         "//systems/trajectory_optimization:dircon",
         "@drake//common",
@@ -212,44 +105,6 @@ cc_binary(
 )
 
 
-cc_library(
-    name = "kinematics_constraint",
-    srcs = [
-        "kinematics_constraint.cc",
-    ],
-    hdrs = [
-        "kinematics_constraint.h"
-    ],
-    deps = [
-        "@drake//solvers:mathematical_program",
-        "@drake//solvers:constraint",
-        "@drake//manipulation/util",
-        "//multibody:utils",
-        "@drake//math:gradient",
-        ":kinematics_expression",
-    ],
-)
-
-
-
-cc_library(
-    name = "dynamics_constraint",
-    srcs = [
-        "dynamics_constraint.cc",
-    ],
-    hdrs = [
-        "dynamics_constraint.h"
-    ],
-    deps = [
-        "@drake//solvers:mathematical_program",
-        "@drake//solvers:constraint",
-        "@drake//manipulation/util",
-        "//multibody:utils",
-        "@drake//math:gradient",
-        ":kinematics_expression",
-	":dynamics_expression",
-    ],
-)
 
 
 cc_library(
@@ -378,14 +233,3 @@ cc_library(
         "//systems/goldilocks_models",
     ],
 )
-
-cc_binary(
-    name = "scale_theta",
-    srcs = ["find_models/scale_theta.cc"],
-    deps = [
-        "//systems/goldilocks_models",
-        "@drake//common",
-        "@gflags",
-    ],
-)
-

@@ -1,4 +1,4 @@
-#include "examples/Goldilocks_models/kinematics_constraint.h"
+#include "examples/Goldilocks_models/find_models/kinematics_constraint.h"
 
 
 namespace dairlib {

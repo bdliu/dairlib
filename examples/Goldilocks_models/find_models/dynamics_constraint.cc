@@ -1,4 +1,4 @@
-#include "examples/Goldilocks_models/dynamics_constraint.h"
+#include "examples/Goldilocks_models/find_models/dynamics_constraint.h"
 
 
 namespace dairlib {

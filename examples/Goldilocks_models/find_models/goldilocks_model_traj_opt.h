@@ -31,8 +31,8 @@
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
 
-#include "examples/Goldilocks_models/kinematics_constraint.h"
-#include "examples/Goldilocks_models/dynamics_constraint.h"
+#include "examples/Goldilocks_models/find_models/kinematics_constraint.h"
+#include "examples/Goldilocks_models/find_models/dynamics_constraint.h"
 
 using Eigen::Vector3d;
 using Eigen::VectorXd;
