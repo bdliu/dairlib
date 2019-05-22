@@ -112,8 +112,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     // Periodic constraints
     if (i != 0) {
-      AddConstraint(xf_vars_by_mode(i - 1).head(3) ==
-                    x0_vars_by_mode(i).head(3));
+      AddConstraint(xf_vars_by_mode(i - 1).segment(1, 2) ==
+                    x0_vars_by_mode(i).segment(1, 2));
       AddConstraint(xf_vars_by_mode(i - 1).segment(3, 1) ==
                     x0_vars_by_mode(i).segment(4, 1));
       AddConstraint(xf_vars_by_mode(i - 1).segment(4, 1) ==
