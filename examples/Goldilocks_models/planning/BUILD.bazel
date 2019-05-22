@@ -1,9 +1,9 @@
-
+package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "RoM_traj_opt",
-    srcs = ["RoM_traj_opt.cc"],
-    hdrs = ["RoM_traj_opt.h"],
+    name = "RoM_planning_traj_opt",
+    srcs = ["RoM_planning_traj_opt.cc"],
+    hdrs = ["RoM_planning_traj_opt.h"],
     deps = [
         "@drake//common",
         "@drake//solvers",
@@ -12,6 +12,25 @@ cc_library(
         ":kinematics_expression",
         ":dynamics_expression",
         ":dynamics_constraint",
+    ],
+)
+
+cc_library(
+    name = "dynamics_constraint",
+    srcs = [
+        "dynamics_constraint.cc",
+    ],
+    hdrs = [
+        "dynamics_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+        "//examples/Goldilocks_models:kinematics_expression",
+        "//examples/Goldilocks_models:dynamics_expression",
     ],
 )
 

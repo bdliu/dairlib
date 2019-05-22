@@ -19,46 +19,48 @@ namespace goldilocks_models {
 // ddr = theta_ddr * phi_ddr + B * tau
 
 // Modified from HybridDircon class
-class RomTrajOptWithFomImpactMap :
-    public drake::systems::trajectory_optimization::MultipleShooting {
+class RomPlanningTrajOptWithFomImpactMap :
+  public drake::systems::trajectory_optimization::MultipleShooting {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RomTrajOptWithFomImpactMap)
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RomPlanningTrajOptWithFomImpactMap)
 
-  RomTrajOptWithFomImpactMap(vector<int> num_time_samples,
-      vector<double> minimum_timestep,
-      vector<double> maximum_timestep,
-      const VectorXd & theta_s,
-      const VectorXd & theta_sDDot,
-      const MultibodyPlant<double>& plant);
+  RomPlanningTrajOptWithFomImpactMap(vector<int> num_time_samples,
+                                     vector<double> minimum_timestep,
+                                     vector<double> maximum_timestep,
+                                     int n_r,
+                                     int n_tau,
+                                     const VectorXd & theta_kin,
+                                     const VectorXd & theta_dyn,
+                                     const MultibodyPlant<double>& plant);
 
-  ~RomTrajOptWithFomImpactMap() override {}
+  ~RomPlanningTrajOptWithFomImpactMap() override {}
 
   /// TODO: remove when removed upstream
   drake::trajectories::PiecewisePolynomial<double> ReconstructInputTrajectory()
-      const override {
-        return drake::trajectories::PiecewisePolynomial<double>();
-      };
+  const override {
+    return drake::trajectories::PiecewisePolynomial<double>();
+  };
   drake::trajectories::PiecewisePolynomial<double> ReconstructStateTrajectory()
-      const override {
-        return drake::trajectories::PiecewisePolynomial<double>();
-      };
+  const override {
+    return drake::trajectories::PiecewisePolynomial<double>();
+  };
 
   /// Get the input trajectory at the solution as a
   /// %drake::trajectories::PiecewisePolynomialTrajectory%.
   drake::trajectories::PiecewisePolynomial<double> ReconstructInputTrajectory(
-      const drake::solvers::MathematicalProgramResult& result) const override;
+    const drake::solvers::MathematicalProgramResult& result) const override;
 
   /// Get the state trajectory at the solution as a
   /// %drake::trajectories::PiecewisePolynomialTrajectory%.
   drake::trajectories::PiecewisePolynomial<double> ReconstructStateTrajectory(
-      const drake::solvers::MathematicalProgramResult& result) const override;
+    const drake::solvers::MathematicalProgramResult& result) const override;
 
   const drake::solvers::VectorXDecisionVariable& ds_post_impact_vars() const {
     return ds_post_impact_vars_;
   }
 
   const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
-      ds_post_impact_vars_by_mode(int mode) const;
+  ds_post_impact_vars_by_mode(int mode) const;
 
   /// Get the state decision variables given a mode and a time_index
   /// (time_index is w.r.t that particular mode). This will use the
@@ -68,8 +70,8 @@ class RomTrajOptWithFomImpactMap :
       int time_index) const;
 
   drake::VectorX<drake::symbolic::Expression> SubstitutePlaceholderVariables(
-      const drake::VectorX<drake::symbolic::Expression>& f,
-      int interval_index) const;
+    const drake::VectorX<drake::symbolic::Expression>& f,
+    int interval_index) const;
 
  private:
   // Implements a running cost at all timesteps using trapezoidal integration.

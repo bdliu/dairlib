@@ -91,9 +91,9 @@ class GoldilcocksModelTrajOpt {
 
   std::unique_ptr<HybridDircon<double>> dircon;
 
-  std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_head;
+  std::shared_ptr<find_models::DynamicsConstraint>  dynamics_constraint_at_head;
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
-  // std::shared_ptr<DynamicsConstraint>  dynamics_constraint_at_tail;
+  // std::shared_ptr<find_models::DynamicsConstraint>  dynamics_constraint_at_tail;
   // std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
   
   std::vector<Binding<Cost>> tau_cost_bindings;

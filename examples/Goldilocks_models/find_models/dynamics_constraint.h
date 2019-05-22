@@ -50,6 +50,7 @@ using drake::multibody::MultibodyPlant;
 
 namespace dairlib {
 namespace goldilocks_models {
+namespace find_models {
 
 class DynamicsConstraint : public Constraint {
  public:
@@ -144,5 +145,6 @@ class DynamicsConstraint : public Constraint {
   vector<double> ho_shift_vec_{ -eps_ho_ / 2, -eps_ho_ / 4,
                                 eps_ho_ / 4, eps_ho_ / 2};
 };
+}  // namespace find_models
 }  // namespace goldilocks_models
 }  // namespace dairlib

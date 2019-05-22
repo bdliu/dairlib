@@ -3,6 +3,7 @@
 
 namespace dairlib {
 namespace goldilocks_models {
+namespace find_models {
 
 DynamicsConstraint::DynamicsConstraint(
   int n_s, int n_feature_s,
@@ -485,5 +486,6 @@ void DynamicsConstraint::getSAndSDotInDouble(AutoDiffVecXd x,
 
 
 
+}  // namespace find_models
 }  // namespace goldilocks_models
 }  // namespace dairlib

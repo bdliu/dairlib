@@ -48,11 +48,11 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   // Constraints
   if (!is_get_nominal) {
     // Create dynamics constraint (pointer)
-    dynamics_constraint_at_head = make_shared<DynamicsConstraint>(
+    dynamics_constraint_at_head = make_shared<find_models::DynamicsConstraint>(
                                     n_s, n_feature_s, theta_s,
                                     n_sDDot, n_feature_sDDot, theta_sDDot,
                                     n_tau, B_tau, plant, true);
-    // dynamics_constraint_at_tail = make_shared<DynamicsConstraint>(
+    // dynamics_constraint_at_tail = make_shared<find_models::DynamicsConstraint>(
     //                                n_s, n_feature_s, theta_s,
     //                                n_sDDot, n_feature_sDDot, theta_sDDot,
     //                                n_tau, B_tau, plant, false);
