@@ -67,7 +67,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   for (int i = 0; i < num_modes_; i++) {
     mode_start_.push_back(counter);
 
-    // set timestep bounds
+    // Set timestep bounds
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
       AddBoundingBoxConstraint(minimum_timestep[i], maximum_timestep[i],
                                timestep(mode_start_[i] + j));
@@ -110,12 +110,24 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i)});
     }
 
-
     // Periodic constraints
+    if (i != 0) {
+      AddConstraint(xf_vars_by_mode(i - 1).head(3) ==
+                    x0_vars_by_mode(i).head(3));
+      AddConstraint(xf_vars_by_mode(i - 1).segment(3, 1) ==
+                    x0_vars_by_mode(i).segment(4, 1));
+      AddConstraint(xf_vars_by_mode(i - 1).segment(4, 1) ==
+                    x0_vars_by_mode(i).segment(3, 1));
+      AddConstraint(xf_vars_by_mode(i - 1).segment(5, 1) ==
+                    x0_vars_by_mode(i).segment(6, 1));
+      AddConstraint(xf_vars_by_mode(i - 1).segment(6, 1) ==
+                    x0_vars_by_mode(i).segment(5, 1));
+    }
 
     // Guard constraint
 
     // Reset map constraint
+
 
 
     counter += mode_lengths_[i] - 1;
