@@ -7,5 +7,5 @@ __pycache__/
 *.DS_Store*
 attic/multibody/solver_log/
 
-examples/Goldilocks_models/data/
+examples/Goldilocks_models/find_models/data/
 snopt.out
