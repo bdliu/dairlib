@@ -46,9 +46,10 @@ int main() {
   Y_dot[0](0, 0) = 0;
   Y_dot[1](0, 0) = 0;
   Y_dot[2](0, 0) = 0;
-  PiecewisePolynomial<Expression> spline =
-    PiecewisePolynomial<Expression>::Cubic(T_breakpoint, Y, Y_dot);
+  // PiecewisePolynomial<Expression> spline =
+  //   PiecewisePolynomial<Expression>::Cubic(T_breakpoint, Y, Y_dot);
 
+  // The above line cannnot be compiled.
   // The compiler complained that 'drake::symbolic::Expression' is not literal
   // because it has a non-trivial destructor.
   // So it seems that we cannot create symbolic trajectory.
