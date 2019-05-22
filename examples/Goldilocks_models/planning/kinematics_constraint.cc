@@ -1,11 +1,11 @@
-#include "examples/Goldilocks_models/planning/dynamics_constraint.h"
+#include "examples/Goldilocks_models/find_models/dynamics_constraint.h"
 
 
 namespace dairlib {
 namespace goldilocks_models {
 namespace planning {
 
-DynamicsConstraint::DynamicsConstraint(
+KinematicsConstraint::KinematicsConstraint(
   int n_r, int n_ddr, int n_feature_dyn,
   const VectorXd & theta_dyn,
   int n_tau,
@@ -18,10 +18,10 @@ DynamicsConstraint::DynamicsConstraint(
              description),
   n_r_(n_r),
   n_ddr_(n_ddr),
+  n_y_(n_r + n_ddr),
   n_feature_dyn_(n_feature_dyn),
   n_theta_dyn_(theta_dyn.size()),
   theta_dyn_(theta_dyn),
-  n_y_(n_r + n_ddr),
   n_tau_(n_tau),
   dyn_expression_(DynamicsExpression(n_ddr, n_feature_dyn, B_tau)) {
 
@@ -36,7 +36,7 @@ DynamicsConstraint::DynamicsConstraint(
 }
 
 
-void DynamicsConstraint::DoEval(const
+void KinematicsConstraint::DoEval(const
                                 Eigen::Ref<const Eigen::VectorXd>& q,
                                 Eigen::VectorXd* y) const {
   AutoDiffVecXd y_t;
@@ -44,7 +44,7 @@ void DynamicsConstraint::DoEval(const
   *y = autoDiffToValueMatrix(y_t);
 }
 
-void DynamicsConstraint::DoEval(const
+void KinematicsConstraint::DoEval(const
                                 Eigen::Ref<const AutoDiffVecXd>& ytyth,
                                 AutoDiffVecXd* y) const {
   // Extract elements
@@ -58,14 +58,14 @@ void DynamicsConstraint::DoEval(const
   *y = getConstraintValueInAutoDiff(y_i, tau_i, y_iplus1, tau_iplus1, h_i);
 }
 
-void DynamicsConstraint::DoEval(const
+void KinematicsConstraint::DoEval(const
                                 Eigen::Ref<const VectorX<Variable>>& x,
                                 VectorX<Expression>*y) const {
   throw std::logic_error(
     "This constraint class does not support symbolic evaluation.");
 }
 
-AutoDiffVecXd DynamicsConstraint::getConstraintValueInAutoDiff(
+AutoDiffVecXd KinematicsConstraint::getConstraintValueInAutoDiff(
   const AutoDiffVecXd & y_i, const AutoDiffVecXd & tau_i,
   const AutoDiffVecXd & y_iplus1, const AutoDiffVecXd & tau_iplus1,
   const AutoDiffVecXd & h_i) const {
@@ -74,19 +74,18 @@ AutoDiffVecXd DynamicsConstraint::getConstraintValueInAutoDiff(
   AutoDiffVecXd g_iplus1 = g(y_iplus1, tau_iplus1);
 
   // Value of the cubic spline at collocation point
-  AutoDiffVecXd y_c = (y_i + y_iplus1) / 2 + (g_i - g_iplus1) * h_i(0) / 8;
+  AutoDiffVecXd y_c = (y_i + y_iplus1) / 2 + (g_i - g_iplus1) * h_i / 8;
   AutoDiffVecXd tau_c = (tau_i + tau_iplus1) / 2;
 
   // Get constraint value in autoDiff
-  return (y_iplus1 - y_i) / h_i(0) - (g_i + 4 * g(y_c, tau_c) + g_iplus1) / 6;
+  return (y_iplus1 - y_i) / h_i - (g_i + 4 * g(y_c, tau_c) + g_iplus1) / 6;
 }
 
-AutoDiffVecXd DynamicsConstraint::g(const AutoDiffVecXd & y,
+AutoDiffVecXd KinematicsConstraint::g(const AutoDiffVecXd & y,
                                     const AutoDiffVecXd & tau) const {
-  AutoDiffVecXd r = y.head(n_r_);
-  AutoDiffVecXd dr = y.tail(n_r_);
   AutoDiffVecXd dy = initializeAutoDiff(VectorXd::Zero(2 * n_r_));
-  dy << dr, dyn_expression_.getExpression(theta_dyn_, r, dr, tau);
+  dy << y.tail(n_r_), dyn_expression_.getExpression(
+       theta_dyn_, y.head(n_r_), y.tail(n_r_), tau);
   return dy;
 }
 

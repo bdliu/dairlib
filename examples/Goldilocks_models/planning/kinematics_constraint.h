@@ -53,9 +53,9 @@ namespace goldilocks_models {
 namespace planning {
 
 
-class DynamicsConstraint : public Constraint {
+class KinematicsConstraint : public Constraint {
  public:
-  DynamicsConstraint(int n_r, int n_ddr, int n_feature_dyn,
+  KinematicsConstraint(int n_r, int n_ddr, int n_feature_dyn,
                      const VectorXd & theta_dyn,
                      int n_tau,
                      MatrixXd B_tau,
@@ -82,8 +82,8 @@ class DynamicsConstraint : public Constraint {
   int n_r_;
   int n_ddr_;
   int n_feature_dyn_;
-  int n_theta_dyn_;
-  VectorXd theta_dyn_;
+  int n_theta_ddr_;
+  VectorXd theta_ddr_;
   int n_y_;
   int n_tau_;
   DynamicsExpression dyn_expression_;

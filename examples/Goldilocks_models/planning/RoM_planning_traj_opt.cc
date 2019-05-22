@@ -87,6 +87,22 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       });
     }
 
+    // Add kinematics constraints
+
+    // TODO: not finished yet
+    auto kin_constraint = std::make_shared<planning::DynamicConstraint<T>>(
+                            n_r, n_ddr, n_feature_dyn, theta_dyn, n_tau, B_tau);
+    for (int j = 0; j < mode_lengths_[i]; j++) {
+      int time_index = mode_start_[i] + j;
+      AddConstraint(kin_constraint,
+      { state_vars_by_mode(i, j),
+        u_vars().segment(time_index * num_inputs(), num_inputs()),
+        state_vars_by_mode(i, j + 1),
+        u_vars().segment((time_index + 1) * num_inputs(), num_inputs()),
+        h_vars().segment(time_index, 1)
+      });
+    }
+
 
     counter += mode_lengths_[i] - 1;
   }
