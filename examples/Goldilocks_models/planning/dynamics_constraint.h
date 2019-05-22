@@ -88,17 +88,6 @@ class DynamicsConstraint : public Constraint {
   int n_tau_;
   DynamicsExpression dyn_expression_;
 
-  double eps_fd_ = 1e-6;
-  double eps_cd_ = 1e-4;
-  double eps_ho_ = 1e-3;
-  // The above number is tested in getGradientWrtTheta(), and the result is:
-  // 1e-6 good for fd
-  // 1e-4 good for cd;  // B matrix error ~ 1e-13 to 1e-15
-  // 1e-3 good for ho;
-  vector<double> fd_shift_vec_{0, eps_fd_};  // forward difference
-  vector<double> cd_shift_vec_{ -eps_cd_ / 2, eps_cd_ / 2};  // central difference
-  vector<double> ho_shift_vec_{ -eps_ho_ / 2, -eps_ho_ / 4,
-                                eps_ho_ / 4, eps_ho_ / 2};
 };
 }  // namespace planning
 }  // namespace goldilocks_models

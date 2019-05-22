@@ -34,4 +34,22 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "kinematics_constraint",
+    srcs = [
+        "kinematics_constraint.cc",
+    ],
+    hdrs = [
+        "kinematics_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+        "//examples/Goldilocks_models:kinematics_expression",
+    ],
+)
+
 
