@@ -9,8 +9,10 @@ cc_library(
         "@drake//solvers",
         "@drake//systems/framework",
         "@drake//systems/trajectory_optimization",
-        ":kinematics_expression",
-        ":dynamics_expression",
+        "@drake//multibody/plant:plant",
+        "//examples/Goldilocks_models:kinematics_expression",
+        "//examples/Goldilocks_models:dynamics_expression",
+        ":kinematics_constraint",
         ":dynamics_constraint",
     ],
 )

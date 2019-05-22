@@ -11,7 +11,8 @@
 
 #include "examples/Goldilocks_models/kinematics_expression.h"
 #include "examples/Goldilocks_models/dynamics_expression.h"
-#include "examples/Goldilocks_models/dynamics_constraint.h"
+#include "examples/Goldilocks_models/planning/kinematics_constraint.h"
+#include "examples/Goldilocks_models/planning/dynamics_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -23,14 +24,10 @@ using drake::solvers::MathematicalProgramResult;
 using drake::solvers::VectorXDecisionVariable;
 using drake::trajectories::PiecewisePolynomial;
 using drake::systems::trajectory_optimization::MultipleShooting;
-using drake::multibody::MultibodyPlant;
 using drake::AutoDiffXd;
 using drake::VectorX;
 using drake::solvers::VectorXDecisionVariable;
 using drake::symbolic::Expression;
-using Eigen::VectorXd;
-using Eigen::MatrixXd;
-using std::vector;
 
 RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   vector<int> num_time_samples,
@@ -38,6 +35,9 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   vector<double> maximum_timestep,
   int n_r,
   int n_tau,
+  MatrixXd B_tau,
+  int n_feature_dyn,
+  int n_feature_kin,
   const VectorXd & theta_kin,
   const VectorXd & theta_dyn,
   const MultibodyPlant<double>& plant) :
@@ -49,12 +49,15 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   mode_lengths_(num_time_samples),
   dr_post_impact_vars_(NewContinuousVariables(
                          n_r * (num_time_samples.size() - 1), "dr_p")),
-  x0_(NewContinuousVariables(
-                         (plant.num_positions() + plant.num_velocities()) * num_time_samples.size(), "x0")),
-  xf_(NewContinuousVariables(
-                         (plant.num_positions() + plant.num_velocities()) * num_time_samples.size(), "xf")),
+  x0_vars_(NewContinuousVariables(
+             (plant.num_positions() + plant.num_velocities()) * num_time_samples.size(),
+             "x0")),
+  xf_vars_(NewContinuousVariables(
+             (plant.num_positions() + plant.num_velocities()) * num_time_samples.size(),
+             "xf")),
   n_r_(n_r),
   n_tau_(n_tau),
+  n_x_(plant.num_positions() + plant.num_velocities()),
   plant_(plant) {
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
@@ -76,8 +79,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add dynamics constraints at collocation points
-    auto dyn_constraint = std::make_shared<planning::DynamicsConstraint<T>>(
-                            n_r, n_ddr, n_feature_dyn, theta_dyn, n_tau, B_tau);
+    auto dyn_constraint = std::make_shared<planning::DynamicsConstraint>(
+                            n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau);
     DRAKE_ASSERT(
       static_cast<int>(dyn_constraint->num_constraints()) == num_states());
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
@@ -92,21 +95,22 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add kinematics constraints
-
-    // TODO: not finished yet
-    auto kin_constraint = std::make_shared<planning::KinematicsConstraint<T>>(
-                            n_r, n_ddr, n_feature_dyn, theta_dyn, n_tau, B_tau);
+    bool left_stance = (i % 2 == 0) ? true : false;
+    int n_q = plant.num_positions();
+    auto kin_constraint = std::make_shared<planning::KinematicsConstraint>(
+                            left_stance, n_r, n_q, n_feature_kin, theta_kin);
     std::vector<int> j_vec{0, mode_lengths_[i] - 1};
-    for (auto const & j : j_vec) {
+    for (unsigned int k = 0; k < j_vec.size(); k++) {
+      int j = j_vec[k];
       int time_index = mode_start_[i] + j;
-      auto state = state_vars_by_mode(i, j);
-      AddConstraint(kin_constraint,
-      { state.head(n_r_),
-        u_vars().segment(time_index * num_inputs(), num_inputs())
-      });
+      auto y_j = state_vars_by_mode(i, j);
+      if (k == 0)
+        AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i)});
+      else
+        AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i)});
     }
 
-    
+
     // Periodic constraints
 
     // Guard constraint
@@ -122,6 +126,14 @@ const Eigen::VectorBlock<const VectorXDecisionVariable>
 RomPlanningTrajOptWithFomImpactMap::dr_post_impact_vars_by_mode(
   int mode) const {
   return dr_post_impact_vars_.segment(mode * n_r_, n_r_);
+}
+const Eigen::VectorBlock<const VectorXDecisionVariable>
+RomPlanningTrajOptWithFomImpactMap::x0_vars_by_mode(int mode) const {
+  return x0_vars_.segment(mode * n_x_, n_x_);
+}
+const Eigen::VectorBlock<const VectorXDecisionVariable>
+RomPlanningTrajOptWithFomImpactMap::xf_vars_by_mode(int mode) const {
+  return xf_vars_.segment(mode * n_x_, n_x_);
 }
 
 VectorX<Expression>

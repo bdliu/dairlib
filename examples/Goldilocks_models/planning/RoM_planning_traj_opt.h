@@ -10,6 +10,12 @@
 #include "drake/systems/trajectory_optimization/multiple_shooting.h"
 #include "drake/common/trajectories/piecewise_polynomial.h"
 #include "drake/common/symbolic.h"
+#include "drake/multibody/plant/multibody_plant.h"
+
+using std::vector;
+using Eigen::VectorXd;
+using Eigen::MatrixXd;
+using drake::multibody::MultibodyPlant;
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -29,6 +35,9 @@ class RomPlanningTrajOptWithFomImpactMap :
                                      vector<double> maximum_timestep,
                                      int n_r,
                                      int n_tau,
+                                     MatrixXd B_tau,
+                                     int n_feature_dyn,
+                                     int n_feature_kin,
                                      const VectorXd & theta_kin,
                                      const VectorXd & theta_dyn,
                                      const MultibodyPlant<double>& plant);
@@ -61,6 +70,10 @@ class RomPlanningTrajOptWithFomImpactMap :
 
   const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
   dr_post_impact_vars_by_mode(int mode) const;
+  const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
+  x0_vars_by_mode(int mode) const;
+  const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
+  xf_vars_by_mode(int mode) const;
 
   /// Get the state decision variables given a mode and a time_index
   /// (time_index is w.r.t that particular mode). This will use the
@@ -80,8 +93,11 @@ class RomPlanningTrajOptWithFomImpactMap :
   const std::vector<int> mode_lengths_;
   std::vector<int> mode_start_;
   const drake::solvers::VectorXDecisionVariable dr_post_impact_vars_;
-  const int n_s_;
+  const drake::solvers::VectorXDecisionVariable x0_vars_;
+  const drake::solvers::VectorXDecisionVariable xf_vars_;
+  const int n_r_;
   const int n_tau_;
+  const int n_x_;
   const drake::multibody::MultibodyPlant<double>& plant_;
 };
 
