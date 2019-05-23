@@ -13,6 +13,7 @@
 #include "examples/Goldilocks_models/dynamics_expression.h"
 #include "examples/Goldilocks_models/planning/kinematics_constraint.h"
 #include "examples/Goldilocks_models/planning/dynamics_constraint.h"
+#include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -125,6 +126,9 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Guard constraint
+    auto guard_constraint = std::make_shared<planning::FomGuardConstraint>(
+                            left_stance, n_q, n_q);
+    AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
     // Reset map constraint
 

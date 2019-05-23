@@ -20,3 +20,18 @@ cc_binary(
         "//solvers:optimization_utils",
     ],
 )
+
+
+cc_binary(
+    name = "foot_jacobian_test",
+    srcs = ["foot_jacobian_test.cc"],
+    deps = [
+        "//common",
+        "//multibody:utils",
+        "@drake//multibody/parsing",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",
+        "@drake//systems/framework:system",
+        "@drake//math:gradient",
+    ],
+)
+

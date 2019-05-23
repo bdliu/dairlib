@@ -55,3 +55,20 @@ cc_library(
 )
 
 
+cc_library(
+    name = "FoM_guard_constraint",
+    srcs = [
+        "FoM_guard_constraint.cc",
+    ],
+    hdrs = [
+        "FoM_guard_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+    ],
+)
+
