@@ -6,12 +6,12 @@ namespace goldilocks_models {
 namespace planning {
 
 FomGuardConstraint::FomGuardConstraint(
-  bool left_stance, int n_q, int n_v,
+  bool left_stance, int n_q, int n_v, VectorXd lb, VectorXd ub,
   const std::string& description):
   Constraint(2,
              n_q + n_v,
-             VectorXd::Zero(2),
-             VectorXd::Zero(2),
+             lb,
+             ub,
              description),
   left_stance_(left_stance) {
 }

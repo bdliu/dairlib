@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <string>
 
 #include "drake/solvers/decision_variable.h"
 #include "drake/math/autodiff.h"
@@ -14,6 +15,7 @@
 #include "examples/Goldilocks_models/planning/kinematics_constraint.h"
 #include "examples/Goldilocks_models/planning/dynamics_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
+#include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -29,6 +31,9 @@ using drake::AutoDiffXd;
 using drake::VectorX;
 using drake::solvers::VectorXDecisionVariable;
 using drake::symbolic::Expression;
+
+using std::string;
+using std::to_string;
 
 RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   vector<int> num_time_samples,
@@ -111,26 +116,63 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i)});
     }
 
-    // Periodic constraints
+    // Add periodic constraints
     if (i != 0) {
-      AddConstraint(xf_vars_by_mode(i - 1).segment(1, 2) ==
-                    x0_vars_by_mode(i).segment(1, 2));
-      AddConstraint(xf_vars_by_mode(i - 1).segment(3, 1) ==
-                    x0_vars_by_mode(i).segment(4, 1));
-      AddConstraint(xf_vars_by_mode(i - 1).segment(4, 1) ==
-                    x0_vars_by_mode(i).segment(3, 1));
-      AddConstraint(xf_vars_by_mode(i - 1).segment(5, 1) ==
-                    x0_vars_by_mode(i).segment(6, 1));
-      AddConstraint(xf_vars_by_mode(i - 1).segment(6, 1) ==
-                    x0_vars_by_mode(i).segment(5, 1));
+      /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 2) ==
+                          x0_vars_by_mode(i).segment(1, 2));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(3, 1) ==
+                          x0_vars_by_mode(i).segment(4, 1));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(4, 1) ==
+                          x0_vars_by_mode(i).segment(3, 1));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(5, 1) ==
+                          x0_vars_by_mode(i).segment(6, 1));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(6, 1) ==
+                          x0_vars_by_mode(i).segment(5, 1));*/
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 6) ==
+                          x0_vars_by_mode(i).segment(1, 6));
     }
 
-    // Guard constraint
+    bool zero_touchdown_impact = true;
+
+    // Add guard constraint
+    VectorXd lb = VectorXd::Zero(2);
+    if (!zero_touchdown_impact)
+      lb << 0, -std::numeric_limits<double>::infinity();
+    VectorXd ub = VectorXd::Zero(2);
     auto guard_constraint = std::make_shared<planning::FomGuardConstraint>(
-                            left_stance, n_q, n_q);
+                              left_stance, n_q, n_q, lb, ub);
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
-    // Reset map constraint
+    // Add reset map constraint (not done yet)
+    if (i != 0) {
+      if (zero_touchdown_impact) {
+        /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 3) ==
+                            x0_vars_by_mode(i).segment(0 + 7, 3));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(3 + 7, 1) ==
+                            x0_vars_by_mode(i).segment(4 + 7, 1));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(4 + 7, 1) ==
+                            x0_vars_by_mode(i).segment(3 + 7, 1));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(5 + 7, 1) ==
+                            x0_vars_by_mode(i).segment(6 + 7, 1));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(6 + 7, 1) ==
+                            x0_vars_by_mode(i).segment(5 + 7, 1));*/
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 7) ==
+                            x0_vars_by_mode(i).segment(0 + 7, 7));
+      } else {
+        int n_J = (zero_touchdown_impact) ? 0 : 2;
+        auto reset_map_constraint =
+          std::make_shared<planning::FomResetMapConstraint>(
+            left_stance, n_q, n_q, n_J, plant);
+        auto Lambda = NewContinuousVariables(n_J, "Lambda" + to_string(i));
+        AddConstraint(reset_map_constraint, {xf_vars_by_mode(i - 1),
+                                             xf_vars_by_mode(i),
+                                             Lambda
+                                            });
+      }
+
+
+
+    }
 
 
 

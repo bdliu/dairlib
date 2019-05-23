@@ -50,11 +50,11 @@ namespace dairlib {
 namespace goldilocks_models {
 namespace planning {
 
-class FomGuardConstraint : public Constraint {
+class FomResetMapConstraint : public Constraint {
  public:
-  FomGuardConstraint(bool left_stance, int n_q, int n_v,
-                     VectorXd lb, VectorXd ub,
-                     const std::string& description = "");
+  FomResetMapConstraint(bool left_stance, int n_q, int n_v, int n_J,
+                        const MultibodyPlant<double> & plant,
+                        const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& x,
               Eigen::VectorXd* y) const override;
 
@@ -66,9 +66,14 @@ class FomGuardConstraint : public Constraint {
 
  private:
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
-                          drake::VectorX<double>* y) const;
+                          drake::VectorX<double>* y);
 
   bool left_stance_;
+  MultibodyPlant<double> plant_;
+  std::unique_ptr<drake::systems::Context<T>> context_;
+  drake::MatrixX<double> M_;
+  drake::MatrixX<double> M_ext_;
+  int n_q_;
 };
 }  // namespace planning
 }  // namespace goldilocks_models

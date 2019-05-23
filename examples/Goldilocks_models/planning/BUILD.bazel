@@ -14,6 +14,8 @@ cc_library(
         "//examples/Goldilocks_models:dynamics_expression",
         ":kinematics_constraint",
         ":dynamics_constraint",
+        ":FoM_guard_constraint",
+        ":FoM_reset_map_constraint",
     ],
 )
 
@@ -62,6 +64,23 @@ cc_library(
     ],
     hdrs = [
         "FoM_guard_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+    ],
+)
+
+cc_library(
+    name = "FoM_reset_map_constraint",
+    srcs = [
+        "FoM_reset_map_constraint.cc",
+    ],
+    hdrs = [
+        "FoM_reset_map_constraint.h"
     ],
     deps = [
         "@drake//solvers:mathematical_program",
