@@ -79,14 +79,19 @@ void FomResetMapConstraint::EvaluateConstraint(
   VectorX<double> vp = x.segment(21, 7);
   VectorX<double> Lambda = x.tail(2);
 
-  if (left_stance_) {
-    plant_->SetPositions(context_.get(), qm);
-    plant_.CalcMassMatrixViaInverseDynamics(context_, &M_);
+  plant_->SetPositions(context_.get(), qm);
+  plant_.CalcMassMatrixViaInverseDynamics(context_, &M_);
 
-    VectorX<double> left_foot_pos_xz(2);
-    left_foot_pos_xz <<
-                     qm(0) - 0.5 * sin(qm(2) + qm(3)) - 0.5 * sin(qm(2) + qm(3) + qm(5)),
-                     qm(1) - 0.5 * cos(qm(2) + qm(3)) - 0.5 * cos(qm(2) + qm(3) + qm(5));
+  VectorXd vm_ext(n_q_ + 2);
+  vm_ext << -M_*vm, VectorXd::Zero(2);
+  VectorXd vp_ext(n_q_ + 2);
+  vp_ext << vp, Lambda;
+
+  if (left_stance_) {
+    // VectorX<double> left_foot_pos_xz(2);
+    // left_foot_pos_xz <<
+    //                  qm(0) - 0.5 * sin(qm(2) + qm(3)) - 0.5 * sin(qm(2) + qm(3) + qm(5)),
+    //                  qm(1) - 0.5 * cos(qm(2) + qm(3)) - 0.5 * cos(qm(2) + qm(3) + qm(5));
     MatrixX<double> J_left_foot_pos_xz(2, 7);
     J_left_foot_pos_xz << 1,
                        0,
@@ -107,37 +112,35 @@ void FomResetMapConstraint::EvaluateConstraint(
     M_ext_.block(0, n_q_, n_q_, 2) = -J_left_foot_pos_xz.transpose();
     M_ext_.block(n_q_, 0, 2, n_q_) = J_left_foot_pos_xz;
 
-    VectorXd vm_ext(n_q_ + 2);
-    vm_ext << -M_*vm, VectorXd::Zero(2);
-    VectorXd vp_ext(n_q_ + 2);
-    vp_ext << vp, Lambda;
-
     *y = M_ext_ * vp_ext + vm_ext;
 
   } else {
+    // VectorX<double> right_foot_pos_xz(2);
+    // right_foot_pos_xz <<
+    //                   qm(0) - 0.5 * sin(qm(2) + qm(4)) - 0.5 * sin(qm(2) + qm(4) + qm(6)),
+    //                   qm(1) - 0.5 * cos(qm(2) + qm(4)) - 0.5 * cos(qm(2) + qm(4) + qm(6));
 
+    MatrixX<double> J_right_foot_pos_xz(2, 7);
+    J_right_foot_pos_xz << 1,
+                        0,
+                        - 0.5 * cos(qm(2) + qm(4)) - 0.5 * cos(qm(2) + qm(4) + qm(6)),
+                        0,
+                        - 0.5 * cos(qm(2) + qm(4)) - 0.5 * cos(qm(2) + qm(4) + qm(6)),
+                        0,
+                        - 0.5 * cos(qm(2) + qm(4) + qm(6)),
+                        0,
+                        1,
+                        0.5 * sin(x(2) + x(4)) + 0.5 * sin(x(2) + x(4) + x(6)),
+                        0,
+                        0.5 * sin(x(2) + x(4)) + 0.5 * sin(x(2) + x(4) + x(6)),
+                        0,
+                        0.5 * sin(x(2) + x(4) + x(6));
 
-    VectorX<double> right_foot_pos_xz(2);
-    right_foot_pos_xz <<
-                      qm(0) - 0.5 * sin(qm(2) + qm(4)) - 0.5 * sin(qm(2) + qm(4) + qm(6)),
-                      qm(1) - 0.5 * cos(qm(2) + qm(4)) - 0.5 * cos(qm(2) + qm(4) + qm(6));
+    M_ext_.block(0, 0, n_q_, n_q_) = M_;
+    M_ext_.block(0, n_q_, n_q_, 2) = -J_right_foot_pos_xz.transpose();
+    M_ext_.block(n_q_, 0, 2, n_q_) = J_right_foot_pos_xz;
 
-    /*VectorX<double> right_foot_pos_z(1);
-    right_foot_pos_z <<
-                     x(1) - 0.5 * cos(x(2) + x(4)) - 0.5 * cos(x(2) + x(4) + x(6));
-    MatrixX<double> J_right_foot_pos_z(1, 7);
-    J_right_foot_pos_z << 0,
-                       1,
-                       0.5 * sin(x(2) + x(4)) + 0.5 * sin(x(2) + x(4) + x(6)),
-                       0,
-                       0.5 * sin(x(2) + x(4)) + 0.5 * sin(x(2) + x(4) + x(6)),
-                       0,
-                       0.5 * sin(x(2) + x(4) + x(6));
-    VectorX<double> right_foot_vel_z = J_right_foot_pos_z * x.tail(7);
-
-    VectorX<double> output(2);
-    output << right_foot_pos_z, right_foot_vel_z;
-    *y = output;*/
+    *y = M_ext_ * vp_ext + vm_ext;
   }
 }
 
