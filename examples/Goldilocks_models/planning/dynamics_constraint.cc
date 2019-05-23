@@ -65,6 +65,7 @@ AutoDiffVecXd DynamicsConstraint::getConstraintValueInAutoDiff(
   const AutoDiffVecXd & y_i, const AutoDiffVecXd & tau_i,
   const AutoDiffVecXd & y_iplus1, const AutoDiffVecXd & tau_iplus1,
   const AutoDiffVecXd & h_i) const {
+
   //
   AutoDiffVecXd g_i = g(y_i, tau_i);
   AutoDiffVecXd g_iplus1 = g(y_iplus1, tau_iplus1);
@@ -82,6 +83,7 @@ AutoDiffVecXd DynamicsConstraint::g(const AutoDiffVecXd & y,
   AutoDiffVecXd r = y.head(n_r_);
   AutoDiffVecXd dr = y.tail(n_r_);
   AutoDiffVecXd dy = initializeAutoDiff(VectorXd::Zero(2 * n_r_));
+
   dy << dr, dyn_expression_.getExpression(theta_dyn_, r, dr, tau);
   return dy;
 }

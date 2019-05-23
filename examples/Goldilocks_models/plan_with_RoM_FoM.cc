@@ -129,6 +129,13 @@ int planningWithRomAndFom(int argc, char* argv[]) {
                    n_s, n_tau, B_tau,
                    n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant);
 
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Print file", "snopt.out");
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Major iterations limit", 1000);
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Verify level", 0);
+
   // Solve
   cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();

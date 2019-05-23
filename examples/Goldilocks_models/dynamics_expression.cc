@@ -171,7 +171,12 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   if (n_sDDot_ == 2) {
     // DRAKE_DEMAND(n_sDDot_ == 2);
     T feature(16);  // 1 + 1 + 4 + (4Choose2 + 4) = 1 + 1 + 4 + 10 = 16
-    feature << (9.80665/s(1))*s(0),
+    T first_element(1);
+    if(s(1) == 0)
+      first_element << (9.80665/(s(1)+1e-8))*s(0);  // avoid sigularity
+    else
+      first_element << (9.80665/s(1))*s(0);
+    feature << first_element(0),
             1,   // constant
             s(0),
             s(1),
@@ -194,7 +199,12 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   if (n_sDDot_ == 4) {
     // DRAKE_DEMAND(n_sDDot_ == 4);
     T feature(46);  // 1 + 1 + 8 + (8Choose2 + 8) = 1 + 1 + 8 + 36 = 46
-    feature << (9.80665/s(1))*s(0),
+    T first_element(1);
+    if(s(1) == 0)
+      first_element << (9.80665/(s(1)+1e-8))*s(0);  // avoid sigularity
+    else
+      first_element << (9.80665/s(1))*s(0);
+    feature << first_element(0),
             1,   // constant
             s(0),
             s(1),
