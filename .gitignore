@@ -9,3 +9,4 @@ attic/multibody/solver_log/
 
 examples/Goldilocks_models/find_models/data/
 snopt.out
+*.csv

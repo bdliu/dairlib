@@ -66,11 +66,10 @@ class FomResetMapConstraint : public Constraint {
 
  private:
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
-                          drake::VectorX<double>* y);
+                          drake::VectorX<double>* y) const;
 
   bool left_stance_;
   MultibodyPlant<double> plant_;
-  std::unique_ptr<drake::systems::Context<T>> context_;
   drake::MatrixX<double> M_;
   drake::MatrixX<double> M_ext_;
   int n_q_;

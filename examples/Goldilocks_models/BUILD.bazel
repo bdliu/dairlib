@@ -101,6 +101,7 @@ cc_binary(
         "@drake//multibody/parsing",
         ":kinematics_expression",
         ":dynamics_expression",
+        "//examples/Goldilocks_models/planning:RoM_planning_traj_opt",
     ],
 )
 

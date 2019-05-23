@@ -19,6 +19,8 @@
 #include "examples/Goldilocks_models/kinematics_expression.h"
 #include "examples/Goldilocks_models/dynamics_expression.h"
 
+#include "examples/Goldilocks_models/planning/RoM_planning_traj_opt.h"
+
 using std::cin;
 using std::cout;
 using std::endl;
@@ -31,6 +33,7 @@ using Eigen::VectorXcd;
 using Eigen::MatrixXd;
 using drake::solvers::MathematicalProgram;
 using drake::solvers::MathematicalProgramResult;
+using drake::solvers::SolutionResult;
 
 using drake::geometry::SceneGraph;
 using drake::multibody::MultibodyPlant;
@@ -92,20 +95,54 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     dyn_expression.getFeature(dummy_s, dummy_s).size();
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
+  cout << "n_theta_s = " << n_theta_s << endl;
+  cout << "n_theta_sDDot = " << n_theta_sDDot << endl;
 
   // Read in theta
   string dir_prefix = dir + to_string(FLAGS_iter) + string("_");
+  cout << "dir_prefix = " << dir_prefix << endl;
   VectorXd theta_s = readCSV(dir_prefix + string("theta_s.csv")).col(0);
   VectorXd theta_sDDot = readCSV(dir_prefix + string("theta_sDDot.csv")).col(0);
   DRAKE_DEMAND(theta_s.size() == n_theta_s);
   DRAKE_DEMAND(theta_sDDot.size() == n_theta_sDDot);
+  cout << "theta_s = " << theta_s.transpose() << endl;
+  cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
-  //
+  // Prespecify the time steps
+  std::vector<int> num_time_samples;
+  num_time_samples.push_back(20);
+  num_time_samples.push_back(20);
+  std::vector<double> min_dt;
+  min_dt.push_back(.01);
+  min_dt.push_back(.01);
+  std::vector<double> max_dt;
+  max_dt.push_back(.3);
+  max_dt.push_back(.3);
+  int N = 0;
+  for (uint i = 0; i < num_time_samples.size(); i++)
+    N += num_time_samples[i];
+  N -= num_time_samples.size() - 1;
 
+  // Construct
+  auto trajopt = std::make_unique<RomPlanningTrajOptWithFomImpactMap>(
+                   num_time_samples, min_dt, max_dt,
+                   n_s, n_tau, B_tau,
+                   n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant);
+
+  // Solve
+  cout << "Solving DIRCON (based on MultipleShooting)\n";
+  auto start = std::chrono::high_resolution_clock::now();
+  const MathematicalProgramResult result = Solve(
+        *trajopt, trajopt->initial_guess());
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = finish - start;
+  cout << "    Solve time:" << elapsed.count() << " | ";
+  SolutionResult solution_result = result.get_solution_result();
+  cout << solution_result <<  " | ";
+  cout << "Cost:" << result.get_optimal_cost() << ")\n";
 
   return 0;
 }  // int planningWithRomAndFom
-
 }  // namespace goldilocks_models
 }  // namespace dairlib
 

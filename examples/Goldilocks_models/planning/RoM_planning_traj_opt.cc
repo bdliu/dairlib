@@ -15,7 +15,7 @@
 #include "examples/Goldilocks_models/planning/kinematics_constraint.h"
 #include "examples/Goldilocks_models/planning/dynamics_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
-#include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
+// #include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -42,13 +42,13 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   int n_r,
   int n_tau,
   MatrixXd B_tau,
-  int n_feature_dyn,
   int n_feature_kin,
+  int n_feature_dyn,
   const VectorXd & theta_kin,
   const VectorXd & theta_dyn,
   const MultibodyPlant<double>& plant) :
   MultipleShooting(n_tau,
-                   2 * n_tau,
+                   2 * n_r,
                    std::accumulate(num_time_samples.begin(),
                                    num_time_samples.end(), 0) - num_time_samples.size() + 1, 1e-8, 1e8),
   num_modes_(num_time_samples.size()),
@@ -71,6 +71,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   // Initialization is looped over the modes
   int counter = 0;
   for (int i = 0; i < num_modes_; i++) {
+    cout << "Mode " << i << endl;
     mode_start_.push_back(counter);
 
     // Set timestep bounds
@@ -85,6 +86,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add dynamics constraints at collocation points
+    cout << "Adding dynamics constraint...\n";
     auto dyn_constraint = std::make_shared<planning::DynamicsConstraint>(
                             n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau);
     DRAKE_ASSERT(
@@ -101,22 +103,23 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add kinematics constraints
+    cout << "Adding kinematics constraint...\n";
     bool left_stance = (i % 2 == 0) ? true : false;
-    int n_q = plant.num_positions();
+    int n_q = plant_.num_positions();
     auto kin_constraint = std::make_shared<planning::KinematicsConstraint>(
                             left_stance, n_r, n_q, n_feature_kin, theta_kin);
     std::vector<int> j_vec{0, mode_lengths_[i] - 1};
     for (unsigned int k = 0; k < j_vec.size(); k++) {
       int j = j_vec[k];
-      int time_index = mode_start_[i] + j;
       auto y_j = state_vars_by_mode(i, j);
       if (k == 0)
-        AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i)});
+        AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i).head(n_q)});
       else
-        AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i)});
+        AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i).head(n_q)});
     }
 
-    // Add periodic constraints
+    // Add periodicity constraints
+    cout << "Adding periodicity constraint...\n";
     if (i != 0) {
       /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 2) ==
                           x0_vars_by_mode(i).segment(1, 2));
@@ -132,9 +135,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                           x0_vars_by_mode(i).segment(1, 6));
     }
 
-    bool zero_touchdown_impact = false;
+    bool zero_touchdown_impact = true;
 
     // Add guard constraint
+    cout << "Adding guard constraint...\n";
     VectorXd lb = VectorXd::Zero(2);
     if (!zero_touchdown_impact)
       lb << 0, -std::numeric_limits<double>::infinity();
@@ -144,6 +148,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
     // Add reset map constraint
+    cout << "Adding reset map constraint...\n";
     if (i != 0) {
       if (zero_touchdown_impact) {
         /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 3) ==
@@ -159,18 +164,17 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 7) ==
                             x0_vars_by_mode(i).segment(0 + 7, 7));
       } else {
-        int n_J = (zero_touchdown_impact) ? 0 : 2;
+        /*int n_J = (zero_touchdown_impact) ? 0 : 2;
         auto reset_map_constraint =
           std::make_shared<planning::FomResetMapConstraint>(
-            left_stance, n_q, n_q, n_J, plant);
+            left_stance, n_q, n_q, n_J, plant_);
         auto Lambda = NewContinuousVariables(n_J, "Lambda" + to_string(i));
         AddConstraint(reset_map_constraint, {xf_vars_by_mode(i - 1),
                                              xf_vars_by_mode(i),
                                              Lambda
-                                            });
+                                            });*/
       }
     }
-
 
 
     counter += mode_lengths_[i] - 1;
@@ -279,13 +283,14 @@ RomPlanningTrajOptWithFomImpactMap::ReconstructStateTrajectory(
 
 
       // TODO(yminchen): need to modify the following code
-      auto context = multibody::createContext(plant_, yk, tauk);
+      /*auto context = multibody::createContext(plant_, yk, tauk);
       constraints_[i]->updateData(*context, result.GetSolution(force(i, j)));
       derivatives.col(k) =
-        drake::math::DiscardGradient(constraints_[i]->getXDot());
+        drake::math::DiscardGradient(constraints_[i]->getXDot());*/
     }
   }
-  return PiecewisePolynomial<double>::Cubic(times, states, derivatives);
+  // return PiecewisePolynomial<double>::Cubic(times, states, derivatives);
+  return PiecewisePolynomial<double>::FirstOrderHold(times, states);
 }
 
 

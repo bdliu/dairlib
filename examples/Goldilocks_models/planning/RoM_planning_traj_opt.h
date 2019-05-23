@@ -36,8 +36,8 @@ class RomPlanningTrajOptWithFomImpactMap :
                                      int n_r,
                                      int n_tau,
                                      MatrixXd B_tau,
-                                     int n_feature_dyn,
                                      int n_feature_kin,
+                                     int n_feature_dyn,
                                      const VectorXd & theta_kin,
                                      const VectorXd & theta_dyn,
                                      const MultibodyPlant<double>& plant);
