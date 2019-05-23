@@ -70,7 +70,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
   // Files parameters
-  const string dir = "examples/Goldilocks_models/find_models/data/";
+  const string dir = "examples/Goldilocks_models/planning/models/";
   string init_file = FLAGS_init_file;
 
   // Reduced order model parameters
@@ -95,18 +95,18 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     dyn_expression.getFeature(dummy_s, dummy_s).size();
   int n_theta_s = n_s * n_feature_s;
   int n_theta_sDDot = n_sDDot * n_feature_sDDot;
-  cout << "n_theta_s = " << n_theta_s << endl;
-  cout << "n_theta_sDDot = " << n_theta_sDDot << endl;
+  // cout << "n_theta_s = " << n_theta_s << endl;
+  // cout << "n_theta_sDDot = " << n_theta_sDDot << endl;
 
   // Read in theta
   string dir_prefix = dir + to_string(FLAGS_iter) + string("_");
-  cout << "dir_prefix = " << dir_prefix << endl;
+  // cout << "dir_prefix = " << dir_prefix << endl;
   VectorXd theta_s = readCSV(dir_prefix + string("theta_s.csv")).col(0);
   VectorXd theta_sDDot = readCSV(dir_prefix + string("theta_sDDot.csv")).col(0);
   DRAKE_DEMAND(theta_s.size() == n_theta_s);
   DRAKE_DEMAND(theta_sDDot.size() == n_theta_sDDot);
-  cout << "theta_s = " << theta_s.transpose() << endl;
-  cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
+  // cout << "theta_s = " << theta_s.transpose() << endl;
+  // cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
   // Prespecify the time steps
   std::vector<int> num_time_samples;
