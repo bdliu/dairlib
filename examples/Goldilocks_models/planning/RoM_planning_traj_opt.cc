@@ -132,7 +132,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                           x0_vars_by_mode(i).segment(1, 6));
     }
 
-    bool zero_touchdown_impact = true;
+    bool zero_touchdown_impact = false;
 
     // Add guard constraint
     VectorXd lb = VectorXd::Zero(2);
@@ -143,7 +143,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                               left_stance, n_q, n_q, lb, ub);
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
-    // Add reset map constraint (not done yet)
+    // Add reset map constraint
     if (i != 0) {
       if (zero_touchdown_impact) {
         /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 3) ==
@@ -169,9 +169,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                              Lambda
                                             });
       }
-
-
-
     }
 
 
