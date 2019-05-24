@@ -135,10 +135,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add periodicity constraints
-    cout << "Adding periodicity constraint...\n";
     if (i != 0) {
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
-                          x0_vars_by_mode(i).segment(0, n_q));
+      cout << "Adding periodicity constraint...\n";
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, n_q-1) ==
+                          x0_vars_by_mode(i).segment(1, n_q-1));
     }
 
     // Add guard constraint
@@ -152,11 +152,11 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
     // Add reset map constraint
-    cout << "Adding reset map constraint...\n";
     if (i != 0) {
+      cout << "Adding reset map constraint...\n";
       if (zero_touchdown_impact) {
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + n_q, n_q) ==
-                            x0_vars_by_mode(i).segment(0 + n_q, n_q));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(n_q, n_q) ==
+                            x0_vars_by_mode(i).segment(n_q, n_q));
       } else {
         /*int n_J = (zero_touchdown_impact) ? 0 : 2;
         auto reset_map_constraint =
@@ -196,11 +196,13 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                      });
 
     // Additional constraints for the full order model
-    cout << "Adding initial and final position for full-order model...\n";
-    if (i == 0)
+    if (i == 0) {
+      cout << "Adding initial position constraint for full-order model...\n";
       AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
-    else if (i == num_modes_ - 1)
+    } else if (i == num_modes_ - 1) {
+      cout << "Adding final position constraint for full-order model...\n";
       AddLinearConstraint(x0_vars_by_mode(i)(0) == desired_final_position);
+    }
 
     counter += mode_lengths_[i] - 1;
   }

@@ -47,6 +47,7 @@ namespace goldilocks_models {
 
 DEFINE_int32(iter, 0, "The iteration # of the theta that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
+DEFINE_int32(n_step, 2, "How many foot steps");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -114,15 +115,15 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   MatrixXd R = MatrixXd::Identity(n_tau, n_tau);
 
   // Prespecify the time steps
+  int n_step = FLAGS_n_step;
   std::vector<int> num_time_samples;
-  num_time_samples.push_back(20);
-  num_time_samples.push_back(20);
   std::vector<double> min_dt;
-  min_dt.push_back(.01);
-  min_dt.push_back(.01);
   std::vector<double> max_dt;
-  max_dt.push_back(.3);
-  max_dt.push_back(.3);
+  for (int i = 0; i < n_step; i++) {
+    num_time_samples.push_back(20);
+    min_dt.push_back(.01);
+    max_dt.push_back(.3);
+  }
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
@@ -180,8 +181,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   writeCSV(dir_data + string("state_at_knots.csv"), state_at_knots);
   writeCSV(dir_data + string("input_at_knots.csv"), input_at_knots);
 
-  MatrixXd x0_each_mode(2*plant.num_positions(),num_time_samples.size());
-  MatrixXd xf_each_mode(2*plant.num_positions(),num_time_samples.size());
+  MatrixXd x0_each_mode(2 * plant.num_positions(), num_time_samples.size());
+  MatrixXd xf_each_mode(2 * plant.num_positions(), num_time_samples.size());
   for (uint i = 0; i < num_time_samples.size(); i++) {
     x0_each_mode.col(i) = result.GetSolution(trajopt->x0_vars_by_mode(i));
     xf_each_mode.col(i) = result.GetSolution(trajopt->xf_vars_by_mode(i));
