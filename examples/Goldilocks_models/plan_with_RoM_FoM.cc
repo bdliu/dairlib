@@ -46,7 +46,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter, 0, "The iteration # of the theta that you use");
-DEFINE_string(init_file, "w0.csv", "Initial Guess for Planning Optimization");
+DEFINE_string(init_file, "z0.csv", "Initial Guess for Planning Optimization");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -70,7 +70,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
 
   // Files parameters
-  const string dir = "examples/Goldilocks_models/planning/models/";
+  const string dir_model = "examples/Goldilocks_models/planning/models/";
+  const string dir_data = "examples/Goldilocks_models/planning/data/";
   string init_file = FLAGS_init_file;
 
   // Reduced order model parameters
@@ -99,14 +100,18 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "n_theta_sDDot = " << n_theta_sDDot << endl;
 
   // Read in theta
-  string dir_prefix = dir + to_string(FLAGS_iter) + string("_");
-  // cout << "dir_prefix = " << dir_prefix << endl;
-  VectorXd theta_s = readCSV(dir_prefix + string("theta_s.csv")).col(0);
-  VectorXd theta_sDDot = readCSV(dir_prefix + string("theta_sDDot.csv")).col(0);
+  string dir_and_pf = dir_model + to_string(FLAGS_iter) + string("_");
+  // cout << "dir_and_pf = " << dir_and_pf << endl;
+  VectorXd theta_s = readCSV(dir_and_pf + string("theta_s.csv")).col(0);
+  VectorXd theta_sDDot = readCSV(dir_and_pf + string("theta_sDDot.csv")).col(0);
   DRAKE_DEMAND(theta_s.size() == n_theta_s);
   DRAKE_DEMAND(theta_sDDot.size() == n_theta_sDDot);
   // cout << "theta_s = " << theta_s.transpose() << endl;
   // cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
+
+  // Optimization parameters
+  MatrixXd Q = MatrixXd::Identity(n_s, n_s);
+  MatrixXd R = MatrixXd::Identity(n_tau, n_tau);
 
   // Prespecify the time steps
   std::vector<int> num_time_samples;
@@ -136,6 +141,27 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);
 
+  cout << "Adding cost...\n";
+  auto x = trajopt->state();
+  auto u = trajopt->input();
+  trajopt->AddRunningCost(u.transpose()*R * u);
+  trajopt->AddRunningCost(x.tail(n_s).transpose()*Q * x.tail(n_s));
+
+  // Initial guess
+  if (!init_file.empty()) {
+    VectorXd z0 = readCSV(dir_data + init_file).col(0);
+    int n_dec = trajopt->decision_variables().size();
+    if (n_dec > z0.rows()) {
+      cout << "dim(initial guess) < dim(decision var). "
+           "Fill the rest with zero's.\n";
+      VectorXd old_z0 = z0;
+      z0.resize(n_dec);
+      z0 = VectorXd::Zero(n_dec);
+      z0.head(old_z0.rows()) = old_z0;
+    }
+    trajopt->SetInitialGuessForAllVariables(z0);
+  }
+
   // Solve
   cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
@@ -147,6 +173,20 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() << ")\n";
+
+  // Extract solution
+  VectorXd z_sol = result.GetSolution(trajopt->decision_variables());
+  writeCSV(dir_data + string("z.csv"), z_sol);
+
+  // Store the time, state, and input at knot points
+  VectorXd time_at_knots = trajopt->GetSampleTimes(result);
+  MatrixXd state_at_knots = trajopt->GetStateSamples(result);
+  MatrixXd input_at_knots = trajopt->GetInputSamples(result);
+  writeCSV(dir_data + string("time_at_knots.csv"), time_at_knots);
+  writeCSV(dir_data + string("state_at_knots.csv"), state_at_knots);
+  writeCSV(dir_data + string("input_at_knots.csv"), input_at_knots);
+
+
 
   return 0;
 }  // int planningWithRomAndFom

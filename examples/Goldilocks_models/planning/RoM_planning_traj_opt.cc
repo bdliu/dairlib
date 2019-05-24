@@ -121,16 +121,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Add periodicity constraints
     cout << "Adding periodicity constraint...\n";
     if (i != 0) {
-      /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 2) ==
-                          x0_vars_by_mode(i).segment(1, 2));
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(3, 1) ==
-                          x0_vars_by_mode(i).segment(4, 1));
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(4, 1) ==
-                          x0_vars_by_mode(i).segment(3, 1));
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(5, 1) ==
-                          x0_vars_by_mode(i).segment(6, 1));
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(6, 1) ==
-                          x0_vars_by_mode(i).segment(5, 1));*/
       AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 6) ==
                           x0_vars_by_mode(i).segment(1, 6));
     }
@@ -151,16 +141,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     cout << "Adding reset map constraint...\n";
     if (i != 0) {
       if (zero_touchdown_impact) {
-        /*AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 3) ==
-                            x0_vars_by_mode(i).segment(0 + 7, 3));
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(3 + 7, 1) ==
-                            x0_vars_by_mode(i).segment(4 + 7, 1));
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(4 + 7, 1) ==
-                            x0_vars_by_mode(i).segment(3 + 7, 1));
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(5 + 7, 1) ==
-                            x0_vars_by_mode(i).segment(6 + 7, 1));
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(6 + 7, 1) ==
-                            x0_vars_by_mode(i).segment(5 + 7, 1));*/
         AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 7) ==
                             x0_vars_by_mode(i).segment(0 + 7, 7));
       } else {
@@ -175,7 +155,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                             });*/
       }
     }
-
 
     counter += mode_lengths_[i] - 1;
   }
