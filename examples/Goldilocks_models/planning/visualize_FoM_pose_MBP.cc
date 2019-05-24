@@ -56,9 +56,9 @@ namespace goldilocks_models {
 namespace planning {
 
 DEFINE_int32(start_mode, 0, "Starting at mode #");
-DEFINE_bool(start_head, true, "Starting with x0 or xf");
+DEFINE_bool(start_is_head, true, "Starting with x0 or xf");
 DEFINE_int32(end_mode, 0, "Ending at mode #");
-DEFINE_bool(end_head, true, "Ending with x0 or xf");
+DEFINE_bool(end_is_head, true, "Ending with x0 or xf");
 DEFINE_double(step_time, 1, "Duration per step * 2");
 
 void visualizeFullOrderModelPose(int argc, char* argv[]) {
@@ -67,11 +67,12 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
   // parameters
   const string directory = "examples/Goldilocks_models/planning/data/";
 
-  bool head = FLAGS_start_head;
+  bool is_head = FLAGS_start_is_head;
   bool last_visited_mode = -1;
   bool visited_this_mode = false;
   for (int mode = FLAGS_start_mode; mode <= FLAGS_end_mode; mode++) {
     cout << "mode = " << mode << endl;
+    cout << "is_head = " << is_head << endl;
     if(last_visited_mode == mode){
       visited_this_mode = true;
     } else {
@@ -88,7 +89,7 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
     // Create a testing piecewise polynomial
     std::vector<double> T_breakpoint{0, 1};
     std::vector<MatrixXd> Y;
-    if (head) {
+    if (is_head) {
       Y.push_back(x0_each_mode.col(mode));
       Y.push_back(x0_each_mode.col(mode));
     }
@@ -124,10 +125,12 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
 
-    if((head == FLAGS_end_head) && (mode == FLAGS_end_mode))
+    if((is_head == FLAGS_end_is_head) && (mode == FLAGS_end_mode))
       continue;
-    if((head == false) && !visited_this_mode)
-      mode-=1;
+    if(is_head == true)
+      mode--;
+
+    is_head = !is_head;
   }
 
   return;
