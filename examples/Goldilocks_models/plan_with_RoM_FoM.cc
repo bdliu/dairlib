@@ -171,7 +171,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // Extract solution
   VectorXd z_sol = result.GetSolution(trajopt->decision_variables());
   writeCSV(dir_data + string("z.csv"), z_sol);
-  cout << trajopt->decision_variables() << endl;
+  // cout << trajopt->decision_variables() << endl;
 
   VectorXd time_at_knots = trajopt->GetSampleTimes(result);
   MatrixXd state_at_knots = trajopt->GetStateSamples(result);

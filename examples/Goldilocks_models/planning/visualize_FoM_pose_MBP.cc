@@ -57,7 +57,7 @@ namespace planning {
 
 
 DEFINE_int32(mode, 0, "The mode #");
-DEFINE_bool(head, false, "x0 or xf");
+DEFINE_bool(head, true, "x0 or xf");
 
 void visualizeFullOrderModelPose(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);

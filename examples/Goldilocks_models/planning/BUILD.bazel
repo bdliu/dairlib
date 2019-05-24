@@ -16,6 +16,7 @@ cc_library(
         ":dynamics_constraint",
         ":FoM_guard_constraint",
         #":FoM_reset_map_constraint",
+        ":FoM_stance_foot_constraint",
     ],
 )
 
@@ -90,6 +91,24 @@ cc_library(
         "//multibody:utils",
     ],
 )
+
+cc_library(
+    name = "FoM_stance_foot_constraint",
+    srcs = [
+        "FoM_stance_foot_constraint.cc",
+    ],
+    hdrs = [
+        "FoM_stance_foot_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+    ],
+)
+
 
 cc_binary(
     name = "visualize_FoM_pose_MBP",

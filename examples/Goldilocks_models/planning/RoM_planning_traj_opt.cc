@@ -16,6 +16,7 @@
 #include "examples/Goldilocks_models/planning/dynamics_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
 // #include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
+#include "examples/Goldilocks_models/planning/FoM_stance_foot_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -69,6 +70,12 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   plant_(plant) {
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
+
+  map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
+
+  // Parameters
+  bool zero_touchdown_impact = true;
+  double desired_final_position = 1;
 
   // Add cost
   cout << "Adding cost...\n";
@@ -130,11 +137,9 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Add periodicity constraints
     cout << "Adding periodicity constraint...\n";
     if (i != 0) {
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, 6) ==
-                          x0_vars_by_mode(i).segment(1, 6));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
+                          x0_vars_by_mode(i).segment(0, n_q));
     }
-
-    bool zero_touchdown_impact = true;
 
     // Add guard constraint
     cout << "Adding guard constraint...\n";
@@ -150,8 +155,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     cout << "Adding reset map constraint...\n";
     if (i != 0) {
       if (zero_touchdown_impact) {
-        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + 7, 7) ==
-                            x0_vars_by_mode(i).segment(0 + 7, 7));
+        AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0 + n_q, n_q) ==
+                            x0_vars_by_mode(i).segment(0 + n_q, n_q));
       } else {
         /*int n_J = (zero_touchdown_impact) ? 0 : 2;
         auto reset_map_constraint =
@@ -164,6 +169,38 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                             });*/
       }
     }
+
+    // Full order model joint limits
+    cout << "Adding full-order model joint constraint...\n";
+    vector<string> l_or_r{"left_", "right_"};
+    vector<string> fom_joint_names{"hip_pin", "knee_pin"};
+    vector<double> lb_for_fom_joints{ -M_PI / 2.0, 5.0 / 180.0 * M_PI};
+    vector<double> ub_for_fom_joints{M_PI / 2.0, M_PI / 2.0};
+    for (unsigned int k = 0; k < l_or_r.size(); k++) {
+      for (unsigned int l = 0; l < fom_joint_names.size(); l++) {
+        AddLinearConstraint(
+          x0_vars_by_mode(i)(positions_map.at(l_or_r[k] + fom_joint_names[l])),
+          lb_for_fom_joints[l], ub_for_fom_joints[l]);
+        AddLinearConstraint(
+          xf_vars_by_mode(i)(positions_map.at(l_or_r[k] + fom_joint_names[l])),
+          lb_for_fom_joints[l], ub_for_fom_joints[l]);
+      }
+    }
+
+    // Sitching x0 and xf
+    cout << "Adding full-order model stance foot constraint...\n";
+    auto fom_sf_constraint = std::make_shared<planning::FomStanceFootConstraint>(
+                               left_stance, n_q, n_q);
+    AddConstraint(fom_sf_constraint, {x0_vars_by_mode(i).head(n_q),
+                                      xf_vars_by_mode(i).head(n_q)
+                                     });
+
+    // Additional constraints for the full order model
+    cout << "Adding initial and final position for full-order model...\n";
+    if (i == 0)
+      AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
+    else if (i == num_modes_ - 1)
+      AddLinearConstraint(x0_vars_by_mode(i)(0) == desired_final_position);
 
     counter += mode_lengths_[i] - 1;
   }
