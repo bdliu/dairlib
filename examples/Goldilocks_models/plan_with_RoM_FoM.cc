@@ -164,7 +164,20 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     trajopt->SetInitialGuessForAllVariables(z0);
   }
   // Manually setting initial guess
-  
+  // ...
+
+
+
+  // Testing
+  /*auto constraints = trajopt->GetAllConstraints();
+  for (auto const& binding : constraints) {
+    auto const& c = binding.evaluator();
+    int n = c->num_constraints();
+    auto variables = binding.variables();
+    cout << "variables = " << variables.transpose() << endl;
+  }*/
+
+
 
   // Solve
   cout << "Solving DIRCON (based on MultipleShooting)\n";

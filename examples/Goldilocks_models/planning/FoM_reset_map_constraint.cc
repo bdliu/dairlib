@@ -29,7 +29,7 @@ void FomResetMapConstraint::DoEval(const Eigen::Ref<const Eigen::VectorXd>& x,
 void FomResetMapConstraint::DoEval(const Eigen::Ref<const AutoDiffVecXd>& x,
                                    AutoDiffVecXd* y) const {
   // forward differencing
-  double dx = 1e-8;
+  /*double dx = 1e-8;
 
   VectorXd x_val = autoDiffToValueMatrix(x);
   VectorXd y0, yi;
@@ -42,26 +42,26 @@ void FomResetMapConstraint::DoEval(const Eigen::Ref<const AutoDiffVecXd>& x,
     x_val(i) -= dx;
     dy.col(i) = (yi - y0) / dx;
   }
+  drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);*/
+
+  // central differencing
+  double dx = 1e-8;
+
+  VectorXd x_val = autoDiffToValueMatrix(x);
+  VectorXd y0, yi;
+  EvaluateConstraint(x_val, &y0);
+
+  MatrixXd dy = MatrixXd(y0.size(), x_val.size());
+  for (int i = 0; i < x_val.size(); i++) {
+    x_val(i) -= dx / 2;
+    EvaluateConstraint(x_val, &y0);
+    x_val(i) += dx;
+    EvaluateConstraint(x_val, &yi);
+    x_val(i) -= dx / 2;
+    dy.col(i) = (yi - y0) / dx;
+  }
+  EvaluateConstraint(x_val, &y0);
   drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
-
-  // // central differencing
-  // double dx = 1e-8;
-
-  // VectorXd x_val = autoDiffToValueMatrix(x);
-  // VectorXd y0,yi;
-  // EvaluateConstraint(x_val,y0);
-
-  // MatrixXd dy = MatrixXd(y0.size(),x_val.size());
-  // for (int i=0; i < x_val.size(); i++) {
-  //   x_val(i) -= dx/2;
-  //   EvaluateConstraint(x_val,y0);
-  //   x_val(i) += dx;
-  //   EvaluateConstraint(x_val,yi);
-  //   x_val(i) -= dx/2;
-  //   dy.col(i) = (yi - y0)/dx;
-  // }
-  // EvaluateConstraint(x_val,y0);
-  // initializeAutoDiffGivenGradientMatrix(y0, dy, y);
 }
 
 void FomResetMapConstraint::DoEval(const Eigen::Ref<const VectorX<Variable>>& x,
@@ -83,7 +83,8 @@ void FomResetMapConstraint::EvaluateConstraint(
 
   MatrixXd M = MatrixXd(n_q_, n_q_);
   MatrixXd M_ext = MatrixXd(n_q_ + 2, n_q_ + 2);
-  std::unique_ptr<drake::systems::Context<double>> context = plant_.CreateDefaultContext();
+  std::unique_ptr<drake::systems::Context<double>> context =
+        plant_.CreateDefaultContext();
   plant_.SetPositions(context.get(), qm);
   plant_.CalcMassMatrixViaInverseDynamics(context, &M);
 
