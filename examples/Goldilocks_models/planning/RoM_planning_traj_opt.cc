@@ -117,6 +117,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         h_vars().segment(time_index, 1)
       });
     }
+    for (int j = 0; j < mode_lengths_[i]; j++) {
+      // Initial to avoid sigularity (which messes with gradient)
+      this->SetInitialGuess((this->state_vars_by_mode(i, j))(1), 1);
+    }
 
     // Add kinematics constraints
     cout << "Adding kinematics constraint...\n";
