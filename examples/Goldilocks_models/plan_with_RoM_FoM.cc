@@ -45,10 +45,12 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(iter, 0, "The iteration # of the theta that you use");
+DEFINE_int32(iter, 216, "The iteration # of the theta that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
 DEFINE_int32(n_step, 2, "How many foot steps");
 DEFINE_bool(print_snopt_file, false, "Print snopt output file");
+DEFINE_bool(zero_touchdown_impact, true, "Zero impact at foot touchdown");
+DEFINE_double(final_position, 1, "The final position for the robot");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -86,7 +88,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   B_tau(2, 0) = 1;
   B_tau(3, 1) = 1;
-  cout << "B_tau = \n" << B_tau << endl;
+  cout << "B_tau = \n" << B_tau << endl << endl;
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);
@@ -103,7 +105,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
 
   // Read in theta
   string dir_and_pf = dir_model + to_string(FLAGS_iter) + string("_");
-  // cout << "dir_and_pf = " << dir_and_pf << endl;
+  cout << "dir_and_pf = " << dir_and_pf << endl;
   VectorXd theta_s = readCSV(dir_and_pf + string("theta_s.csv")).col(0);
   VectorXd theta_sDDot = readCSV(dir_and_pf + string("theta_sDDot.csv")).col(0);
   DRAKE_DEMAND(theta_s.size() == n_theta_s);
@@ -117,11 +119,12 @@ int planningWithRomAndFom(int argc, char* argv[]) {
 
   // Prespecify the time steps
   int n_step = FLAGS_n_step;
+  int knots_per_mode = 20;
   std::vector<int> num_time_samples;
   std::vector<double> min_dt;
   std::vector<double> max_dt;
   for (int i = 0; i < n_step; i++) {
-    num_time_samples.push_back(20);
+    num_time_samples.push_back(knots_per_mode);
     min_dt.push_back(.01);
     max_dt.push_back(.3);
   }
@@ -129,14 +132,58 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1;
-  cout << "N = " << N << endl;
+  // cout << "N = " << N << endl;
+
+  // Read in initial robot state
+  dir_and_pf = dir_model + "214_3_";
+  VectorXd init_state =
+    readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
+
+  bool with_init_guess = true;
+  // Provide initial guess
+  VectorXd h_guess;
+  MatrixXd r_guess;
+  MatrixXd dr_guess;
+  MatrixXd tau_guess;
+  VectorXd x_guess_left_in_front;
+  VectorXd x_guess_right_in_front;
+  if (with_init_guess) {
+    dir_and_pf = dir_model + "214_3_";
+    h_guess = readCSV(dir_and_pf + string("time_at_knots.csv")).block(1, 0, 1, 1);
+    r_guess = readCSV(dir_and_pf + string("t_and_s.csv")).block(
+                1, 0, n_s, knots_per_mode);
+    dr_guess = readCSV(dir_and_pf + string("t_and_ds.csv")).block(
+                 1, 0, n_s, knots_per_mode);
+    tau_guess = readCSV(dir_and_pf + string("t_and_tau.csv")).block(
+                  1, 0, n_tau, knots_per_mode);
+    x_guess_left_in_front =
+      readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
+    x_guess_right_in_front =
+      readCSV(dir_and_pf + string("state_at_knots.csv")).col(knots_per_mode - 1);
+    // cout << "h_guess = " << h_guess << endl;
+    // cout << "r_guess = " << r_guess << endl;
+    // cout << "dr_guess = " << dr_guess << endl;
+    // cout << "tau_guess = " << tau_guess << endl;
+    // cout << "x_guess_left_in_front = " << x_guess_left_in_front << endl;
+    // cout << "x_guess_right_in_front = " << x_guess_right_in_front << endl;
+  }
 
   // Construct
+  cout << "\nConstructing optimization problem...\n";
   auto start = std::chrono::high_resolution_clock::now();
   auto trajopt = std::make_unique<RomPlanningTrajOptWithFomImpactMap>(
                    num_time_samples, min_dt, max_dt, Q, R,
                    n_s, n_tau, B_tau,
-                   n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant);
+                   n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant,
+                   FLAGS_zero_touchdown_impact, FLAGS_final_position,
+                   init_state,
+                   h_guess,
+                   r_guess,
+                   dr_guess,
+                   tau_guess,
+                   x_guess_left_in_front,
+                   x_guess_right_in_front,
+                   with_init_guess);
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   cout << "Construction time:" << elapsed.count() << "\n";
@@ -149,7 +196,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);
 
-  // Initial guess
+  // Initial guess for all variables
   if (!init_file.empty()) {
     VectorXd z0 = readCSV(dir_data + init_file).col(0);
     int n_dec = trajopt->decision_variables().size();
@@ -163,24 +210,9 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     }
     trajopt->SetInitialGuessForAllVariables(z0);
   }
-  // Manually setting initial guess
-  // ...
-
-
-
-  // Testing
-  /*auto constraints = trajopt->GetAllConstraints();
-  for (auto const& binding : constraints) {
-    auto const& c = binding.evaluator();
-    int n = c->num_constraints();
-    auto variables = binding.variables();
-    cout << "variables = " << variables.transpose() << endl;
-  }*/
-
-
 
   // Solve
-  cout << "Solving DIRCON (based on MultipleShooting)\n";
+  cout << "\nSolving optimization problem...\n";
   start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *trajopt, trajopt->initial_guess());

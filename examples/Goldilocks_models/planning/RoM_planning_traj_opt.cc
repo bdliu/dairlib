@@ -49,7 +49,17 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   int n_feature_dyn,
   const VectorXd & theta_kin,
   const VectorXd & theta_dyn,
-  const MultibodyPlant<double>& plant) :
+  const MultibodyPlant<double>& plant,
+  bool zero_touchdown_impact,
+  double desired_final_position,
+  VectorXd init_state,
+  VectorXd h_guess,
+  MatrixXd r_guess,
+  MatrixXd dr_guess,
+  MatrixXd tau_guess,
+  VectorXd x_guess_left_in_front,
+  VectorXd x_guess_right_in_front,
+  bool with_init_guess) :
   MultipleShooting(n_tau,
                    2 * n_r,
                    std::accumulate(num_time_samples.begin(),
@@ -73,9 +83,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
 
-  // Parameters
-  bool zero_touchdown_impact = true;
-  double desired_final_position = 1;
+  MatrixXd y_guess(2 * r_guess.rows(), r_guess.cols());
+  y_guess << r_guess, dr_guess;
 
   // Add cost
   cout << "Adding cost...\n";
@@ -84,12 +93,39 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   this->AddRunningCost(tau.transpose()*R * tau);
   this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
 
-  // (Constraint) Initialization is looped over the modes
+  // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
   for (int i = 0; i < num_modes_; i++) {
     cout << "Mode " << i << endl;
     mode_start_.push_back(counter);
 
+    // Initial guess
+    if (with_init_guess) {
+      for (int j = 0; j < mode_lengths_[i] - 1; j++) {
+        SetInitialGuess(timestep(mode_start_[i] + j), h_guess);
+      }
+      for (int j = 0; j < mode_lengths_[i]; j++) {
+        SetInitialGuess(state_vars_by_mode(i, j).tail(2 * n_r - 1),
+                        y_guess.block(1, j, 2 * n_r - 1, 1));
+        int time_index = mode_start_[i] + j;
+        SetInitialGuess(u_vars().segment(time_index * n_tau_, n_tau_),
+                        tau_guess.col(j));
+      }
+      if (i % 2 == 0) {
+        SetInitialGuess(x0_vars_by_mode(i).tail(13), x_guess_left_in_front.tail(13));
+        SetInitialGuess(xf_vars_by_mode(i).tail(13), x_guess_right_in_front.tail(13));
+      } else {
+        SetInitialGuess(x0_vars_by_mode(i).tail(13), x_guess_right_in_front.tail(13));
+        SetInitialGuess(xf_vars_by_mode(i).tail(13), x_guess_left_in_front.tail(13));
+      }
+    } else {
+      // Initial to avoid sigularity (which messes with gradient)
+      for (int j = 0; j < mode_lengths_[i]; j++) {
+        this->SetInitialGuess((this->state_vars_by_mode(i, j))(1), 1);
+      }
+    }
+
+    // Constraints
     // Set timestep bounds
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
       AddBoundingBoxConstraint(minimum_timestep[i], maximum_timestep[i],
@@ -116,10 +152,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         u_vars().segment((time_index + 1) * num_inputs(), num_inputs()),
         h_vars().segment(time_index, 1)
       });
-    }
-    for (int j = 0; j < mode_lengths_[i]; j++) {
-      // Initial to avoid sigularity (which messes with gradient)
-      this->SetInitialGuess((this->state_vars_by_mode(i, j))(1), 1);
     }
 
     // Add kinematics constraints
@@ -191,7 +223,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       }
     }
 
-    // Sitching x0 and xf
+    // Sitching x0 and xf (full-order model stance foot constraint)
     cout << "Adding full-order model stance foot constraint...\n";
     auto fom_sf_constraint = std::make_shared<planning::FomStanceFootConstraint>(
                                left_stance, n_q);
@@ -201,12 +233,15 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     // Additional constraints for the full order model
     if (i == 0) {
-      cout << "Adding initial position constraint for full-order model...\n";
+      cout << "Adding initial pose constraint for full-order model...\n";
+      // AddLinearConstraint(x0_vars_by_mode(i) == init_state);
       AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
-    } else if (i == num_modes_ - 1) {
+    } /*else if (i == num_modes_ - 1) {
       cout << "Adding final position constraint for full-order model...\n";
       AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
-    }
+    }*/
+    cout << "Adding stride length constraint for full-order model...\n";
+    AddLinearConstraint(xf_vars_by_mode(i)(0) - x0_vars_by_mode(i)(0) == 0.329567);
 
     counter += mode_lengths_[i] - 1;
   }

@@ -42,7 +42,17 @@ class RomPlanningTrajOptWithFomImpactMap :
                                      int n_feature_dyn,
                                      const VectorXd & theta_kin,
                                      const VectorXd & theta_dyn,
-                                     const MultibodyPlant<double>& plant);
+                                     const MultibodyPlant<double>& plant,
+                                     bool zero_touchdown_impact,
+                                     double desired_final_position,
+                                     VectorXd init_state,
+                                     VectorXd h_guess,
+                                     MatrixXd r_guess,
+                                     MatrixXd dr_guess,
+                                     MatrixXd tau_guess,
+                                     VectorXd x_guess_left_in_front,
+                                     VectorXd x_guess_right_in_front,
+                                     bool with_init_guess);
 
   ~RomPlanningTrajOptWithFomImpactMap() override {}
 
