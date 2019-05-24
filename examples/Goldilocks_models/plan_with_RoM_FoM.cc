@@ -130,7 +130,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
 
   // Construct
   auto trajopt = std::make_unique<RomPlanningTrajOptWithFomImpactMap>(
-                   num_time_samples, min_dt, max_dt,
+                   num_time_samples, min_dt, max_dt, Q, R,
                    n_s, n_tau, B_tau,
                    n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant);
 
@@ -140,12 +140,6 @@ int planningWithRomAndFom(int argc, char* argv[]) {
                            "Major iterations limit", 1000);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);
-
-  cout << "Adding cost...\n";
-  auto x = trajopt->state();
-  auto u = trajopt->input();
-  trajopt->AddRunningCost(u.transpose()*R * u);
-  trajopt->AddRunningCost(x.tail(n_s).transpose()*Q * x.tail(n_s));
 
   // Initial guess
   if (!init_file.empty()) {
@@ -177,8 +171,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // Extract solution
   VectorXd z_sol = result.GetSolution(trajopt->decision_variables());
   writeCSV(dir_data + string("z.csv"), z_sol);
+  cout << trajopt->decision_variables() << endl;
 
-  // Store the time, state, and input at knot points
   VectorXd time_at_knots = trajopt->GetSampleTimes(result);
   MatrixXd state_at_knots = trajopt->GetStateSamples(result);
   MatrixXd input_at_knots = trajopt->GetInputSamples(result);
@@ -186,7 +180,14 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   writeCSV(dir_data + string("state_at_knots.csv"), state_at_knots);
   writeCSV(dir_data + string("input_at_knots.csv"), input_at_knots);
 
-
+  MatrixXd x0_each_mode(2*plant.num_positions(),num_time_samples.size());
+  MatrixXd xf_each_mode(2*plant.num_positions(),num_time_samples.size());
+  for (uint i = 0; i < num_time_samples.size(); i++) {
+    x0_each_mode.col(i) = result.GetSolution(trajopt->x0_vars_by_mode(i));
+    xf_each_mode.col(i) = result.GetSolution(trajopt->xf_vars_by_mode(i));
+  }
+  writeCSV(dir_data + string("x0_each_mode.csv"), x0_each_mode);
+  writeCSV(dir_data + string("xf_each_mode.csv"), xf_each_mode);
 
   return 0;
 }  // int planningWithRomAndFom

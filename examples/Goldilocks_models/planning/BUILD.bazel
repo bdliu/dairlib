@@ -91,3 +91,28 @@ cc_library(
     ],
 )
 
+cc_binary(
+    name = "visualize_FoM_pose_MBP",
+    srcs = ["visualize_FoM_pose_MBP.cc"],
+    data = glob(["examples/Goldilocks_models/PlanarWalkerWithTorso.urdf"]),
+    deps = [
+        "//common",
+        "//systems/primitives",
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "@drake//attic/multibody/parsers",
+        "@drake//common",
+        "@drake//math",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",     
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
+    ],
+)

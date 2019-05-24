@@ -39,6 +39,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   vector<int> num_time_samples,
   vector<double> minimum_timestep,
   vector<double> maximum_timestep,
+  MatrixXd Q,
+  MatrixXd R,
   int n_r,
   int n_tau,
   MatrixXd B_tau,
@@ -68,7 +70,14 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
 
-  // Initialization is looped over the modes
+  // Add cost
+  cout << "Adding cost...\n";
+  auto y = this->state();
+  auto tau = this->input();
+  this->AddRunningCost(tau.transpose()*R * tau);
+  this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
+
+  // (Constraint) Initialization is looped over the modes
   int counter = 0;
   for (int i = 0; i < num_modes_; i++) {
     cout << "Mode " << i << endl;

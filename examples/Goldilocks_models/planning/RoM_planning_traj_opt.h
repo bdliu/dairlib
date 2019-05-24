@@ -33,6 +33,8 @@ class RomPlanningTrajOptWithFomImpactMap :
   RomPlanningTrajOptWithFomImpactMap(vector<int> num_time_samples,
                                      vector<double> minimum_timestep,
                                      vector<double> maximum_timestep,
+                                     MatrixXd Q,
+                                     MatrixXd R,
                                      int n_r,
                                      int n_tau,
                                      MatrixXd B_tau,
