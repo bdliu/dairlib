@@ -46,7 +46,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter, 0, "The iteration # of the theta that you use");
-DEFINE_string(init_file, "z0.csv", "Initial Guess for Planning Optimization");
+DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
