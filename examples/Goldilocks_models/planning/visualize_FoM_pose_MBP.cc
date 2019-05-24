@@ -55,9 +55,11 @@ namespace dairlib {
 namespace goldilocks_models {
 namespace planning {
 
-
-DEFINE_int32(mode, 0, "The mode #");
-DEFINE_bool(head, true, "x0 or xf");
+DEFINE_int32(start_mode, 0, "Starting at mode #");
+DEFINE_bool(start_head, true, "Starting with x0 or xf");
+DEFINE_int32(end_mode, 0, "Ending at mode #");
+DEFINE_bool(end_head, true, "Ending with x0 or xf");
+DEFINE_double(step_time, 1, "Duration per step * 2");
 
 void visualizeFullOrderModelPose(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -65,51 +67,68 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
   // parameters
   const string directory = "examples/Goldilocks_models/planning/data/";
 
-  // Read in pose
-  MatrixXd x0_each_mode =
-    goldilocks_models::readCSV(directory + string("x0_each_mode.csv"));
-  MatrixXd xf_each_mode =
-    goldilocks_models::readCSV(directory + string("xf_each_mode.csv"));
-
-  // Create a testing piecewise polynomial
-  std::vector<double> T_breakpoint{0, 1};
-  std::vector<MatrixXd> Y;
-  for (int i = 0; i < 2; i++) {
-    if (FLAGS_head)
-      Y.push_back(x0_each_mode.col(FLAGS_mode));
-    else
-      Y.push_back(xf_each_mode.col(FLAGS_mode));
-  }
-  PiecewisePolynomial<double> pp_xtraj =
-    PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
-
-  // Create MBP
-  drake::systems::DiagramBuilder<double> builder;
-  MultibodyPlant<double> plant;
-  SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
-  Parser parser(&plant, &scene_graph);
-  std::string full_name = FindResourceOrThrow(
-                            "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
-  parser.AddModelFromFile(full_name);
-  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
-    -9.81 * Eigen::Vector3d::UnitZ());
-  plant.WeldFrames(
-    plant.world_frame(), plant.GetFrameByName("base"),
-    drake::math::RigidTransform<double>());
-  plant.Finalize();
-
-  // visualizer
-  int n_loops = 1;
-  multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
-                                         pp_xtraj);
-  auto diagram = builder.Build();
-  while (true)
-    for (int i = 0; i < n_loops; i++) {
-      drake::systems::Simulator<double> simulator(*diagram);
-      simulator.set_target_realtime_rate(1);
-      simulator.Initialize();
-      simulator.StepTo(pp_xtraj.end_time());
+  bool head = FLAGS_start_head;
+  bool last_visited_mode = -1;
+  bool visited_this_mode = false;
+  for (int mode = FLAGS_start_mode; mode <= FLAGS_end_mode; mode++) {
+    cout << "mode = " << mode << endl;
+    if(last_visited_mode == mode){
+      visited_this_mode = true;
+    } else {
+      last_visited_mode = mode;
+      visited_this_mode = false;
     }
+
+    // Read in pose
+    MatrixXd x0_each_mode =
+      goldilocks_models::readCSV(directory + string("x0_each_mode.csv"));
+    MatrixXd xf_each_mode =
+      goldilocks_models::readCSV(directory + string("xf_each_mode.csv"));
+
+    // Create a testing piecewise polynomial
+    std::vector<double> T_breakpoint{0, 1};
+    std::vector<MatrixXd> Y;
+    if (head) {
+      Y.push_back(x0_each_mode.col(mode));
+      Y.push_back(x0_each_mode.col(mode));
+    }
+    else {
+      Y.push_back(xf_each_mode.col(mode));
+      Y.push_back(xf_each_mode.col(mode));
+    }
+    PiecewisePolynomial<double> pp_xtraj =
+      PiecewisePolynomial<double>::FirstOrderHold(T_breakpoint, Y);
+
+    // Create MBP
+    drake::systems::DiagramBuilder<double> builder;
+    MultibodyPlant<double> plant;
+    SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
+    Parser parser(&plant, &scene_graph);
+    std::string full_name = FindResourceOrThrow(
+                              "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+    parser.AddModelFromFile(full_name);
+    plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+      -9.81 * Eigen::Vector3d::UnitZ());
+    plant.WeldFrames(
+      plant.world_frame(), plant.GetFrameByName("base"),
+      drake::math::RigidTransform<double>());
+    plant.Finalize();
+
+    // visualizer
+    multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
+                                           pp_xtraj);
+    auto diagram = builder.Build();
+    // while (true)
+    drake::systems::Simulator<double> simulator(*diagram);
+    simulator.set_target_realtime_rate(1);
+    simulator.Initialize();
+    simulator.StepTo(pp_xtraj.end_time());
+
+    if((head == FLAGS_end_head) && (mode == FLAGS_end_mode))
+      continue;
+    if((head == false) && !visited_this_mode)
+      mode-=1;
+  }
 
   return;
 }
