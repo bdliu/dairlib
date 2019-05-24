@@ -70,23 +70,6 @@ void FomGuardConstraint::EvaluateConstraint(
   const Eigen::Ref<const VectorX<double>>& x, VectorX<double>* y) const {
   // Manually get the jacobain (tested in misc/foot_jacobian_test.cc)
   if (left_stance_) {
-    VectorX<double> left_foot_pos_z(1);
-    left_foot_pos_z <<
-                    x(1) - 0.5 * cos(x(2) + x(3)) - 0.5 * cos(x(2) + x(3) + x(5));
-    MatrixX<double> J_left_foot_pos_z(1, 7);
-    J_left_foot_pos_z << 0,
-                      1,
-                      0.5 * sin(x(2) + x(3)) + 0.5 * sin(x(2) + x(3) + x(5)),
-                      0.5 * sin(x(2) + x(3)) + 0.5 * sin(x(2) + x(3) + x(5)),
-                      0,
-                      0.5 * sin(x(2) + x(3) + x(5)),
-                      0;
-    VectorX<double> left_foot_vel_z = J_left_foot_pos_z * x.tail(7);
-
-    VectorX<double> output(2);
-    output << left_foot_pos_z, left_foot_vel_z;
-    *y = output;
-  } else {
     VectorX<double> right_foot_pos_z(1);
     right_foot_pos_z <<
                      x(1) - 0.5 * cos(x(2) + x(4)) - 0.5 * cos(x(2) + x(4) + x(6));
@@ -102,6 +85,23 @@ void FomGuardConstraint::EvaluateConstraint(
 
     VectorX<double> output(2);
     output << right_foot_pos_z, right_foot_vel_z;
+    *y = output;
+  } else {
+    VectorX<double> left_foot_pos_z(1);
+    left_foot_pos_z <<
+                    x(1) - 0.5 * cos(x(2) + x(3)) - 0.5 * cos(x(2) + x(3) + x(5));
+    MatrixX<double> J_left_foot_pos_z(1, 7);
+    J_left_foot_pos_z << 0,
+                      1,
+                      0.5 * sin(x(2) + x(3)) + 0.5 * sin(x(2) + x(3) + x(5)),
+                      0.5 * sin(x(2) + x(3)) + 0.5 * sin(x(2) + x(3) + x(5)),
+                      0,
+                      0.5 * sin(x(2) + x(3) + x(5)),
+                      0;
+    VectorX<double> left_foot_vel_z = J_left_foot_pos_z * x.tail(7);
+
+    VectorX<double> output(2);
+    output << left_foot_pos_z, left_foot_vel_z;
     *y = output;
   }
 }

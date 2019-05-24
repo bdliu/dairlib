@@ -163,6 +163,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     }
     trajopt->SetInitialGuessForAllVariables(z0);
   }
+  // Manually setting initial guess
+  
 
   // Solve
   cout << "Solving DIRCON (based on MultipleShooting)\n";

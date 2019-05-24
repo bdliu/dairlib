@@ -52,7 +52,7 @@ namespace planning {
 
 class FomStanceFootConstraint : public Constraint {
  public:
-  FomStanceFootConstraint(bool left_stance, int n_q, int n_v,
+  FomStanceFootConstraint(bool left_stance, int n_q,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& x,
               Eigen::VectorXd* y) const override;

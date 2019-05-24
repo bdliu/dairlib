@@ -190,7 +190,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Sitching x0 and xf
     cout << "Adding full-order model stance foot constraint...\n";
     auto fom_sf_constraint = std::make_shared<planning::FomStanceFootConstraint>(
-                               left_stance, n_q, n_q);
+                               left_stance, n_q);
     AddConstraint(fom_sf_constraint, {x0_vars_by_mode(i).head(n_q),
                                       xf_vars_by_mode(i).head(n_q)
                                      });
@@ -201,7 +201,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
     } else if (i == num_modes_ - 1) {
       cout << "Adding final position constraint for full-order model...\n";
-      AddLinearConstraint(x0_vars_by_mode(i)(0) == desired_final_position);
+      AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
     }
 
     counter += mode_lengths_[i] - 1;

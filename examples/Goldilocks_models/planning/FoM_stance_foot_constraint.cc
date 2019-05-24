@@ -6,7 +6,7 @@ namespace goldilocks_models {
 namespace planning {
 
 FomStanceFootConstraint::FomStanceFootConstraint(
-  bool left_stance, int n_q, int n_v,
+  bool left_stance, int n_q,
   const std::string& description):
   Constraint(2,
              2 * n_q,

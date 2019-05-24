@@ -196,7 +196,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   trajopt->AddDurationBounds(duration, duration);
 
   // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-  //                          "Print file", "snopt.out");
+  //                          "Print file", "snopt_find_model.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", max_iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
