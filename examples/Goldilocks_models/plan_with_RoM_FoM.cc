@@ -48,6 +48,7 @@ namespace goldilocks_models {
 DEFINE_int32(iter, 0, "The iteration # of the theta that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
 DEFINE_int32(n_step, 2, "How many foot steps");
+DEFINE_bool(print_snopt_file, false, "Print snopt output file");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -111,7 +112,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
   // Optimization parameters
-  MatrixXd Q = MatrixXd::Identity(n_s, n_s);
+  MatrixXd Q = 10 * MatrixXd::Identity(n_s, n_s);
   MatrixXd R = MatrixXd::Identity(n_tau, n_tau);
 
   // Prespecify the time steps
@@ -128,15 +129,21 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1;
+  cout << "N = " << N << endl;
 
   // Construct
+  auto start = std::chrono::high_resolution_clock::now();
   auto trajopt = std::make_unique<RomPlanningTrajOptWithFomImpactMap>(
                    num_time_samples, min_dt, max_dt, Q, R,
                    n_s, n_tau, B_tau,
                    n_feature_s, n_feature_sDDot, theta_s, theta_sDDot, plant);
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = finish - start;
+  cout << "Construction time:" << elapsed.count() << "\n";
 
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Print file", "snopt.out");
+  if (FLAGS_print_snopt_file)
+    trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                             "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", 1000);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
@@ -159,11 +166,11 @@ int planningWithRomAndFom(int argc, char* argv[]) {
 
   // Solve
   cout << "Solving DIRCON (based on MultipleShooting)\n";
-  auto start = std::chrono::high_resolution_clock::now();
+  start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *trajopt, trajopt->initial_guess());
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed = finish - start;
+  finish = std::chrono::high_resolution_clock::now();
+  elapsed = finish - start;
   cout << "    Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";

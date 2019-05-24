@@ -137,8 +137,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Add periodicity constraints
     if (i != 0) {
       cout << "Adding periodicity constraint...\n";
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(1, n_q-1) ==
-                          x0_vars_by_mode(i).segment(1, n_q-1));
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
+                          x0_vars_by_mode(i).segment(0, n_q));
     }
 
     // Add guard constraint
@@ -175,7 +175,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     vector<string> l_or_r{"left_", "right_"};
     vector<string> fom_joint_names{"hip_pin", "knee_pin"};
     vector<double> lb_for_fom_joints{ -M_PI / 2.0, 5.0 / 180.0 * M_PI};
-    vector<double> ub_for_fom_joints{M_PI / 2.0, M_PI / 2.0};
+    vector<double> ub_for_fom_joints{ M_PI / 2.0, M_PI / 2.0};
     for (unsigned int k = 0; k < l_or_r.size(); k++) {
       for (unsigned int l = 0; l < fom_joint_names.size(); l++) {
         AddLinearConstraint(

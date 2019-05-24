@@ -69,15 +69,10 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
 
   bool is_head = FLAGS_start_is_head;
   bool last_visited_mode = -1;
-  bool visited_this_mode = false;
   for (int mode = FLAGS_start_mode; mode <= FLAGS_end_mode; mode++) {
-    cout << "mode = " << mode << endl;
-    cout << "is_head = " << is_head << endl;
-    if(last_visited_mode == mode){
-      visited_this_mode = true;
-    } else {
+    cout << "(mode, is_head) = (" << mode << ", " << is_head << ")\n";
+    if(last_visited_mode != mode){
       last_visited_mode = mode;
-      visited_this_mode = false;
     }
 
     // Read in pose
