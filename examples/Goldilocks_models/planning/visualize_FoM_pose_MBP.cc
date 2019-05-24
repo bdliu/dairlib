@@ -87,7 +87,7 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
       goldilocks_models::readCSV(directory + string("xf_each_mode.csv"));
 
     // Create a testing piecewise polynomial
-    std::vector<double> T_breakpoint{0, 1};
+    std::vector<double> T_breakpoint{0, FLAGS_step_time};
     std::vector<MatrixXd> Y;
     if (is_head) {
       Y.push_back(x0_each_mode.col(mode));
