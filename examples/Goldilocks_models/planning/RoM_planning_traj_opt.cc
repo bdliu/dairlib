@@ -82,6 +82,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
+  int n_q = plant_.num_positions();
 
   MatrixXd y_guess(2 * r_guess.rows(), r_guess.cols());
   y_guess << r_guess, dr_guess;
@@ -90,14 +91,16 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   cout << "Adding cost...\n";
   auto y = this->state();
   auto tau = this->input();
-  this->AddRunningCost(tau.transpose()*R * tau);
   this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
+  this->AddRunningCost(tau.transpose()*R * tau);
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
   for (int i = 0; i < num_modes_; i++) {
     cout << "Mode " << i << endl;
     mode_start_.push_back(counter);
+
+    bool left_stance = (i % 2 == 0) ? true : false;
 
     // Initial guess
     if (with_init_guess) {
@@ -111,17 +114,21 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         SetInitialGuess(u_vars().segment(time_index * n_tau_, n_tau_),
                         tau_guess.col(j));
       }
-      if (i % 2 == 0) {
-        SetInitialGuess(x0_vars_by_mode(i).tail(13), x_guess_left_in_front.tail(13));
-        SetInitialGuess(xf_vars_by_mode(i).tail(13), x_guess_right_in_front.tail(13));
+      if (left_stance) {
+        SetInitialGuess(x0_vars_by_mode(i).tail(2 * n_q - 1),
+                        x_guess_left_in_front.tail(2 * n_q - 1));
+        SetInitialGuess(xf_vars_by_mode(i).tail(2 * n_q - 1),
+                        x_guess_right_in_front.tail(2 * n_q - 1));
       } else {
-        SetInitialGuess(x0_vars_by_mode(i).tail(13), x_guess_right_in_front.tail(13));
-        SetInitialGuess(xf_vars_by_mode(i).tail(13), x_guess_left_in_front.tail(13));
+        SetInitialGuess(x0_vars_by_mode(i).tail(2 * n_q - 1),
+                        x_guess_right_in_front.tail(2 * n_q - 1));
+        SetInitialGuess(xf_vars_by_mode(i).tail(2 * n_q - 1),
+                        x_guess_left_in_front.tail(2 * n_q - 1));
       }
     } else {
       // Initial to avoid sigularity (which messes with gradient)
       for (int j = 0; j < mode_lengths_[i]; j++) {
-        this->SetInitialGuess((this->state_vars_by_mode(i, j))(1), 1);
+        SetInitialGuess((state_vars_by_mode(i, j))(1), 1);
       }
     }
 
@@ -156,8 +163,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     // Add kinematics constraints
     cout << "Adding kinematics constraint...\n";
-    bool left_stance = (i % 2 == 0) ? true : false;
-    int n_q = plant_.num_positions();
     auto kin_constraint = std::make_shared<planning::KinematicsConstraint>(
                             left_stance, n_r, n_q, n_feature_kin, theta_kin);
     std::vector<int> j_vec{0, mode_lengths_[i] - 1};

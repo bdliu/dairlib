@@ -135,7 +135,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "N = " << N << endl;
 
   // Read in initial robot state
-  dir_and_pf = dir_model + "214_3_";
+  dir_and_pf = dir_model + "215_3_";
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
 
@@ -148,7 +148,6 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   VectorXd x_guess_left_in_front;
   VectorXd x_guess_right_in_front;
   if (with_init_guess) {
-    dir_and_pf = dir_model + "214_3_";
     h_guess = readCSV(dir_and_pf + string("time_at_knots.csv")).block(1, 0, 1, 1);
     r_guess = readCSV(dir_and_pf + string("t_and_s.csv")).block(
                 1, 0, n_s, knots_per_mode);
