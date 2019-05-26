@@ -1032,6 +1032,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
         prev_theta = theta;
         // current_iter_step_size = h_step;
         current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
+        cout << "step size = " << current_iter_step_size << endl;
         if (is_newton)
           theta = theta + current_iter_step_size * step_direction;
         else
