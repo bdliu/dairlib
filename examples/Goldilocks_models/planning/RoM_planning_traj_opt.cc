@@ -93,8 +93,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   cout << "Adding cost...\n";
   auto y = this->state();
   auto tau = this->input();
-  // this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
-  // this->AddRunningCost(tau.transpose()*R * tau);
+  this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
+  this->AddRunningCost(tau.transpose()*R * tau);
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
@@ -147,7 +147,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add dynamics constraints at collocation points
-    /*cout << "Adding dynamics constraint...\n";
+    cout << "Adding dynamics constraint...\n";
     auto dyn_constraint = std::make_shared<planning::DynamicsConstraint>(
                             n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau);
     DRAKE_ASSERT(
@@ -161,7 +161,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         u_vars().segment((time_index + 1) * num_inputs(), num_inputs()),
         h_vars().segment(time_index, 1)
       });
-    }*/
+    }
 
     // Add kinematics constraints
     cout << "Adding kinematics constraint...\n";
@@ -247,10 +247,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Stride length constraint
-    // if (i == num_modes_ - 1) {
-    //   cout << "Adding final position constraint for full-order model...\n";
-    //   AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
-    // }
+    if (i == num_modes_ - 1) {
+      cout << "Adding final position constraint for full-order model...\n";
+      AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
+    }
     // cout << "Adding stride length constraint for full-order model...\n";
     // V1
     // AddLinearConstraint(xf_vars_by_mode(i)(0) - x0_vars_by_mode(i)(0) == 0.304389);
@@ -263,10 +263,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                      });*/
 
     // Stride length cost
-    if (i == num_modes_ - 1) {
+    /*if (i == num_modes_ - 1) {
       cout << "Adding final position cost for full-order model...\n";
       this->AddLinearCost(-10 * xf_vars_by_mode(i)(0));
-    }
+    }*/
 
     counter += mode_lengths_[i] - 1;
   }

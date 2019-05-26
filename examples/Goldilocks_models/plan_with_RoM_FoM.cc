@@ -46,6 +46,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 DEFINE_int32(iter, 18, "The iteration # of the theta that you use");
+DEFINE_int32(sample, 4, "The sample # of the initial condition that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
 DEFINE_int32(n_step, 2, "How many foot steps");
 DEFINE_bool(print_snopt_file, false, "Print snopt output file");
@@ -135,7 +136,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "N = " << N << endl;
 
   // Read in initial robot state
-  dir_and_pf = dir_model + "18_4_";
+  dir_and_pf = dir_model + to_string(FLAGS_iter) + string("_") + to_string(FLAGS_sample) + string("_");
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
 
