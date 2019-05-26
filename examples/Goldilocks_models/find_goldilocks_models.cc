@@ -169,7 +169,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
-  cout << "Warning: Need to make sure that you use the right initial theta.\n";
   int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_tau = 0;
@@ -222,6 +221,15 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
     // theta_s = VectorXd::Random(n_theta_s);
     // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+    cout << "Make sure that you use the right initial theta.\nProceed? (Y/N)\n";
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+      cout << "Ending the program.\n";
+      return 0;
+    } else {
+      cout << "Continue constructing the problem...\n";
+    }
   }
   else {
     if (!FLAGS_is_manual_initial_theta) {
@@ -336,10 +344,11 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "Ending the program.\n";
       return 0;
     } else {
-      cout << "Start the iterating...\n";
+      cout << "Continue constructing the problem...\n";
     }
   }
 
+  cout << "Start the iterating...\n";
   // Start the gradient descent
   int iter;
   for (iter = iter_start; iter <= max_outer_iter; iter++)  {
