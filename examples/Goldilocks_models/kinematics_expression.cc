@@ -467,7 +467,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // sin(q(6)), cos(q(6))
   // feature_base(0), feature_base(1), feature_base(2), feature_base(3)
 
-  VectorX<U> feature(72);  // 4 + 1 + 12 + (10C2 + 10) = 4 + 1 + 12 + 55 = 72
+  /*VectorX<U> feature(72);  // 4 + 1 + 12 + (10C2 + 10) = 4 + 1 + 12 + 55 = 72
   feature << feature_base,
           1,
           q(0),
@@ -546,10 +546,10 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));
+          cos(q(6)) * cos(q(6));*/
 
   //////////// Version 11: Previous version without x and z ////////////////////
-  /*VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+  VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
   feature << feature_base,
           1,
           sin(q(2)),
@@ -626,7 +626,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));*/
+          cos(q(6)) * cos(q(6));
 
   return feature;
 }

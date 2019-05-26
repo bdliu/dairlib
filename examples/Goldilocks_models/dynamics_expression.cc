@@ -195,7 +195,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
     return feature;
   }
 
-  // Version 11: ns = 2, 2D LIPM with all quadratic combination
+  // Version 11: ns = 4, 2D LIPM with swing foot, with all quadratic combination
   if (n_sDDot_ == 4) {
     // DRAKE_DEMAND(n_sDDot_ == 4);
     T feature(46);  // 1 + 1 + 8 + (8Choose2 + 8) = 1 + 1 + 8 + 36 = 46
