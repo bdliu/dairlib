@@ -67,8 +67,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                    num_time_samples.end(), 0) - num_time_samples.size() + 1, 1e-8, 1e8),
   num_modes_(num_time_samples.size()),
   mode_lengths_(num_time_samples),
-  dr_post_impact_vars_(NewContinuousVariables(
-                         n_r * (num_time_samples.size() - 1), "dr_p")),
+  y_post_impact_vars_(NewContinuousVariables(
+                        (2 * n_r) * (num_time_samples.size() - 1), "y_p")),
   x0_vars_(NewContinuousVariables(
              (plant.num_positions() + plant.num_velocities()) * num_time_samples.size(),
              "x0")),
@@ -77,6 +77,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
              "xf")),
   n_r_(n_r),
   n_tau_(n_tau),
+  n_y_(2 * n_r),
   n_x_(plant.num_positions() + plant.num_velocities()),
   plant_(plant) {
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
@@ -170,7 +171,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     for (unsigned int k = 0; k < j_vec.size(); k++) {
       int j = j_vec[k];
       auto y_j = state_vars_by_mode(i, j);
-      // TODO: below is incorrect, because there are also discrete jumps in r
       if (k == 0)
         AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i).head(n_q)});
       else
@@ -265,7 +265,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Stride length cost
     if (i == num_modes_ - 1) {
       cout << "Adding final position cost for full-order model...\n";
-      this->AddLinearCost(-10*xf_vars_by_mode(i)(0));
+      this->AddLinearCost(-10 * xf_vars_by_mode(i)(0));
     }
 
     counter += mode_lengths_[i] - 1;
@@ -273,9 +273,9 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 }
 
 const Eigen::VectorBlock<const VectorXDecisionVariable>
-RomPlanningTrajOptWithFomImpactMap::dr_post_impact_vars_by_mode(
+RomPlanningTrajOptWithFomImpactMap::y_post_impact_vars_by_mode(
   int mode) const {
-  return dr_post_impact_vars_.segment(mode * n_r_, n_r_);
+  return y_post_impact_vars_.segment(mode * n_y_, n_y_);
 }
 const Eigen::VectorBlock<const VectorXDecisionVariable>
 RomPlanningTrajOptWithFomImpactMap::x0_vars_by_mode(int mode) const {
@@ -302,11 +302,7 @@ RomPlanningTrajOptWithFomImpactMap::SubstitutePlaceholderVariables(
 VectorXDecisionVariable RomPlanningTrajOptWithFomImpactMap::state_vars_by_mode(
   int mode, int time_index) const {
   if (time_index == 0 && mode > 0) {
-    VectorXDecisionVariable ret(num_states());
-    ret << x_vars().segment((mode_start_[mode] + time_index)*num_states(), n_r_),
-        dr_post_impact_vars_by_mode(mode - 1);
-    return ret;
-    // return Eigen::VectorBlock<const VectorXDecisionVariable>(ret, 0, num_states());
+    return y_post_impact_vars_by_mode(mode - 1);
   } else {
     VectorXDecisionVariable ret(num_states());
     return x_vars().segment((mode_start_[mode] + time_index) * num_states(),

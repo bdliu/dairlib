@@ -76,12 +76,12 @@ class RomPlanningTrajOptWithFomImpactMap :
   drake::trajectories::PiecewisePolynomial<double> ReconstructStateTrajectory(
     const drake::solvers::MathematicalProgramResult& result) const override;
 
-  const drake::solvers::VectorXDecisionVariable& dr_post_impact_vars() const {
-    return dr_post_impact_vars_;
+  const drake::solvers::VectorXDecisionVariable& y_post_impact_vars() const {
+    return y_post_impact_vars_;
   }
 
   const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
-  dr_post_impact_vars_by_mode(int mode) const;
+  y_post_impact_vars_by_mode(int mode) const;
   const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
   x0_vars_by_mode(int mode) const;
   const Eigen::VectorBlock<const drake::solvers::VectorXDecisionVariable>
@@ -89,7 +89,7 @@ class RomPlanningTrajOptWithFomImpactMap :
 
   /// Get the state decision variables given a mode and a time_index
   /// (time_index is w.r.t that particular mode). This will use the
-  ///  dr_post_impact_vars_ if needed. Otherwise, it just returns the standard
+  ///  y_post_impact_vars_ if needed. Otherwise, it just returns the standard
   /// x_vars element
   drake::solvers::VectorXDecisionVariable state_vars_by_mode(int mode,
       int time_index) const;
@@ -104,11 +104,12 @@ class RomPlanningTrajOptWithFomImpactMap :
   const int num_modes_;
   const std::vector<int> mode_lengths_;
   std::vector<int> mode_start_;
-  const drake::solvers::VectorXDecisionVariable dr_post_impact_vars_;
+  const drake::solvers::VectorXDecisionVariable y_post_impact_vars_;
   const drake::solvers::VectorXDecisionVariable x0_vars_;
   const drake::solvers::VectorXDecisionVariable xf_vars_;
   const int n_r_;
   const int n_tau_;
+  const int n_y_;
   const int n_x_;
   const drake::multibody::MultibodyPlant<double>& plant_;
 };
