@@ -92,8 +92,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   cout << "Adding cost...\n";
   auto y = this->state();
   auto tau = this->input();
-  this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
-  this->AddRunningCost(tau.transpose()*R * tau);
+  // this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
+  // this->AddRunningCost(tau.transpose()*R * tau);
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
@@ -146,7 +146,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     }
 
     // Add dynamics constraints at collocation points
-    cout << "Adding dynamics constraint...\n";
+    /*cout << "Adding dynamics constraint...\n";
     auto dyn_constraint = std::make_shared<planning::DynamicsConstraint>(
                             n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau);
     DRAKE_ASSERT(
@@ -160,7 +160,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         u_vars().segment((time_index + 1) * num_inputs(), num_inputs()),
         h_vars().segment(time_index, 1)
       });
-    }
+    }*/
 
     // Add kinematics constraints
     cout << "Adding kinematics constraint...\n";
@@ -170,6 +170,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     for (unsigned int k = 0; k < j_vec.size(); k++) {
       int j = j_vec[k];
       auto y_j = state_vars_by_mode(i, j);
+      // TODO: below is incorrect, because there are also discrete jumps in r
       if (k == 0)
         AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i).head(n_q)});
       else
@@ -195,11 +196,12 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     // Add reset map constraint
     if (i != 0) {
-      cout << "Adding reset map constraint...\n";
       if (zero_touchdown_impact) {
+        cout << "Adding identity reset map constraint...\n";
         AddLinearConstraint(xf_vars_by_mode(i - 1).segment(n_q, n_q) ==
                             x0_vars_by_mode(i).segment(n_q, n_q));
       } else {
+        cout << "Adding reset map constraint...\n";
         /*int n_J = (zero_touchdown_impact) ? 0 : 2;
         auto reset_map_constraint =
           std::make_shared<planning::FomResetMapConstraint>(
@@ -244,7 +246,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       // AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
     }
 
-    // Stride length constraint/cost
+    // Stride length constraint
     // if (i == num_modes_ - 1) {
     //   cout << "Adding final position constraint for full-order model...\n";
     //   AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
@@ -260,6 +262,11 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                                       xf_vars_by_mode(i).head(n_q)
                                      });*/
 
+    // Stride length cost
+    if (i == num_modes_ - 1) {
+      cout << "Adding final position cost for full-order model...\n";
+      this->AddLinearCost(-10*xf_vars_by_mode(i)(0));
+    }
 
     counter += mode_lengths_[i] - 1;
   }
