@@ -17,6 +17,7 @@ cc_library(
         ":FoM_guard_constraint",
         #":FoM_reset_map_constraint",
         ":FoM_stance_foot_constraint",
+        ":FoM_stride_length_constraint",
     ],
 )
 
@@ -99,6 +100,23 @@ cc_library(
     ],
     hdrs = [
         "FoM_stance_foot_constraint.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+    ],
+)
+
+cc_library(
+    name = "FoM_stride_length_constraint",
+    srcs = [
+        "FoM_stride_length_constraint.cc",
+    ],
+    hdrs = [
+        "FoM_stride_length_constraint.h"
     ],
     deps = [
         "@drake//solvers:mathematical_program",

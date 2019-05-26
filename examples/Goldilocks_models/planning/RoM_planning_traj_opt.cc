@@ -17,6 +17,7 @@
 #include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
 // #include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_stance_foot_constraint.h"
+#include "examples/Goldilocks_models/planning/FoM_stride_length_constraint.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -239,14 +240,21 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Additional constraints for the full order model
     if (i == 0) {
       cout << "Adding initial pose constraint for full-order model...\n";
-      // AddLinearConstraint(x0_vars_by_mode(i) == init_state);
-      AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
+      AddLinearConstraint(x0_vars_by_mode(i) == init_state);
+      // AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
     } /*else if (i == num_modes_ - 1) {
       cout << "Adding final position constraint for full-order model...\n";
       AddLinearConstraint(xf_vars_by_mode(i)(0) == desired_final_position);
     }*/
     cout << "Adding stride length constraint for full-order model...\n";
-    AddLinearConstraint(xf_vars_by_mode(i)(0) - x0_vars_by_mode(i)(0) == 0.329567);
+    // AddLinearConstraint(xf_vars_by_mode(i)(0) - x0_vars_by_mode(i)(0) == 0.329567);
+    VectorXd stride_length(1); stride_length << 0.329567 * 2;
+    auto fom_sl_constraint = std::make_shared<planning::FomStrideLengthConstraint>(
+                               left_stance, n_q, stride_length);
+    AddConstraint(fom_sl_constraint, {x0_vars_by_mode(i).head(n_q),
+                                      xf_vars_by_mode(i).head(n_q)
+                                     });
+
 
     counter += mode_lengths_[i] - 1;
   }
