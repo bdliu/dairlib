@@ -58,7 +58,7 @@ namespace planning {
 DEFINE_int32(start_mode, 0, "Starting at mode #");
 DEFINE_bool(start_is_head, true, "Starting with x0 or xf");
 DEFINE_int32(end_mode, 0, "Ending at mode #");
-DEFINE_bool(end_is_head, true, "Ending with x0 or xf");
+DEFINE_bool(end_is_head, false, "Ending with x0 or xf");
 DEFINE_double(step_time, 1, "Duration per step * 2");
 
 void visualizeFullOrderModelPose(int argc, char* argv[]) {

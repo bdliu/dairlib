@@ -15,7 +15,7 @@ cc_library(
         ":kinematics_constraint",
         ":dynamics_constraint",
         ":FoM_guard_constraint",
-        #":FoM_reset_map_constraint",
+        ":FoM_reset_map_constraint",
         ":FoM_stance_foot_constraint",
         ":FoM_stride_length_constraint",
     ],

@@ -69,9 +69,8 @@ class FomResetMapConstraint : public Constraint {
                           drake::VectorX<double>* y) const;
 
   bool left_stance_;
-  MultibodyPlant<double> plant_;
-  drake::MatrixX<double> M_;
-  drake::MatrixX<double> M_ext_;
+  const drake::multibody::MultibodyPlant<double>& plant_;
+  int n_J_;
   int n_q_;
 };
 }  // namespace planning

@@ -16,8 +16,7 @@ FomResetMapConstraint::FomResetMapConstraint(
              description),
   left_stance_(left_stance),
   plant_(plant),
-  M_(MatrixXd(n_q, n_q)),
-  M_ext_(MatrixXd(n_q + 2, n_q + 2)),
+  n_J_(n_J),
   n_q_(n_q) {
 }
 
@@ -72,26 +71,23 @@ void FomResetMapConstraint::DoEval(const Eigen::Ref<const VectorX<Variable>>& x,
 
 void FomResetMapConstraint::EvaluateConstraint(
   const Eigen::Ref<const VectorX<double>>& x, VectorX<double>* y) const {
-  VectorX<double> qm = x.segment(0, 7);
+  VectorX<double> qm = x.segment(0, 7);  // m stands for minus (pre-impact)
   VectorX<double> vm = x.segment(7, 7);
-  VectorX<double> qp = x.segment(14, 7);
+  VectorX<double> qp = x.segment(14, 7);  // p stands for plus (post-impact)
   VectorX<double> vp = x.segment(21, 7);
-  VectorX<double> Lambda = x.tail(2);
-
-  // plant_.SetPositions(context_.get(), qm);
-  // plant_.CalcMassMatrixViaInverseDynamics(context_, &M_);
+  VectorX<double> Lambda = x.tail(n_J_);
 
   MatrixXd M = MatrixXd(n_q_, n_q_);
-  MatrixXd M_ext = MatrixXd(n_q_ + 2, n_q_ + 2);
+  MatrixXd M_ext = MatrixXd(n_q_ + n_J_, n_q_ + n_J_);
   std::unique_ptr<drake::systems::Context<double>> context =
         plant_.CreateDefaultContext();
   plant_.SetPositions(context.get(), qm);
-  plant_.CalcMassMatrixViaInverseDynamics(context, &M);
+  plant_.CalcMassMatrixViaInverseDynamics(*context, &M);
 
   M_ext.block(0, 0, n_q_, n_q_) = M;
-  VectorXd vm_ext(n_q_ + 2);
-  vm_ext << -M_*vm, VectorXd::Zero(2);
-  VectorXd vp_ext(n_q_ + 2);
+  VectorXd vm_ext(n_q_ + n_J_);
+  vm_ext << -M*vm, VectorXd::Zero(n_J_);
+  VectorXd vp_ext(n_q_ + n_J_);
   vp_ext << vp, Lambda;
 
   if (left_stance_) {
@@ -115,8 +111,8 @@ void FomResetMapConstraint::EvaluateConstraint(
                        0.5 * sin(qm(2) + qm(3) + qm(5)),
                        0;
 
-    M_ext.block(0, n_q_, n_q_, 2) = -J_left_foot_pos_xz.transpose();
-    M_ext.block(n_q_, 0, 2, n_q_) = J_left_foot_pos_xz;
+    M_ext.block(0, n_q_, n_q_, n_J_) = -J_left_foot_pos_xz.transpose();
+    M_ext.block(n_q_, 0, n_J_, n_q_) = J_left_foot_pos_xz;
 
     *y = M_ext * vp_ext + vm_ext;
 
@@ -125,7 +121,6 @@ void FomResetMapConstraint::EvaluateConstraint(
     // right_foot_pos_xz <<
     //                   qm(0) - 0.5 * sin(qm(2) + qm(4)) - 0.5 * sin(qm(2) + qm(4) + qm(6)),
     //                   qm(1) - 0.5 * cos(qm(2) + qm(4)) - 0.5 * cos(qm(2) + qm(4) + qm(6));
-
     MatrixX<double> J_right_foot_pos_xz(2, 7);
     J_right_foot_pos_xz << 1,
                         0,
@@ -142,8 +137,8 @@ void FomResetMapConstraint::EvaluateConstraint(
                         0,
                         0.5 * sin(x(2) + x(4) + x(6));
 
-    M_ext.block(0, n_q_, n_q_, 2) = -J_right_foot_pos_xz.transpose();
-    M_ext.block(n_q_, 0, 2, n_q_) = J_right_foot_pos_xz;
+    M_ext.block(0, n_q_, n_q_, n_J_) = -J_right_foot_pos_xz.transpose();
+    M_ext.block(n_q_, 0, n_J_, n_q_) = J_right_foot_pos_xz;
 
     *y = M_ext * vp_ext + vm_ext;
   }

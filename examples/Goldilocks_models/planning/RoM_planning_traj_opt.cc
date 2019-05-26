@@ -15,7 +15,7 @@
 #include "examples/Goldilocks_models/planning/kinematics_constraint.h"
 #include "examples/Goldilocks_models/planning/dynamics_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_guard_constraint.h"
-// #include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
+#include "examples/Goldilocks_models/planning/FoM_reset_map_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_stance_foot_constraint.h"
 #include "examples/Goldilocks_models/planning/FoM_stride_length_constraint.h"
 
@@ -202,7 +202,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                             x0_vars_by_mode(i).segment(n_q, n_q));
       } else {
         cout << "Adding reset map constraint...\n";
-        /*int n_J = (zero_touchdown_impact) ? 0 : 2;
+        int n_J = 2;
         auto reset_map_constraint =
           std::make_shared<planning::FomResetMapConstraint>(
             left_stance, n_q, n_q, n_J, plant_);
@@ -210,7 +210,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         AddConstraint(reset_map_constraint, {xf_vars_by_mode(i - 1),
                                              xf_vars_by_mode(i),
                                              Lambda
-                                            });*/
+                                            });
       }
     }
 
