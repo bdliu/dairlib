@@ -163,18 +163,42 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       });
     }
 
-    // Add kinematics constraints
-    cout << "Adding kinematics constraint...\n";
+    // Add RoM-FoM mapping constraints
+    cout << "Adding RoM-FoM mapping constraint...\n";
     auto kin_constraint = std::make_shared<planning::KinematicsConstraint>(
-                            left_stance, n_r, n_q, n_feature_kin, theta_kin);
-    std::vector<int> j_vec{0, mode_lengths_[i] - 1};
-    for (unsigned int k = 0; k < j_vec.size(); k++) {
-      int j = j_vec[k];
-      auto y_j = state_vars_by_mode(i, j);
-      if (k == 0)
-        AddConstraint(kin_constraint, {y_j.head(n_r_), x0_vars_by_mode(i).head(n_q)});
-      else
-        AddConstraint(kin_constraint, {y_j.head(n_r_), xf_vars_by_mode(i).head(n_q)});
+                            n_r, n_q, n_feature_kin, theta_kin);
+    auto y_0 = state_vars_by_mode(i, 0);
+    auto y_f = state_vars_by_mode(i, mode_lengths_[i] - 1);
+    auto x_0 = x0_vars_by_mode(i);
+    auto x_f = xf_vars_by_mode(i);
+    if (left_stance) {
+      AddConstraint(kin_constraint, {y_0, x_0});
+      AddConstraint(kin_constraint, {y_f, x_f});
+    } else {
+      VectorXDecisionVariable x_0_swap(n_x_);
+      x_0_swap << x_0.segment(0, 3),
+               x_0.segment(4, 1),
+               x_0.segment(3, 1),
+               x_0.segment(6, 1),
+               x_0.segment(5, 1),
+               x_0.segment(0 + n_q, 3),
+               x_0.segment(4 + n_q, 1),
+               x_0.segment(3 + n_q, 1),
+               x_0.segment(6 + n_q, 1),
+               x_0.segment(5 + n_q, 1);
+      VectorXDecisionVariable x_f_swap(n_x_);
+      x_f_swap << x_f.segment(0, 3),
+               x_f.segment(4, 1),
+               x_f.segment(3, 1),
+               x_f.segment(6, 1),
+               x_f.segment(5, 1),
+               x_f.segment(0 + n_q, 3),
+               x_f.segment(4 + n_q, 1),
+               x_f.segment(3 + n_q, 1),
+               x_f.segment(6 + n_q, 1),
+               x_f.segment(5 + n_q, 1);
+      AddConstraint(kin_constraint, {y_0, x_0_swap});
+      AddConstraint(kin_constraint, {y_f, x_f_swap});
     }
 
     // Add periodicity constraints

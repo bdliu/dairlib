@@ -141,7 +141,10 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   cout << "dir_and_pf = " << dir_and_pf << endl;
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
-
+  bool add_disturbance = false;
+  if (add_disturbance){
+    init_state(7) += -0.5;
+  }
 
   bool with_init_guess = true;
   // Provide initial guess
