@@ -110,8 +110,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         SetInitialGuess(timestep(mode_start_[i] + j), h_guess);
       }
       for (int j = 0; j < mode_lengths_[i]; j++) {
-        SetInitialGuess(state_vars_by_mode(i, j).tail(2 * n_r - 1),
-                        y_guess.block(1, j, 2 * n_r - 1, 1));
+        SetInitialGuess(state_vars_by_mode(i, j),
+                        y_guess.block(0, j, 2 * n_r, 1));
         int time_index = mode_start_[i] + j;
         SetInitialGuess(u_vars().segment(time_index * n_tau_, n_tau_),
                         tau_guess.col(j));
@@ -127,6 +127,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
         SetInitialGuess(xf_vars_by_mode(i).tail(2 * n_q - 1),
                         x_guess_left_in_front.tail(2 * n_q - 1));
       }
+      SetInitialGuess(x0_vars_by_mode(i)(0),
+                      desired_final_position * i / num_modes_);
+      SetInitialGuess(xf_vars_by_mode(i)(0),
+                      desired_final_position * (i + 1) / num_modes_);
     } else {
       // Initial to avoid sigularity (which messes with gradient)
       for (int j = 0; j < mode_lengths_[i]; j++) {
@@ -201,13 +205,6 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       AddConstraint(kin_constraint, {y_f, x_f_swap});
     }
 
-    // Add periodicity constraints
-    if (i != 0) {
-      cout << "Adding periodicity constraint...\n";
-      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
-                          x0_vars_by_mode(i).segment(0, n_q));
-    }
-
     // Add guard constraint
     cout << "Adding guard constraint...\n";
     VectorXd lb = VectorXd::Zero(2);
@@ -218,14 +215,21 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                               left_stance, n_q, n_q, lb, ub);
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
+    // Add periodicity constraints
+    if (i != 0) {
+      cout << "Adding (FoM position) periodicity constraint...\n";
+      AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
+                          x0_vars_by_mode(i).segment(0, n_q));
+    }
+
     // Add reset map constraint
     if (i != 0) {
       if (zero_touchdown_impact) {
-        cout << "Adding identity reset map constraint...\n";
+        cout << "Adding (FoM velocity) identity reset map constraint...\n";
         AddLinearConstraint(xf_vars_by_mode(i - 1).segment(n_q, n_q) ==
                             x0_vars_by_mode(i).segment(n_q, n_q));
       } else {
-        cout << "Adding reset map constraint...\n";
+        cout << "Adding (FoM velocity) reset map constraint...\n";
         int n_J = 2;
         auto reset_map_constraint =
           std::make_shared<planning::FomResetMapConstraint>(

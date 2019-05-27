@@ -52,6 +52,7 @@ DEFINE_int32(n_step, 3, "How many foot steps");
 DEFINE_bool(print_snopt_file, false, "Print snopt output file");
 DEFINE_bool(zero_touchdown_impact, false, "Zero impact at foot touchdown");
 DEFINE_double(final_position, 2, "The final position for the robot");
+DEFINE_double(disturbance, 0, "Disturbance to FoM intial state");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -141,9 +142,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   cout << "dir_and_pf = " << dir_and_pf << endl;
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
-  bool add_disturbance = false;
-  if (add_disturbance){
-    init_state(7) += -0.5;
+  if (FLAGS_disturbance != 0){
+    init_state(7) += FLAGS_disturbance;
   }
 
   bool with_init_guess = true;
