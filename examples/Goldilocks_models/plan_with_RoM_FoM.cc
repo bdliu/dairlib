@@ -45,13 +45,13 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(iter, 18, "The iteration # of the theta that you use");
+DEFINE_int32(iter, 20, "The iteration # of the theta that you use");
 DEFINE_int32(sample, 4, "The sample # of the initial condition that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
-DEFINE_int32(n_step, 2, "How many foot steps");
+DEFINE_int32(n_step, 3, "How many foot steps");
 DEFINE_bool(print_snopt_file, false, "Print snopt output file");
-DEFINE_bool(zero_touchdown_impact, true, "Zero impact at foot touchdown");
-DEFINE_double(final_position, 1, "The final position for the robot");
+DEFINE_bool(zero_touchdown_impact, false, "Zero impact at foot touchdown");
+DEFINE_double(final_position, 2, "The final position for the robot");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -115,7 +115,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "theta_sDDot = " << theta_sDDot.transpose() << endl;
 
   // Optimization parameters
-  MatrixXd Q = 10 * MatrixXd::Identity(n_s, n_s);
+  MatrixXd Q = MatrixXd::Identity(n_s, n_s);
   MatrixXd R = MatrixXd::Identity(n_tau, n_tau);
 
   // Prespecify the time steps
@@ -136,9 +136,12 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // cout << "N = " << N << endl;
 
   // Read in initial robot state
-  dir_and_pf = dir_model + to_string(FLAGS_iter) + string("_") + to_string(FLAGS_sample) + string("_");
+  dir_and_pf = dir_model + to_string(FLAGS_iter) + string("_") +
+               to_string(FLAGS_sample) + string("_");
+  cout << "dir_and_pf = " << dir_and_pf << endl;
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
+
 
   bool with_init_guess = true;
   // Provide initial guess
