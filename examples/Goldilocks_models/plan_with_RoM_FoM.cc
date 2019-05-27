@@ -143,7 +143,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   VectorXd init_state =
     readCSV(dir_and_pf + string("state_at_knots.csv")).col(0);
   if (FLAGS_disturbance != 0){
-    init_state(7) += FLAGS_disturbance;
+    init_state(9) += FLAGS_disturbance/1;  // add to floating base angle
   }
 
   bool with_init_guess = true;
