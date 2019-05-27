@@ -272,6 +272,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       cout << "Adding initial pose constraint for full-order model...\n";
       AddLinearConstraint(x0_vars_by_mode(i) == init_state);
       // AddLinearConstraint(x0_vars_by_mode(i)(0) == 0);
+      cout << "init_state = " << init_state << endl;
     }
 
     // Stride length constraint
