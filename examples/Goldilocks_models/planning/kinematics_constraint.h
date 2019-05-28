@@ -67,6 +67,7 @@ class KinematicsConstraint : public Constraint {
               VectorX<Expression>*y) const override;
 
  private:
+  double eps_ = 1e-8;
   int n_r_;
   int n_y_;
   int n_q_;

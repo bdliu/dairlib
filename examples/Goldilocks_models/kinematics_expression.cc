@@ -33,12 +33,22 @@ VectorX<T> KinematicsExpression<T>::getExpression(
   const U & theta, const V & q) const {
   // DRAKE_DEMAND(n_s_ * n_feature_ == theta.size());  // check theta size
   // DRAKE_DEMAND(n_feature_ == getFeature(q).size());  // check feature size
-
   VectorX<T> expression(n_s_);
   for (int i = 0; i < n_s_ ; i++)
     expression(i) =
       theta.segment(i * n_feature_, n_feature_).dot(getFeature(q));
-
+  return expression;
+}
+template <typename T>
+template <typename U, typename V>
+VectorX<T> KinematicsExpression<T>::getExpressionDot(
+  const U & theta, const V & q, const V & v) const {
+  // DRAKE_DEMAND(n_s_ * n_feature_ == theta.size());  // check theta size
+  // DRAKE_DEMAND(n_feature_ == getFeatureDot(q).size());  // check feature size
+  VectorX<T> expression(n_s_);
+  for (int i = 0; i < n_s_ ; i++)
+    expression(i) =
+      theta.segment(i * n_feature_, n_feature_).dot(getFeatureDot(q,v));
   return expression;
 }
 
@@ -447,8 +457,8 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   // Calculate the swing foot by hand instead of by using MBP
   VectorX<U> right_foot_pos_xz(2);
   right_foot_pos_xz <<
-                   q(0) - 0.5 * sin(q(2) + q(4)) - 0.5 * sin(q(2) + q(4) + q(6)),
-                   q(1) - 0.5 * cos(q(2) + q(4)) - 0.5 * cos(q(2) + q(4) + q(6));
+                    q(0) - 0.5 * sin(q(2) + q(4)) - 0.5 * sin(q(2) + q(4) + q(6)),
+                    q(1) - 0.5 * cos(q(2) + q(4)) - 0.5 * cos(q(2) + q(4) + q(6));
   VectorX<U> CoM_to_sw_xz = right_foot_pos_xz - CoM_xz;
   // cout << "CoM_xz = " << CoM_xz.transpose() << endl;
   // cout << "st_to_CoM_xz = " << st_to_CoM_xz.transpose() << endl;
@@ -633,6 +643,143 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
 
 
 
+template <typename T>
+template <typename U>
+VectorX<U> KinematicsExpression<T>::getFeatureDot(
+  const VectorX<U> & q, const VectorX<U> & v) const {
+
+  //////////// Version 11: Previous version without x and z ////////////////////
+  //// Way 2: Get CoM and foot position by hand //////
+  // Calculate the CoM by hand instead of by using MBP
+  VectorX<U> CoM_xz_dot(2);
+  CoM_xz_dot << v(0) + (0.3 * cos(q(2))*v(2)) / 2.0 + (
+               - 0.75 * cos(q(2) + q(3)) * (v(2) + v(3))
+               - 0.25 * cos(q(2) + q(3) + q(5)) * (v(2) + v(3) + v(5))
+               - 0.75 * cos(q(2) + q(4)) * (v(2) + v(4))
+               - 0.25 * cos(q(2) + q(4) + q(6)) * (v(2) + v(4) + v(6))) / 8.0,
+               v(1) + (- 0.3 * sin(q(2))*v(2)) / 2.0 + (
+                 + 0.75 * sin(q(2) + q(3)) * (v(2) + v(3))
+                 + 0.25 * sin(q(2) + q(3) + q(5)) * (v(2) + v(3) + v(5))
+                 + 0.75 * sin(q(2) + q(4)) * (v(2) + v(4))
+                 + 0.25 * sin(q(2) + q(4) + q(6)) * (v(2) + v(4) + v(6))) / 8.0;
+  // Calculate the stance foot by hand instead of by using MBP
+  VectorX<U> left_foot_pos_xz_dot(2);
+  left_foot_pos_xz_dot <<
+                       v(0) - 0.5 * cos(q(2) + q(3))*(v(2) + v(3))
+                       - 0.5 * cos(q(2) + q(3) + q(5))*(v(2) + v(3) + v(5)),
+                       v(1) + 0.5 * sin(q(2) + q(3))*(v(2) + v(3))
+                       + 0.5 * sin(q(2) + q(3) + q(5))*(v(2) + v(3) + v(5));
+  VectorX<U> st_to_CoM_xz_dot = CoM_xz_dot - left_foot_pos_xz_dot;
+  // Calculate the swing foot by hand instead of by using MBP
+  VectorX<U> right_foot_pos_xz_dot(2);
+  right_foot_pos_xz_dot <<
+                        v(0) - 0.5 * cos(q(2) + q(4))*(v(2) + v(4))
+                        - 0.5 * cos(q(2) + q(4) + q(6))*(v(2) + v(4) + v(6)),
+                        v(1) + 0.5 * sin(q(2) + q(4))*(v(2) + v(4))
+                        + 0.5 * sin(q(2) + q(4) + q(6))*(v(2) + v(4) + v(6));
+  VectorX<U> CoM_to_sw_xz_dot = right_foot_pos_xz_dot - CoM_xz_dot;
+  // cout << "CoM_xz_dot = " << CoM_xz_dot.transpose() << endl;
+  // cout << "st_to_CoM_xz_dot = " << st_to_CoM_xz_dot.transpose() << endl;
+  // cout << "CoM_to_sw_xz_dot = " << CoM_to_sw_xz_dot.transpose() << endl;
+
+  VectorX<U> feature_base_dot(4);
+  feature_base_dot << st_to_CoM_xz_dot, CoM_to_sw_xz_dot;
+
+  // elements:
+  // sin(q(2)), cos(q(2))
+  // sin(q(3)), cos(q(3))
+  // sin(q(4)), cos(q(4))
+  // sin(q(5)), cos(q(5))
+  // sin(q(6)), cos(q(6))
+  // feature_base_dot(0), feature_base_dot(1), feature_base_dot(2), feature_base_dot(3)
+
+  VectorX<U> feature_dot(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+  feature_dot << feature_base_dot,
+              0,
+               cos(q(2)) *v(2),
+              -sin(q(2)) *v(2),
+               cos(q(3)) *v(3),
+              -sin(q(3)) *v(3),
+               cos(q(4)) *v(4),
+              -sin(q(4)) *v(4),
+               cos(q(5)) *v(5),
+              -sin(q(5)) *v(5),
+               cos(q(6)) *v(6),
+              -sin(q(6)) *v(6),  // linear until here, below are quadratic
+              // 1
+              2 * sin(q(2)) * cos(q(2)) * v(2),
+              -sin(q(2)) * v(2) * sin(q(2)) + cos(q(2)) * cos(q(2)) * v(2),
+               cos(q(3)) * v(3) * sin(q(2)) + sin(q(3)) * cos(q(2)) * v(2),
+              -sin(q(3)) * v(3) * sin(q(2)) + cos(q(3)) * cos(q(2)) * v(2),
+               cos(q(4)) * v(4) * sin(q(2)) + sin(q(4)) * cos(q(2)) * v(2),
+              -sin(q(4)) * v(4) * sin(q(2)) + cos(q(4)) * cos(q(2)) * v(2),
+               cos(q(5)) * v(5) * sin(q(2)) + sin(q(5)) * cos(q(2)) * v(2),
+              -sin(q(5)) * v(5) * sin(q(2)) + cos(q(5)) * cos(q(2)) * v(2),
+               cos(q(6)) * v(6) * sin(q(2)) + sin(q(6)) * cos(q(2)) * v(2),
+              -sin(q(6)) * v(6) * sin(q(2)) + cos(q(6)) * cos(q(2)) * v(2),
+              // 2
+              -sin(q(2)) * v(2) * cos(q(2)) + cos(q(2)) * (-sin(q(2))) * v(2),
+               cos(q(3)) * v(3) * cos(q(2)) + sin(q(3)) * (-sin(q(2))) * v(2),
+              -sin(q(3)) * v(3) * cos(q(2)) + cos(q(3)) * (-sin(q(2))) * v(2),
+               cos(q(4)) * v(4) * cos(q(2)) + sin(q(4)) * (-sin(q(2))) * v(2),
+              -sin(q(4)) * v(4) * cos(q(2)) + cos(q(4)) * (-sin(q(2))) * v(2),
+               cos(q(5)) * v(5) * cos(q(2)) + sin(q(5)) * (-sin(q(2))) * v(2),
+              -sin(q(5)) * v(5) * cos(q(2)) + cos(q(5)) * (-sin(q(2))) * v(2),
+               cos(q(6)) * v(6) * cos(q(2)) + sin(q(6)) * (-sin(q(2))) * v(2),
+              -sin(q(6)) * v(6) * cos(q(2)) + cos(q(6)) * (-sin(q(2))) * v(2),
+              // 3
+               cos(q(3)) * v(3) * sin(q(3)) + sin(q(3)) * cos(q(3)) * v(3),
+              -sin(q(3)) * v(3) * sin(q(3)) + cos(q(3)) * cos(q(3)) * v(3),
+               cos(q(4)) * v(4) * sin(q(3)) + sin(q(4)) * cos(q(3)) * v(3),
+              -sin(q(4)) * v(4) * sin(q(3)) + cos(q(4)) * cos(q(3)) * v(3),
+               cos(q(5)) * v(5) * sin(q(3)) + sin(q(5)) * cos(q(3)) * v(3),
+              -sin(q(5)) * v(5) * sin(q(3)) + cos(q(5)) * cos(q(3)) * v(3),
+               cos(q(6)) * v(6) * sin(q(3)) + sin(q(6)) * cos(q(3)) * v(3),
+              -sin(q(6)) * v(6) * sin(q(3)) + cos(q(6)) * cos(q(3)) * v(3),
+              // 4
+              -sin(q(3)) * v(3) * cos(q(3)) + cos(q(3)) * (-sin(q(3))) * v(3),
+               cos(q(4)) * v(4)* cos(q(3)) + sin(q(4)) * (-sin(q(3))) * v(3),
+              -sin(q(4)) * v(4) * cos(q(3)) + cos(q(4)) * (-sin(q(3))) * v(3),
+               cos(q(5)) * v(5)* cos(q(3)) + sin(q(5)) * (-sin(q(3))) * v(3),
+              -sin(q(5)) * v(5) * cos(q(3)) + cos(q(5)) * (-sin(q(3))) * v(3),
+               cos(q(6)) * v(6)* cos(q(3)) + sin(q(6)) * (-sin(q(3))) * v(3),
+              -sin(q(6)) * v(6) * cos(q(3)) + cos(q(6)) * (-sin(q(3))) * v(3),
+              // 5
+               cos(q(4)) * v(4) * sin(q(4)) + sin(q(4)) * cos(q(4)) * v(4),
+              -sin(q(4)) * v(4) * sin(q(4)) + cos(q(4)) * cos(q(4)) * v(4),
+               cos(q(5)) * v(5) * sin(q(4)) + sin(q(5)) * cos(q(4)) * v(4),
+              -sin(q(5)) * v(5) * sin(q(4)) + cos(q(5)) * cos(q(4)) * v(4),
+               cos(q(6)) * v(6) * sin(q(4)) + sin(q(6)) * cos(q(4)) * v(4),
+              -sin(q(6)) * v(6) * sin(q(4)) + cos(q(6)) * cos(q(4)) * v(4),
+              // 6
+              -sin(q(4)) * v(4)* cos(q(4)) + cos(q(4)) * (-sin(q(4))) * v(4),
+               cos(q(5)) * v(5)* cos(q(4)) + sin(q(5)) * (-sin(q(4))) * v(4),
+              -sin(q(5)) * v(5)* cos(q(4)) + cos(q(5)) * (-sin(q(4))) * v(4),
+               cos(q(6)) * v(6)* cos(q(4)) + sin(q(6)) * (-sin(q(4))) * v(4),
+              -sin(q(6)) * v(6)* cos(q(4)) + cos(q(6)) * (-sin(q(4))) * v(4),
+              // 7
+               cos(q(5)) * v(5) * sin(q(5)) + sin(q(5)) * cos(q(5)) * v(5),
+              -sin(q(5)) * v(5) * sin(q(5)) + cos(q(5)) * cos(q(5)) * v(5),
+               cos(q(6)) * v(6) * sin(q(5)) + sin(q(6)) * cos(q(5)) * v(5),
+              -sin(q(6)) * v(6) * sin(q(5)) + cos(q(6)) * cos(q(5)) * v(5),
+              // 8
+              -sin(q(5)) * v(5) * cos(q(5)) + cos(q(5)) * (-sin(q(5))) * v(5),
+               cos(q(6)) * v(6) * cos(q(5)) + sin(q(6)) * (-sin(q(5))) * v(5),
+              -sin(q(6)) * v(6) * cos(q(5)) + cos(q(6)) * (-sin(q(5))) * v(5),
+              // 9
+               cos(q(6)) * v(6)* sin(q(6)) + sin(q(6)) * cos(q(6)) * v(6),
+              -sin(q(6)) * v(6)* sin(q(6)) + cos(q(6)) * cos(q(6)) * v(6),
+              // 10
+              -2 * cos(q(6)) * sin(q(6)) * v(6);
+
+  return feature_dot;
+}
+
+
+
+
+
+
 // Instantiation
 
 // class KinematicsExpression //////////////////////////////////////////////////
@@ -664,6 +811,19 @@ template VectorX<double> KinematicsExpression<double>::getFeature(
 //   const VectorX<double> &) const;
 template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getFeature(
   const VectorX<AutoDiffXd> &) const;
+
+// method getExpressionDot /////////////////////////////////////////////////////
+template VectorX<double> KinematicsExpression<double>::getExpressionDot(
+  const VectorX<double> &,
+  const VectorX<double> &, const VectorX<double> &) const;
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getExpressionDot(
+  const VectorX<double> &,
+  const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
+// method getFeatureDot ////////////////////////////////////////////////////////
+template VectorX<double> KinematicsExpression<double>::getFeatureDot(
+  const VectorX<double> &, const VectorX<double> &) const;
+template VectorX<AutoDiffXd> KinematicsExpression<AutoDiffXd>::getFeatureDot(
+  const VectorX<AutoDiffXd> &, const VectorX<AutoDiffXd> &) const;
 
 }  // namespace goldilocks_models
 }  // namespace dairlib
