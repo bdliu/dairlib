@@ -372,12 +372,26 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   cout << solution_result <<  " | ";
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
-    for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
+    // Way 1
+    /*for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
       auto tau_i = binding.variables();
       VectorXd tau_i_double = result.GetSolution(tau_i);
       VectorXd y_val(1);
       binding.evaluator()->Eval(tau_i_double, &y_val);
       tau_cost += y_val(0);
+    }*/
+  } else {
+    // Way 2
+    int N_accum = 0;
+    for (unsigned int l = 0; l < num_time_samples.size() ; l++) {
+      for (int m = 0; m < num_time_samples[l] - 1 ; m++) {
+        int i = N_accum + m;
+        auto tau_i = gm_traj_opt.reduced_model_input(i, n_tau);
+        VectorXd tau_i_double = result.GetSolution(tau_i);
+        tau_cost += tau_i_double.transpose() * tau_i_double;
+      }
+      N_accum += num_time_samples[l];
+      N_accum -= 1;  // due to overlaps between modes
     }
   }
   cout << "Cost:" << result.get_optimal_cost() <<
