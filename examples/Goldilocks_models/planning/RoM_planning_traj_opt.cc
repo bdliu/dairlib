@@ -95,6 +95,13 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   auto tau = this->input();
   this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
   this->AddRunningCost(tau.transpose()*R * tau);
+  // Since there are mulitple q that could be mapped to the same r, I penalize
+  // on q so it get close to a certain configuration
+  MatrixXd Id = MatrixXd::Identity(1, 1);
+  VectorXd zero_1d_vec = VectorXd::Zero(1);
+  for (int i = 0; i < num_modes_; i++) {
+    this->AddQuadraticErrorCost(Id, zero_1d_vec, xf_vars_by_mode(i).segment(2, 1));
+  }
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
