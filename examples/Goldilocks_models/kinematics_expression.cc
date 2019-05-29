@@ -48,7 +48,7 @@ VectorX<T> KinematicsExpression<T>::getExpressionDot(
   VectorX<T> expression(n_s_);
   for (int i = 0; i < n_s_ ; i++)
     expression(i) =
-      theta.segment(i * n_feature_, n_feature_).dot(getFeatureDot(q,v));
+      theta.segment(i * n_feature_, n_feature_).dot(getFeatureDot(q, v));
   return expression;
 }
 
@@ -559,7 +559,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           cos(q(6)) * cos(q(6));*/
 
   //////////// Version 11: Previous version without x and z ////////////////////
-  VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+  /*VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
   feature << feature_base,
           1,
           sin(q(2)),
@@ -636,7 +636,98 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
           sin(q(6)) * sin(q(6)),
           cos(q(6)) * sin(q(6)),
           // 10
-          cos(q(6)) * cos(q(6));
+          cos(q(6)) * cos(q(6));*/
+
+  VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+  
+  U sin_q2 = sin(q(2));
+  U cos_q2 = cos(q(2));
+  U sin_q3 = sin(q(3));
+  U cos_q3 = cos(q(3));
+  U sin_q4 = sin(q(4));
+  U cos_q4 = cos(q(4));
+  U sin_q5 = sin(q(5));
+  U cos_q5 = cos(q(5));
+  U sin_q6 = sin(q(6));
+  U cos_q6 = cos(q(6));
+
+  feature << feature_base,
+          1,
+          sin_q2,
+          cos_q2,
+          sin_q3,
+          cos_q3,
+          sin_q4,
+          cos_q4,
+          sin_q5,
+          cos_q5,
+          sin_q6,
+          cos_q6,  // linear until here, below are quadratic
+          // 1
+          sin_q2 * sin_q2,
+          cos_q2 * sin_q2,
+          sin_q3 * sin_q2,
+          cos_q3 * sin_q2,
+          sin_q4 * sin_q2,
+          cos_q4 * sin_q2,
+          sin_q5 * sin_q2,
+          cos_q5 * sin_q2,
+          sin_q6 * sin_q2,
+          cos_q6 * sin_q2,
+          // 2
+          cos_q2 * cos_q2,
+          sin_q3 * cos_q2,
+          cos_q3 * cos_q2,
+          sin_q4 * cos_q2,
+          cos_q4 * cos_q2,
+          sin_q5 * cos_q2,
+          cos_q5 * cos_q2,
+          sin_q6 * cos_q2,
+          cos_q6 * cos_q2,
+          // 3
+          sin_q3 * sin_q3,
+          cos_q3 * sin_q3,
+          sin_q4 * sin_q3,
+          cos_q4 * sin_q3,
+          sin_q5 * sin_q3,
+          cos_q5 * sin_q3,
+          sin_q6 * sin_q3,
+          cos_q6 * sin_q3,
+          // 4
+          cos_q3 * cos_q3,
+          sin_q4 * cos_q3,
+          cos_q4 * cos_q3,
+          sin_q5 * cos_q3,
+          cos_q5 * cos_q3,
+          sin_q6 * cos_q3,
+          cos_q6 * cos_q3,
+          // 5
+          sin_q4 * sin_q4,
+          cos_q4 * sin_q4,
+          sin_q5 * sin_q4,
+          cos_q5 * sin_q4,
+          sin_q6 * sin_q4,
+          cos_q6 * sin_q4,
+          // 6
+          cos_q4 * cos_q4,
+          sin_q5 * cos_q4,
+          cos_q5 * cos_q4,
+          sin_q6 * cos_q4,
+          cos_q6 * cos_q4,
+          // 7
+          sin_q5 * sin_q5,
+          cos_q5 * sin_q5,
+          sin_q6 * sin_q5,
+          cos_q6 * sin_q5,
+          // 8
+          cos_q5 * cos_q5,
+          sin_q6 * cos_q5,
+          cos_q6 * cos_q5,
+          // 9
+          sin_q6 * sin_q6,
+          cos_q6 * sin_q6,
+          // 10
+          cos_q6 * cos_q6;
 
   return feature;
 }
@@ -693,6 +784,7 @@ VectorX<U> KinematicsExpression<T>::getFeatureDot(
   // sin(q(6)), cos(q(6))
   // feature_base_dot(0), feature_base_dot(1), feature_base_dot(2), feature_base_dot(3)
 
+  /*
   VectorX<U> feature_dot(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
   feature_dot << feature_base_dot,
               0,
@@ -770,7 +862,109 @@ VectorX<U> KinematicsExpression<T>::getFeatureDot(
                cos(q(6)) * v(6)* sin(q(6)) + sin(q(6)) * cos(q(6)) * v(6),
               -sin(q(6)) * v(6)* sin(q(6)) + cos(q(6)) * cos(q(6)) * v(6),
               // 10
-              -2 * cos(q(6)) * sin(q(6)) * v(6);
+              -2 * cos(q(6)) * sin(q(6)) * v(6);*/
+
+  VectorX<U> feature_dot(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
+
+  U sin_q2 = sin(q(2));
+  U cos_q2 = cos(q(2));
+  U sin_q3 = sin(q(3));
+  U cos_q3 = cos(q(3));
+  U sin_q4 = sin(q(4));
+  U cos_q4 = cos(q(4));
+  U sin_q5 = sin(q(5));
+  U cos_q5 = cos(q(5));
+  U sin_q6 = sin(q(6));
+  U cos_q6 = cos(q(6));
+
+  U d_sin_q2 = cos_q2 * v(2);
+  U d_cos_q2 = -sin_q2 * v(2);
+  U d_sin_q3 = cos_q3 * v(3);
+  U d_cos_q3 = -sin_q3 * v(3);
+  U d_sin_q4 = cos_q4 * v(4);
+  U d_cos_q4 = -sin_q4 * v(4);
+  U d_sin_q5 = cos_q5 * v(5);
+  U d_cos_q5 = -sin_q5 * v(5);
+  U d_sin_q6 = cos_q6 * v(6);
+  U d_cos_q6 = -sin_q6 * v(6);
+
+  feature_dot << feature_base_dot,
+              0,
+              d_sin_q2,
+              d_cos_q2,
+              d_sin_q3,
+              d_cos_q3,
+              d_sin_q4,
+              d_cos_q4,
+              d_sin_q5,
+              d_cos_q5,
+              d_sin_q6,
+              d_cos_q6,  // linear until here, below are quadratic
+              // 1
+              2 * sin_q2 * d_sin_q2,
+              d_cos_q2 * sin_q2 + cos_q2 * d_sin_q2,
+              d_sin_q3 * sin_q2 + sin_q3 * d_sin_q2,
+              d_cos_q3 * sin_q2 + cos_q3 * d_sin_q2,
+              d_sin_q4 * sin_q2 + sin_q4 * d_sin_q2,
+              d_cos_q4 * sin_q2 + cos_q4 * d_sin_q2,
+              d_sin_q5 * sin_q2 + sin_q5 * d_sin_q2,
+              d_cos_q5 * sin_q2 + cos_q5 * d_sin_q2,
+              d_sin_q6 * sin_q2 + sin_q6 * d_sin_q2,
+              d_cos_q6 * sin_q2 + cos_q6 * d_sin_q2,
+              // 2
+              d_cos_q2 * cos_q2 + cos_q2 * d_cos_q2,
+              d_sin_q3 * cos_q2 + sin_q3 * d_cos_q2,
+              d_cos_q3 * cos_q2 + cos_q3 * d_cos_q2,
+              d_sin_q4 * cos_q2 + sin_q4 * d_cos_q2,
+              d_cos_q4 * cos_q2 + cos_q4 * d_cos_q2,
+              d_sin_q5 * cos_q2 + sin_q5 * d_cos_q2,
+              d_cos_q5 * cos_q2 + cos_q5 * d_cos_q2,
+              d_sin_q6 * cos_q2 + sin_q6 * d_cos_q2,
+              d_cos_q6 * cos_q2 + cos_q6 * d_cos_q2,
+              // 3
+              d_sin_q3 * sin_q3 + sin_q3 * d_sin_q3,
+              d_cos_q3 * sin_q3 + cos_q3 * d_sin_q3,
+              d_sin_q4 * sin_q3 + sin_q4 * d_sin_q3,
+              d_cos_q4 * sin_q3 + cos_q4 * d_sin_q3,
+              d_sin_q5 * sin_q3 + sin_q5 * d_sin_q3,
+              d_cos_q5 * sin_q3 + cos_q5 * d_sin_q3,
+              d_sin_q6 * sin_q3 + sin_q6 * d_sin_q3,
+              d_cos_q6 * sin_q3 + cos_q6 * d_sin_q3,
+              // 4
+              d_cos_q3 * cos_q3 + cos_q3 * d_cos_q3,
+              d_sin_q4 * cos_q3 + sin_q4 * d_cos_q3,
+              d_cos_q4 * cos_q3 + cos_q4 * d_cos_q3,
+              d_sin_q5 * cos_q3 + sin_q5 * d_cos_q3,
+              d_cos_q5 * cos_q3 + cos_q5 * d_cos_q3,
+              d_sin_q6 * cos_q3 + sin_q6 * d_cos_q3,
+              d_cos_q6 * cos_q3 + cos_q6 * d_cos_q3,
+              // 5
+              d_sin_q4 * sin_q4 + sin_q4 * d_sin_q4,
+              d_cos_q4 * sin_q4 + cos_q4 * d_sin_q4,
+              d_sin_q5 * sin_q4 + sin_q5 * d_sin_q4,
+              d_cos_q5 * sin_q4 + cos_q5 * d_sin_q4,
+              d_sin_q6 * sin_q4 + sin_q6 * d_sin_q4,
+              d_cos_q6 * sin_q4 + cos_q6 * d_sin_q4,
+              // 6
+              d_cos_q4 * cos_q4 + cos_q4 * d_cos_q4,
+              d_sin_q5 * cos_q4 + sin_q5 * d_cos_q4,
+              d_cos_q5 * cos_q4 + cos_q5 * d_cos_q4,
+              d_sin_q6 * cos_q4 + sin_q6 * d_cos_q4,
+              d_cos_q6 * cos_q4 + cos_q6 * d_cos_q4,
+              // 7
+              d_sin_q5 * sin_q5 + sin_q5 * d_sin_q5,
+              d_cos_q5 * sin_q5 + cos_q5 * d_sin_q5,
+              d_sin_q6 * sin_q5 + sin_q6 * d_sin_q5,
+              d_cos_q6 * sin_q5 + cos_q6 * d_sin_q5,
+              // 8
+              d_cos_q5 * cos_q5 + cos_q5 * d_cos_q5,
+              d_sin_q6 * cos_q5 + sin_q6 * d_cos_q5,
+              d_cos_q6 * cos_q5 + cos_q6 * d_cos_q5,
+              // 9
+              d_sin_q6 * sin_q6 + sin_q6 * d_sin_q6,
+              d_cos_q6 * sin_q6 + cos_q6 * d_sin_q6,
+              // 10
+              2 * cos_q6 * d_cos_q6;
 
   return feature_dot;
 }
