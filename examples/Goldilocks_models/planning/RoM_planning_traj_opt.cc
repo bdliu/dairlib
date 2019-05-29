@@ -93,7 +93,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   cout << "Adding cost...\n";
   auto y = this->state();
   auto tau = this->input();
-  // this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
+  this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
   this->AddRunningCost(tau.transpose()*R * tau);
 
   // (Initial guess and constraint) Initialization is looped over the modes
