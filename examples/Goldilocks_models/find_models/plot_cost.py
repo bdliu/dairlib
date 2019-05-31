@@ -5,6 +5,7 @@ import os
 import time
 import sys
 
+only_plot_average_cost = true
 
 iter_start = 1
 iter_end = 11
@@ -52,10 +53,11 @@ while 1:
 
         length = len(cost)
         t = range(iter_start,length+iter_start)
-        if n_sampel_gi > 1:
-            ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m), ground incline = '+str(min_incline+(batch/n_sampel_gi)*delta_incline)+' (rad)')
-        else:
-            ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m)')
+        if not only_plot_average_cost:
+            if n_sampel_gi > 1:
+                ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m), ground incline = '+str(min_incline+(batch/n_sampel_gi)*delta_incline)+' (rad)')
+            else:
+                ax1.plot(t,cost, label='stride length = '+str(min_dist+(batch%n_sampel_sl)*delta_dist)+' (m)')
 
         # plot total cost
         if batch == batch_max-1:
@@ -65,12 +67,13 @@ while 1:
             total_cost = [x + y for x, y in zip(total_cost, cost[0:len_total_cost])]
         if batch == 0:
             average_cost = [x/batch_max for x in total_cost]
-            ax1.plot(t[0:len_total_cost],average_cost, 'k--', linewidth=2.0, label='Averaged cost')
+            ax1.plot(t[0:len_total_cost],average_cost, 'b--', linewidth=2.0, label='Averaged cost')
 
-    plt.xlabel('iterations')
-    plt.ylabel('cost')
-    plt.title('Cost over iterations')
-    plt.legend()
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    if not only_plot_average_cost:
+        plt.title('Cost over iterations')
+        plt.legend()
     plt.draw()
 
     plt.pause(10)
