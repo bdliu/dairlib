@@ -58,6 +58,7 @@ DEFINE_int32(iter_end, -1, "The iter #");
 DEFINE_int32(batch, 0, "The batch #");
 DEFINE_double(realtime_factor, 1, "Rate of which the traj is played back");
 DEFINE_int32(n_step, 3, "# of foot steps");
+DEFINE_double(ground_incline, 0, "Pitch angle of ground");
 
 void swapTwoBlocks(MatrixXd * mat, int i_1, int j_1, int i_2, int j_2,
                    int n_row, int n_col) {
@@ -149,6 +150,8 @@ void visualizeGait(int argc, char* argv[]) {
     drake::systems::DiagramBuilder<double> builder;
     MultibodyPlant<double> plant;
     SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
+    Vector3d ground_normal(sin(FLAGS_ground_incline), 0, cos(FLAGS_ground_incline));
+    multibody::addTerrain(&plant, &scene_graph, 0.8, 0.8, ground_normal);
     Parser parser(&plant, &scene_graph);
     std::string full_name = FindResourceOrThrow(
                               "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
