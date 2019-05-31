@@ -67,7 +67,10 @@ while 1:
             total_cost = [x + y for x, y in zip(total_cost, cost[0:len_total_cost])]
         if batch == 0:
             average_cost = [x/batch_max for x in total_cost]
-            ax1.plot(t[0:len_total_cost],average_cost, 'b--', linewidth=2.0, label='Averaged cost')
+            if only_plot_average_cost:
+                ax1.plot(t[0:len_total_cost],average_cost, 'b--', linewidth=2.0, label='Averaged cost')
+            else:
+                ax1.plot(t[0:len_total_cost],average_cost, 'k--', linewidth=2.0, label='Averaged cost')
 
     plt.xlabel('Iterations')
     plt.ylabel('Cost')
