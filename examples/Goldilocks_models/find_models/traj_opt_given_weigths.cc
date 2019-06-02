@@ -373,13 +373,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
     // Way 1
-    /*for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
+    for (auto const & binding : gm_traj_opt.tau_cost_bindings) {
       auto tau_i = binding.variables();
       VectorXd tau_i_double = result.GetSolution(tau_i);
       VectorXd y_val(1);
       binding.evaluator()->Eval(tau_i_double, &y_val);
       tau_cost += y_val(0);
-    }*/
+    }
   } else {
     // Way 2
     int N_accum = 0;
