@@ -57,6 +57,40 @@ cc_library(
         "//examples/Goldilocks_models:kinematics_expression",
     ],
 )
+cc_library(
+    name = "kinematics_constraint_only_pos",
+    srcs = [
+        "kinematics_constraint_only_pos.cc",
+    ],
+    hdrs = [
+        "kinematics_constraint_only_pos.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+        "//examples/Goldilocks_models:kinematics_expression",
+    ],
+)
+cc_library(
+    name = "kinematics_constraint_given_r",
+    srcs = [
+        "kinematics_constraint_given_r.cc",
+    ],
+    hdrs = [
+        "kinematics_constraint_given_r.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+        "//examples/Goldilocks_models:kinematics_expression",
+    ],
+)
 
 
 cc_library(
@@ -109,6 +143,22 @@ cc_library(
         "//multibody:utils",
     ],
 )
+cc_library(
+    name = "FoM_stance_foot_constraint_given_pos",
+    srcs = [
+        "FoM_stance_foot_constraint_given_pos.cc",
+    ],
+    hdrs = [
+        "FoM_stance_foot_constraint_given_pos.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+    ],
+)
 
 cc_library(
     name = "FoM_stride_length_constraint",
@@ -151,5 +201,34 @@ cc_binary(
         "@drake//multibody/parsing",
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
+    ],
+)
+cc_binary(
+    name = "visualize_FoM_traj_MBP",
+    srcs = ["visualize_FoM_traj_MBP.cc"],
+    data = glob(["examples/Goldilocks_models/PlanarWalkerWithTorso.urdf"]),
+    deps = [
+        "//common",
+        "//systems/primitives",
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "@drake//attic/multibody/parsers",
+        "@drake//common",
+        "@drake//math",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",     
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",  
+        "@drake//solvers:mathematical_program",
+        ":kinematics_constraint_given_r",
+        ":kinematics_constraint_only_pos",
+        ":FoM_stance_foot_constraint_given_pos",
     ],
 )

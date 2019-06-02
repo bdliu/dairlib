@@ -100,8 +100,14 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   MatrixXd Id = MatrixXd::Identity(1, 1);
   VectorXd zero_1d_vec = VectorXd::Zero(1);
   for (int i = 0; i < num_modes_; i++) {
-    this->AddQuadraticErrorCost(Id, zero_1d_vec, xf_vars_by_mode(i).segment(2, 1));
+    this->AddQuadraticErrorCost(1*Id, zero_1d_vec, xf_vars_by_mode(i).segment(2, 1));
   }
+  // for (int i = 0; i < num_modes_; i++) {
+  //   this->AddQuadraticErrorCost(10*Id, zero_1d_vec, xf_vars_by_mode(i).segment(3, 1));
+  // }
+  // for (int i = 0; i < num_modes_; i++) {
+  //   this->AddQuadraticErrorCost(10*Id, zero_1d_vec, xf_vars_by_mode(i).segment(4, 1));
+  // }
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
