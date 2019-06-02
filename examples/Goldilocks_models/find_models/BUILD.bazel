@@ -159,3 +159,13 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "postadd_cost_without_tau",
+    srcs = ["postadd_cost_without_tau.cc"],
+    deps = [
+        "//systems/goldilocks_models",
+        "@drake//common",
+        "@gflags",
+    ],
+)
+

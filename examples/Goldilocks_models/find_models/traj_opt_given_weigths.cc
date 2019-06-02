@@ -575,8 +575,8 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     c_double = solvers::SecondOrderCost(*gm_traj_opt.dircon.get(), w_sol, &H, &b);
     VectorXd c(1);
     c << c_double;
-    VectorXd c_no_tau(1);
-    c_no_tau << c_double - tau_cost;
+    VectorXd c_without_tau(1);
+    c_without_tau << c_double - tau_cost;
 
     // Get matrix B (~get feature vectors)
     // cout << "\nGetting B.\n";
@@ -643,7 +643,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     // Store the vectors and matrices
     // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
-    writeCSV(directory + prefix + string("c_no_tau.csv"), c_no_tau);
+    writeCSV(directory + prefix + string("c_without_tau.csv"), c_without_tau);
     /*writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);

@@ -5,7 +5,7 @@ import os
 import time
 import sys
 
-only_plot_average_cost = true
+only_plot_average_cost = True
 
 iter_start = 1
 iter_end = 11
@@ -29,6 +29,9 @@ delta_incline = 0.05
 
 directory = 'data/'
 
+# file_name = 'c.csv'
+file_name = 'c_without_tau.csv'
+
 while 1:
     fig1 = plt.figure(1)
     ax1 = fig1.gca()
@@ -38,12 +41,12 @@ while 1:
     for batch in reversed(range(batch_max)):
         cost = []
         iteration = iter_start
-        while os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_c.csv'):
+        while os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_'+file_name):
             # way1
-            matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_c.csv', delimiter=",")
+            matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_'+file_name, delimiter=",")
             cost.append(matrix)
             # way2
-            # with open(directory+str(iteration)+'_'+str(batch)+'_c.csv','r') as csvfile:
+            # with open(directory+str(iteration)+'_'+str(batch)+'_'+file_name,'r') as csvfile:
             #     plots = csv.reader(csvfile, delimiter=',')
             #     for row in plots:
             #         cost.append(row[0])
