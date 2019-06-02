@@ -213,15 +213,16 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
           math_prog.AddLinearConstraint(
             q(positions_map.at(l_or_r[k] + fom_joint_names[l])),
             lb_for_fom_joints[l], ub_for_fom_joints[l]);
-          cout << "(" << positions_map.at(l_or_r[k] + fom_joint_names[l]) <<
-               ") " << l_or_r[k] + fom_joint_names[l] << ": lb = " <<
-               lb_for_fom_joints[l] << ", ub = " << ub_for_fom_joints[l] << endl;
+          // cout << "(" << positions_map.at(l_or_r[k] + fom_joint_names[l]) <<
+          //      ") " << l_or_r[k] + fom_joint_names[l] << ": lb = " <<
+          //      lb_for_fom_joints[l] << ", ub = " << ub_for_fom_joints[l] << endl;
         }
       }
 
       // Add RoM-FoM mapping constraints
       // cout << "Adding RoM-FoM mapping constraint...\n";
       VectorXd r_i = states.col(j + (FLAGS_n_nodes - 1) * i).head(n_r);
+      cout << "r_i = " << r_i << endl;
 
       MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
       AutoDiffVecXd r_i_autoDiff = initializeAutoDiff(r_i);
