@@ -195,6 +195,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       left_stance = (i % 2) ? false : true;
     else
       left_stance = (i % 2) ? true : false;
+    cout << "left_stance = " << left_stance << endl;
 
     for (int j = 1; j < FLAGS_n_nodes - 1; j++) {
       MathematicalProgram math_prog;
@@ -202,7 +203,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       auto q = math_prog.NewContinuousVariables(7, "q");
 
       // Full order model joint limits
-      cout << "Adding full-order model joint constraint...\n";
+      // cout << "Adding full-order model joint constraint...\n";
       vector<string> l_or_r{"left_", "right_"};
       vector<string> fom_joint_names{"hip_pin", "knee_pin"};
       vector<double> lb_for_fom_joints{ -M_PI / 2.0, 5.0 / 180.0 * M_PI};
@@ -212,11 +213,14 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
           math_prog.AddLinearConstraint(
             q(positions_map.at(l_or_r[k] + fom_joint_names[l])),
             lb_for_fom_joints[l], ub_for_fom_joints[l]);
+          cout << "(" << positions_map.at(l_or_r[k] + fom_joint_names[l]) <<
+               ") " << l_or_r[k] + fom_joint_names[l] << ": lb = " <<
+               lb_for_fom_joints[l] << ", ub = " << ub_for_fom_joints[l] << endl;
         }
       }
 
       // Add RoM-FoM mapping constraints
-      cout << "Adding RoM-FoM mapping constraint...\n";
+      // cout << "Adding RoM-FoM mapping constraint...\n";
       VectorXd r_i = states.col(j + (FLAGS_n_nodes - 1) * i).head(n_r);
 
       MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
@@ -237,13 +241,15 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
                q.segment(3, 1),
                q.segment(6, 1),
                q.segment(5, 1);
+        // cout << "q_swap = " << q_swap.transpose() << endl;
         // math_prog.AddConstraint(kin_constraint, q_swap);
         math_prog.AddConstraint(kin_constraint, {r, q_swap});
-        math_prog.AddLinearConstraint(r == r_i);
       }
+      math_prog.AddLinearConstraint(r == r_i);
+      // cout << "q = " << q.transpose() << endl;
 
       // Add stance foot constraint
-      cout << "Adding full-order model stance foot constraint...\n";
+      // cout << "Adding full-order model stance foot constraint...\n";
       auto fom_sf_constraint =
         std::make_shared<planning::FomStanceFootConstraintGivenPos>(
           left_stance, n_q, stance_foot_pos_each_mode.col(i));
@@ -272,11 +278,10 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       //                           "Major iterations limit", 10000);
       // math_prog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-14); //1.0e-10
       // math_prog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-14); //1.0e-10
-      cout << "Start solving...\n";
+      // cout << "Start solving...\n";
       const auto result = Solve(math_prog);
       auto solution_result = result.get_solution_result();
-      cout << solution_result << endl;
-      cout << "Cost:" << result.get_optimal_cost() << endl;
+      cout << solution_result << " | Cost:" << result.get_optimal_cost() << endl;
       VectorXd q_sol = result.GetSolution(q);
 
       q_at_all_knots.col(j + (FLAGS_n_nodes - 1) * i) = q_sol;
@@ -299,7 +304,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
   std::vector<MatrixXd> Y;
   bool add_one_extra_frame_to_pause = true;
   double t0 = 0;
-  if (add_one_extra_frame_to_pause){
+  if (add_one_extra_frame_to_pause) {
     T_breakpoint.push_back(0);
     VectorXd qv(14);
     qv << q_at_all_knots.col(0), VectorXd::Zero(7);
