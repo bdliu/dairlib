@@ -73,7 +73,7 @@ DEFINE_int32(iter, 131, "Which iteration");
 DEFINE_int32(n_mode, 5, "# of modes");
 DEFINE_int32(n_nodes, 20, "# of nodes per mode");
 DEFINE_int32(n_feature_kin, 70, "# of kinematics features");
-DEFINE_double(step_time, 1, "Duration per step * 2");
+DEFINE_double(dt, 0.1, "Duration per step * 2");
 DEFINE_bool(is_do_inverse_kin, false, "Do inverse kinematics for presentation");
 
 map<string, int> doMakeNameToPositionsMap() {
@@ -294,11 +294,20 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
 
 
   // Create a testing piecewise polynomial
-  double dt = 0.1;
+  double dt = FLAGS_dt;
   std::vector<double> T_breakpoint;
-  for (int i = 0; i < states.cols(); i++)
-    T_breakpoint.push_back(i * dt);
   std::vector<MatrixXd> Y;
+  bool add_one_extra_frame_to_pause = true;
+  double t0 = 0;
+  if (add_one_extra_frame_to_pause){
+    T_breakpoint.push_back(0);
+    VectorXd qv(14);
+    qv << q_at_all_knots.col(0), VectorXd::Zero(7);
+    Y.push_back(qv);
+    t0 = 1;
+  }
+  for (int i = 0; i < states.cols(); i++)
+    T_breakpoint.push_back(t0 + i * dt);
   for (int i = 0; i < states.cols(); i++) {
     VectorXd qv(14);
     qv << q_at_all_knots.col(i), VectorXd::Zero(7);
