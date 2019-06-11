@@ -19,7 +19,7 @@ elif len(sys.argv) == 4:
     kin_or_dyn = int(sys.argv[3])
 
 
-row_idx_ploted = range(idx_start,idx_end)
+row_idx_to_be_ploted = range(idx_start,idx_end)
 name = 'theta_sDDot' # theta_s or theta_sDDot
 if kin_or_dyn == 0:
     name = 'theta_s'
@@ -31,7 +31,7 @@ while 1:
     fig1 = plt.figure(1)
     ax1 = fig1.gca()
 
-    for row_idx in row_idx_ploted:
+    for row_idx in row_idx_to_be_ploted:
         theta_i = []
         iteration = iter_start
         while os.path.isfile(directory+str(iteration)+'_'+name+'.csv'):
@@ -48,5 +48,5 @@ while 1:
     # plt.legend()
     plt.draw()
 
-    plt.pause(10)
+    plt.pause(60)
     plt.clf()
