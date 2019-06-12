@@ -1,0 +1,48 @@
+cc_library(
+    name = "run_sample_prog",
+    srcs = ["run_sample_prog.cc"],
+    hdrs = ["run_sample_prog.h"],
+    deps = [
+        "//common",
+        "//systems/primitives",
+        "//systems/trajectory_optimization:dircon",
+        "//systems/goldilocks_models",
+        "//solvers:optimization_utils",
+        "@drake//attic/multibody/parsers",
+        "@drake//common",
+        "@drake//math",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@drake//multibody/parsing",
+        "@drake//geometry:geometry_visualization",
+        "@drake//systems/rendering:multibody_position_to_geometry_pose",
+    ],
+)
+
+
+cc_binary(
+    name = "run_multithread",
+    srcs = ["run_multithread.cc"],
+    data = glob(["examples/Goldilocks_models/PlanarWalkerWithTorso.urdf"]),
+    deps = [
+        "//examples/Goldilocks_models/misc/snopt_multithread_test:run_sample_prog",
+        "//systems/trajectory_optimization:dircon",
+        "//systems/goldilocks_models",
+        "@drake//common",
+        "@drake//lcm",
+        "@drake//manipulation/util",
+        "@drake//solvers",
+        "@drake//systems/analysis:simulator",
+        "@drake//systems/framework",
+        "@drake//systems/primitives",
+        "@drake//systems/trajectory_optimization",
+        "@gflags",
+        "@drake//solvers:mathematical_program",
+        "@drake//multibody/parsing",
+    ],
+)
