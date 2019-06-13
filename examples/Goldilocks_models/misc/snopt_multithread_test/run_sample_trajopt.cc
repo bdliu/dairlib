@@ -68,12 +68,28 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void runSampleTrajopt(const MultibodyPlant<double> & plant,
-                      const MultibodyPlant<AutoDiffXd> & plant_autoDiff,
+void runSampleTrajopt(/*const MultibodyPlant<double> & plant,
+                      const MultibodyPlant<AutoDiffXd> & plant_autoDiff,*/
                       double stride_length, double ground_incline,
                       string directory,
                       string init_file,
                       string prefix) {
+
+  // Create MBP
+  MultibodyPlant<double> plant;
+  Parser parser(&plant);
+  std::string full_name = FindResourceOrThrow(
+                            "examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
+  parser.AddModelFromFile(full_name);
+  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+    -9.81 * Eigen::Vector3d::UnitZ());
+  plant.WeldFrames(
+    plant.world_frame(), plant.GetFrameByName("base"),
+    drake::math::RigidTransform<double>());
+  plant.Finalize();
+  // Create autoDiff version of the plant
+  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
+
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -129,8 +145,7 @@ void runSampleTrajopt(const MultibodyPlant<double> & plant,
                       &rightConstraints);
 
   auto leftOptions = DirconOptions(leftDataSet.countConstraints());
-  leftOptions.setConstraintRelative(0,
-                                    true); //TODO: ask what is relative constraint here?
+  leftOptions.setConstraintRelative(0, true);
   // std::cout<<"leftDataSet.countConstraints() = "<<leftDataSet.countConstraints()<<"\n";
 
   auto rightOptions = DirconOptions(rightDataSet.countConstraints());
@@ -144,10 +159,8 @@ void runSampleTrajopt(const MultibodyPlant<double> & plant,
   num_time_samples.push_back(20); // First mode (20 sample points)
   num_time_samples.push_back(1);  // Second mode (1 sample point)
   std::vector<double> min_dt;
-  min_dt.push_back(
-    .01);   // bound for time difference between adjacent samples in the first mode // See HybridDircon constructor
-  min_dt.push_back(
-    .01);   // bound for time difference between adjacent samples in the second mode
+  min_dt.push_back(.01);
+  min_dt.push_back(.01);
   std::vector<double> max_dt;
   max_dt.push_back(.3);
   max_dt.push_back(.3);
@@ -166,88 +179,90 @@ void runSampleTrajopt(const MultibodyPlant<double> & plant,
   options_list.push_back(leftOptions);
   options_list.push_back(rightOptions);
 
-  auto trajopt = std::make_unique<HybridDircon<double>>(plant,
+  // auto trajopt = std::make_unique<HybridDircon<double>>(plant,
+  //                num_time_samples, min_dt, max_dt, dataset_list, options_list);
+  HybridDircon<double> trajopt(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list);
 
   // You can comment this out to not put any constraint on the time
   // However, we need it now, since we add the running cost by hand
-  // trajopt->AddDurationBounds(duration, duration);
+  // trajopt.AddDurationBounds(duration, duration);
 
   // Periodicity constraints
-  auto x0 = trajopt->initial_state();
-  // auto xf = trajopt->final_state();
-  auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
+  auto x0 = trajopt.initial_state();
+  // auto xf = trajopt.final_state();
+  auto xf = trajopt.state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
 
   //Careful! if you have a string typo, the code still runs and the mapped value will be 0.
-  // trajopt->AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
+  // trajopt.AddLinearConstraint(x0(positions_map.at("planar_z")) == xf(
   //                                positions_map.at("planar_z")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("planar_roty")) == xf(
+  trajopt.AddLinearConstraint(x0(positions_map.at("planar_roty")) == xf(
                                  positions_map.at("planar_roty")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) == xf(
+  trajopt.AddLinearConstraint(x0(positions_map.at("left_hip_pin")) == xf(
                                  positions_map.at("right_hip_pin")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("left_knee_pin")) == xf(
+  trajopt.AddLinearConstraint(x0(positions_map.at("left_knee_pin")) == xf(
                                  positions_map.at("right_knee_pin")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("right_hip_pin")) == xf(
+  trajopt.AddLinearConstraint(x0(positions_map.at("right_hip_pin")) == xf(
                                  positions_map.at("left_hip_pin")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("right_knee_pin")) == xf(
+  trajopt.AddLinearConstraint(x0(positions_map.at("right_knee_pin")) == xf(
                                  positions_map.at("left_knee_pin")));
 
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_xdot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("planar_xdot"))
                                == xf(n_q + velocities_map.at("planar_xdot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_zdot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("planar_zdot"))
                                == xf(n_q + velocities_map.at("planar_zdot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("planar_rotydot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("planar_rotydot"))
                                == xf(n_q + velocities_map.at("planar_rotydot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_hip_pindot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("left_hip_pindot"))
                                == xf(n_q + velocities_map.at("right_hip_pindot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("left_knee_pindot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("left_knee_pindot"))
                                == xf(n_q + velocities_map.at("right_knee_pindot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_hip_pindot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("right_hip_pindot"))
                                == xf(n_q + velocities_map.at("left_hip_pindot")));
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("right_knee_pindot"))
+  trajopt.AddLinearConstraint(x0(n_q + velocities_map.at("right_knee_pindot"))
                                == xf(n_q + velocities_map.at("left_knee_pindot")));
 
   // u periodic constraint
-  auto u0 = trajopt->input(0);
-  auto uf = trajopt->input(N - 1);
-  trajopt->AddLinearConstraint(u0(actuators_map.at("left_hip_torque")) == uf(
+  auto u0 = trajopt.input(0);
+  auto uf = trajopt.input(N - 1);
+  trajopt.AddLinearConstraint(u0(actuators_map.at("left_hip_torque")) == uf(
                                  actuators_map.at("right_hip_torque")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("right_hip_torque")) == uf(
+  trajopt.AddLinearConstraint(u0(actuators_map.at("right_hip_torque")) == uf(
                                  actuators_map.at("left_hip_torque")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("left_knee_torque")) == uf(
+  trajopt.AddLinearConstraint(u0(actuators_map.at("left_knee_torque")) == uf(
                                  actuators_map.at("right_knee_torque")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("right_knee_torque")) == uf(
+  trajopt.AddLinearConstraint(u0(actuators_map.at("right_knee_torque")) == uf(
                                  actuators_map.at("left_knee_torque")));
 
   // Knee joint limits
-  auto x = trajopt->state();
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) >=
+  auto x = trajopt.state();
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) >=
                                         5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) >=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) >=
                                         5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) <=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) <=
                                         M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) <=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) <=
                                         M_PI / 2.0);
 
   // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) >=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) >=
                                         -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) >=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) >=
                                         -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) <=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) <=
                                         M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) <=
+  trajopt.AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) <=
                                         M_PI / 2.0);
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(positions_map.at("planar_x")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("planar_x")) ==
+  trajopt.AddLinearConstraint(x0(positions_map.at("planar_x")) == 0);
+  trajopt.AddLinearConstraint(xf(positions_map.at("planar_x")) ==
                                stride_length);
 
   // make sure it's left stance
-  trajopt->AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
+  trajopt.AddLinearConstraint(x0(positions_map.at("left_hip_pin")) <=
                                x0(positions_map.at("right_hip_pin")));
 
   // Add cost
@@ -256,26 +271,26 @@ void runSampleTrajopt(const MultibodyPlant<double> & plant,
   for (int i = 0; i < n_v; i++) {
     Q(i + n_q, i + n_q) = 1;
   }
-  auto u = trajopt->input();
-  trajopt->AddRunningCost(u.transpose()*R * u);
-  trajopt->AddRunningCost(x.transpose()*Q * x);
+  auto u = trajopt.input();
+  trajopt.AddRunningCost(u.transpose()*R * u);
+  trajopt.AddRunningCost(x.transpose()*Q * x);
 
 
-  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  // trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(),
   //                          "Print file", "snopt_find_model.out");
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", 1000);
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
+  trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
                            0);
 
 
 
   cout << prefix << " starts solving...\n";
-  const MathematicalProgramResult result = Solve(*trajopt);
+  const MathematicalProgramResult result = Solve(trajopt);
   auto solution_result = result.get_solution_result();
   cout << prefix << " " << solution_result << " | ";
   cout << "Cost:" << result.get_optimal_cost() << " | ";
-  VectorXd w_sol = result.GetSolution(trajopt->decision_variables());
+  VectorXd w_sol = result.GetSolution(trajopt.decision_variables());
   cout << "w_sol norm:" << w_sol.norm() << endl;
 
   // Store a bool indicating whehter the problem was solved.

@@ -43,10 +43,12 @@ namespace dairlib {
 namespace goldilocks_models {
 namespace misc {
 
+DEFINE_int32(n_sample, 3, "# of samples");
+
 int runMultithreadTrajopt(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  // Create MBP
+/*  // Create MBP
   MultibodyPlant<double> plant;
   Parser parser(&plant);
   std::string full_name = FindResourceOrThrow(
@@ -60,7 +62,7 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
   plant.Finalize();
 
   // Create autoDiff version of the plant
-  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
+  MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);*/
 
   // Files parameters
   const string dir =
@@ -69,7 +71,7 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
   string init_file_pass_in = "";
 
   // Parameters
-  int n_sample = 1;
+  int n_sample = FLAGS_n_sample;
   int max_outer_iter = 10;
   double stride_length = 0.3;
   double ground_incline = 0;
@@ -101,7 +103,7 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
 
       cout << "add task to thread\n";
       threads.push_back(std::thread(runSampleTrajopt,
-                                    std::ref(plant), std::ref(plant_autoDiff),
+                                    /*std::ref(plant), std::ref(plant_autoDiff),*/
                                     stride_length, ground_incline,
                                     dir, init_file_pass_in, prefix));
       cout << "Finished adding task to thread\n";

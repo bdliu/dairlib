@@ -27,8 +27,8 @@ namespace goldilocks_models  {
 namespace misc {
 
 void runSampleTrajopt(
-    const MultibodyPlant<double> & plant,
-    const MultibodyPlant<AutoDiffXd> & plant_autoDiff,
+    /*const MultibodyPlant<double> & plant,
+    const MultibodyPlant<AutoDiffXd> & plant_autoDiff,*/
     double stride_length, double ground_incline,
     std::string directory, std::string init_file, std::string prefix);
 
