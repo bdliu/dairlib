@@ -66,11 +66,13 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
   const string dir =
     "examples/Goldilocks_models/misc/snopt_multithread_test/data/";
   string prefix = "";
+  string init_file_pass_in = "";
 
   // Parameters
   int n_sample = 3;
   int max_outer_iter = 10;
-
+  double stride_length = 0.3;
+  double ground_incline = 0.3;
 
   // Vectors/Matrices for the outer loop
   vector<VectorXd> c_vec;
@@ -99,7 +101,9 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
 
       cout << "add task to thread\n";
       threads.push_back(std::thread(runSampleTrajopt,
-                                    dir, prefix));
+                                    std::ref(plant), std::ref(plant_autoDiff),
+                                    stride_length, ground_incline,
+                                    dir, init_file_pass_in, prefix));
       cout << "Finished adding task to thread\n";
     }  // for(int sample...)
 
