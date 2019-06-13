@@ -299,7 +299,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
   writeCSV(dir_data + string("q_at_knots_IK.csv"), q_at_all_knots);
 
 
-  // Create a testing piecewise polynomial
+  // Create a piecewise polynomial
   double dt = FLAGS_dt;
   std::vector<double> T_breakpoint;
   std::vector<MatrixXd> Y;
