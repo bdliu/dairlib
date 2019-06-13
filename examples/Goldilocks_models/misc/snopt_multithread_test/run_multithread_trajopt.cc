@@ -69,10 +69,10 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
   string init_file_pass_in = "";
 
   // Parameters
-  int n_sample = 3;
+  int n_sample = 1;
   int max_outer_iter = 10;
   double stride_length = 0.3;
-  double ground_incline = 0.3;
+  double ground_incline = 0;
 
   // Vectors/Matrices for the outer loop
   vector<VectorXd> c_vec;
