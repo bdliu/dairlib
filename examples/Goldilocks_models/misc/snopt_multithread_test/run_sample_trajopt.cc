@@ -281,10 +281,15 @@ void runSampleTrajopt(/*const MultibodyPlant<double> & plant,
   // trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(),
   //                          "Print file", "snopt_find_model.out");
   trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major iterations limit", 1000);
+                           "Major iterations limit", 10000);
   trajopt.SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
                            0);
 
+  // initial guess if the file exists
+  if (!init_file.empty()) {
+    VectorXd w0 = readCSV(directory + init_file).col(0);
+    trajopt.SetInitialGuessForAllVariables(w0);
+  }
 
   // Testing
   cout << "Choose the best solver: " << drake::solvers::ChooseBestSolver(trajopt).name() << endl;
@@ -299,6 +304,9 @@ void runSampleTrajopt(/*const MultibodyPlant<double> & plant,
 
   // Check which solver we are using
   cout << "Solver: " << result.get_solver_id().name() << endl;
+
+  // Store solution of all decision variables
+  writeCSV(directory + prefix + string("w.csv"), w_sol);
 
   // Store a bool indicating whehter the problem was solved.
   VectorXd is_success(1);

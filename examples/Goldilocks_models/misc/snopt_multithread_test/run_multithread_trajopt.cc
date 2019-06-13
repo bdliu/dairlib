@@ -44,6 +44,7 @@ namespace goldilocks_models {
 namespace misc {
 
 DEFINE_int32(n_sample, 3, "# of samples");
+DEFINE_string(init_file, "", "Initial Guess for Trajectory Optimization");
 
 int runMultithreadTrajopt(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -68,7 +69,7 @@ int runMultithreadTrajopt(int argc, char* argv[]) {
   const string dir =
     "examples/Goldilocks_models/misc/snopt_multithread_test/data/";
   string prefix = "";
-  string init_file_pass_in = "";
+  string init_file_pass_in = FLAGS_init_file;
 
   // Parameters
   int n_sample = FLAGS_n_sample;
