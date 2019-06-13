@@ -1,4 +1,4 @@
-#include "examples/Goldilocks_models/misc/snopt_multithread_test/run_sample_prog.h"
+#include "examples/Goldilocks_models/misc/snopt_multithread_test/run_sample_qp.h"
 
 #include <memory>
 #include <chrono>
@@ -68,7 +68,7 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-void runSampleProg(std::string directory, std::string prefix) {
+void runSampleQp(std::string directory, std::string prefix) {
 
   // Initialize the matrix size
   MatrixXd H_o = MatrixXd::Zero(2, 2);
@@ -113,10 +113,11 @@ void runSampleProg(std::string directory, std::string prefix) {
   // nlprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-14); //1.0e-10
   // nlprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-14); //1.0e-10
 
+  cout << prefix << " starts solving...\n";
   const auto result = Solve(nlprog);
   auto solution_result = result.get_solution_result();
-  cout << solution_result << endl;
-  cout << "Cost:" << result.get_optimal_cost() << endl;
+  cout << prefix << " " << solution_result << " | ";
+  cout << "Cost:" << result.get_optimal_cost() << " | ";
   VectorXd w_sol = result.GetSolution(nlprog.decision_variables());
   cout << "w_sol norm:" << w_sol.norm() << endl;
 

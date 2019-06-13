@@ -26,7 +26,7 @@ namespace dairlib {
 namespace goldilocks_models  {
 namespace misc {
 
-void runSampleProg(std::string directory, std::string prefix);
+void runSampleTrajopt(std::string directory, std::string prefix);
 
 }  // namespace misc
 }  // namespace goldilocks_models

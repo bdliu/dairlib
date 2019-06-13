@@ -4,7 +4,7 @@
 #include <chrono>
 #include <ctime>
 
-#include "examples/Goldilocks_models/misc/snopt_multithread_test/run_sample_prog.h"
+#include "examples/Goldilocks_models/misc/snopt_multithread_test/run_sample_qp.h"
 #include "systems/goldilocks_models/file_utils.h"
 
 #include "drake/solvers/mathematical_program.h"
@@ -43,7 +43,7 @@ namespace dairlib {
 namespace goldilocks_models {
 namespace misc {
 
-int runMultithread(int argc, char* argv[]) {
+int runMultithreadQp(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Create MBP
@@ -98,7 +98,7 @@ int runMultithread(int argc, char* argv[]) {
       prefix = to_string(iter) +  "_" + to_string(sample) + "_";
 
       cout << "add task to thread\n";
-      threads.push_back(std::thread(runSampleProg,
+      threads.push_back(std::thread(runSampleQp,
                                     dir, prefix));
       cout << "Finished adding task to thread\n";
     }  // for(int sample...)
@@ -135,12 +135,12 @@ int runMultithread(int argc, char* argv[]) {
 
 
   return 0;
-}  // int runMultithread
+}  // int runMultithreadQp
 
 }  // namespace misc
 }  // namespace goldilocks_models
 }  // namespace dairlib
 
 int main(int argc, char* argv[]) {
-  return dairlib::goldilocks_models::misc::runMultithread(argc, argv);
+  return dairlib::goldilocks_models::misc::runMultithreadQp(argc, argv);
 }
