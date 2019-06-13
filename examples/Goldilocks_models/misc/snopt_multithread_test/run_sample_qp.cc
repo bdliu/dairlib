@@ -30,6 +30,8 @@
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
 
+#include "drake/solvers/choose_best_solver.h"
+
 using Eigen::Vector3d;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
@@ -113,6 +115,9 @@ void runSampleQp(std::string directory, std::string prefix) {
   // nlprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Major feasibility tolerance", 1.0e-14); //1.0e-10
   // nlprog.SetSolverOption(drake::solvers::SnoptSolver::id(), "Minor feasibility tolerance", 1.0e-14); //1.0e-10
 
+  // Testing
+  cout << "Choose the best solver: " << drake::solvers::ChooseBestSolver(nlprog).name() << endl;
+
   cout << prefix << " starts solving...\n";
   const auto result = Solve(nlprog);
   auto solution_result = result.get_solution_result();
@@ -120,6 +125,9 @@ void runSampleQp(std::string directory, std::string prefix) {
   cout << "Cost:" << result.get_optimal_cost() << " | ";
   VectorXd w_sol = result.GetSolution(nlprog.decision_variables());
   cout << "w_sol norm:" << w_sol.norm() << endl;
+
+  // Check which solver we are using
+  cout << "Solver: " << result.get_solver_id().name() << endl;
 
   // Store a bool indicating whehter the problem was solved.
   VectorXd is_success(1);

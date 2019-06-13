@@ -30,6 +30,8 @@
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
 
+#include "drake/solvers/choose_best_solver.h"
+
 using Eigen::Vector3d;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
@@ -284,6 +286,8 @@ void runSampleTrajopt(/*const MultibodyPlant<double> & plant,
                            0);
 
 
+  // Testing
+  cout << "Choose the best solver: " << drake::solvers::ChooseBestSolver(trajopt).name() << endl;
 
   cout << prefix << " starts solving...\n";
   const MathematicalProgramResult result = Solve(trajopt);
@@ -292,6 +296,9 @@ void runSampleTrajopt(/*const MultibodyPlant<double> & plant,
   cout << "Cost:" << result.get_optimal_cost() << " | ";
   VectorXd w_sol = result.GetSolution(trajopt.decision_variables());
   cout << "w_sol norm:" << w_sol.norm() << endl;
+
+  // Check which solver we are using
+  cout << "Solver: " << result.get_solver_id().name() << endl;
 
   // Store a bool indicating whehter the problem was solved.
   VectorXd is_success(1);
