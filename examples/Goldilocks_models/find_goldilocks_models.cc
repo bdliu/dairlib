@@ -322,7 +322,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (FLAGS_is_multithread) {
-    cout << "Make sure that you have built this file with "
+    cout << "If  you intend to use multiple threads, "
+         "make sure that you have built this file with "
          "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
          " code\n"
          "----------------\n+#build --define=WITH_SNOPT=ON\n"
