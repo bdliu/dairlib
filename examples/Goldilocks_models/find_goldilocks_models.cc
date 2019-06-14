@@ -5,6 +5,8 @@
 #include <ctime>
 #include <queue>  // First in first out
 #include <utility>  // std::pair, std::make_pair
+#include <sys/stat.h>  // Checking the existence of a file
+#include <fstream>  // Checking the existence of a file
 
 #include "examples/Goldilocks_models/find_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -117,6 +119,18 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
     // stride_length = 0.294027; ground_incline = -0.00499089; *init_file = string("1_4_w.csv");
     // stride_length = 0.27763; ground_incline = 0.0635912; *init_file = string("1_6_w.csv");
   }
+}
+
+// inline bool file_exsit (const std::string & name) {
+//   struct stat buffer;
+//   cout << name << " exist? " << (stat (name.c_str(), &buffer) == 0) << endl;
+//   return (stat (name.c_str(), &buffer) == 0);
+// }
+
+inline bool file_exsit(const std::string & name) {
+    std::ifstream f(name.c_str());
+    cout << name << " exist? " << f.good() << endl;
+    return f.good();
 }
 
 void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
@@ -649,7 +663,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       std::queue<int> availible_thread_idx;
       for (int i = 0; i < CORES; i++)
         availible_thread_idx.push(i);
-      std::queue<std::pair<int, int>> assigned_thread_idx;
+      std::vector<std::pair<int, int>> assigned_thread_idx;
 
       // Evaluate samples
       int sample = 0;
@@ -695,23 +709,46 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // string_to_be_print = "Finished adding sample #" + to_string(sample) +
           //                      " to thread # " + to_string(availible_thread_idx.front()) + ".\n";
           // cout << string_to_be_print;
-          assigned_thread_idx.push(
+          assigned_thread_idx.push_back(
             std::make_pair(availible_thread_idx.front(), sample));
           availible_thread_idx.pop();
           sample++;
         } else {
-          // TODO: don't wait for the oldest thread to join. You can look at
-          // existence of csv file, and decide which you should wait for next
+          // Wait for threads to join
+          int thread_to_wait_idx;
+          int corresponding_sample;
 
-          // Wait for the oldest thread to join
-          int oldest_thread_idx = assigned_thread_idx.front().first;
-          int corresponding_sample = assigned_thread_idx.front().second;
+          bool no_files_exsit = true;
+          while (no_files_exsit) {
+            cout << "Check if any file exists...\n";
+            for (unsigned int i = 0; i < assigned_thread_idx.size(); i++) {
+              prefix = to_string(iter) +  "_" +
+                       to_string(assigned_thread_idx[i].second) + "_";
+              if (file_exsit(dir + prefix + "thread_finished.csv")) {
+                cout << prefix + "thread_finished.csv exists\n";
+                thread_to_wait_idx = assigned_thread_idx[i].first;
+                corresponding_sample = assigned_thread_idx[i].second;
+                bool rm = (remove((dir + prefix + string("nw_i.csv")).c_str()) == 0);
+                if ( !rm ) cout << "Error deleting files\n";
+                no_files_exsit = false;
+                break;
+              }
+            }
+            if (no_files_exsit) {
+              cout << "No files exists yet. Sleep for 0.5 seconds.\n";
+              std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+          }
+
+
+
+
           string string_to_be_print = "Waiting for thread #" +
-                                      to_string(oldest_thread_idx) +
+                                      to_string(thread_to_wait_idx) +
                                       " to join...\n";
           cout << string_to_be_print;
-          threads[oldest_thread_idx]->join();
-          delete threads[oldest_thread_idx];
+          threads[thread_to_wait_idx]->join();
+          delete threads[thread_to_wait_idx];
 
           // Record success history
           prefix = to_string(iter) +  "_" + to_string(corresponding_sample) + "_";
@@ -732,14 +769,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
               cout << string_to_be_print;
               threads[oldest_thread_idx]->join();
               delete threads[oldest_thread_idx];
-              assigned_thread_idx.pop();
+              assigned_thread_idx.erase(assigned_thread_idx.begin());
             }
             break;
             //TODO: can I kill the thread instead of waiting for it to finish?
           }
 
-          availible_thread_idx.push(oldest_thread_idx);
-          assigned_thread_idx.pop();
+          availible_thread_idx.push(thread_to_wait_idx);
+          assigned_thread_idx.erase(assigned_thread_idx.begin());
         }
       }  // while(sample < n_sample)
     }  // end if-else (start_with_adjusting_stepsize)

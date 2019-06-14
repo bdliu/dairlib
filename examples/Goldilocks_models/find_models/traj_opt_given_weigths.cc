@@ -1162,7 +1162,10 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
 
 
 
-
+  // For multithreading purpose. Indicate this function has ended.
+  VectorXd thread_finished(1);
+  thread_finished << 1;
+  writeCSV(directory + prefix + string("thread_finished.csv"), thread_finished);
 
   return;
 }
