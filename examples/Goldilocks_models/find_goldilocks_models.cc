@@ -119,6 +119,42 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
   }
 }
 
+void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
+                       vector<MatrixXd> * H_vec,
+                       vector<VectorXd> * y_vec,
+                       vector<VectorXd> * lb_vec, vector<VectorXd> * ub_vec,
+                       vector<VectorXd> * b_vec, vector<VectorXd> * c_vec,
+                       vector<MatrixXd> * B_vec,
+                       int n_sample, int iter, string dir) {
+  for (int sample = 0; sample < n_sample; sample++) {
+    string prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+    VectorXd success =
+      readCSV(dir + prefix + string("is_success.csv")).col(0);
+    if (success(0)) {
+      w_sol_vec->push_back(readCSV(dir + prefix + string("w.csv")));
+      A_vec->push_back(readCSV(dir + prefix + string("A.csv")));
+      H_vec->push_back(readCSV(dir + prefix + string("H.csv")));
+      y_vec->push_back(readCSV(dir + prefix + string("y.csv")));
+      lb_vec->push_back(readCSV(dir + prefix + string("lb.csv")));
+      ub_vec->push_back(readCSV(dir + prefix + string("ub.csv")));
+      b_vec->push_back(readCSV(dir + prefix + string("b.csv")));
+      c_vec->push_back(readCSV(dir + prefix + string("c.csv")));
+      B_vec->push_back(readCSV(dir + prefix + string("B.csv")));
+
+      bool rm = true;
+      rm = (remove((dir + prefix + string("A.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("H.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("y.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("lb.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("ub.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("b.csv")).c_str()) == 0) & rm;
+      rm = (remove((dir + prefix + string("B.csv")).c_str()) == 0) & rm;
+      if ( !rm )
+        cout << "Error deleting files\n";
+    }
+  }
+}
+
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
   MatrixXd abs_resid = (A * X - B).cwiseAbs();
@@ -316,6 +352,12 @@ int findGoldilocksModels(int argc, char* argv[]) {
   vector<MatrixXd> B_vec;
   vector<MatrixXd> B_active_vec;
 
+  // Multithreading setup
+  cout << "\nMultithreading settings:\n";
+  int CORES = static_cast<int>(std::thread::hardware_concurrency());
+  if (FLAGS_n_thread_to_use > 0) CORES = FLAGS_n_thread_to_use;
+  cout << "# of threads to be used" << CORES << endl;
+
   // Some setup
   cout << "\nOther settings:\n";
   double min_so_far;
@@ -452,8 +494,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
       start_with_adjusting_stepsize = false;
     } else {
       // Create vector of threads for multithreading
-      int CORES = static_cast<int>(std::thread::hardware_concurrency());
-      if (FLAGS_n_thread_to_use > 0) CORES = FLAGS_n_thread_to_use;
       std::vector<std::thread *> threads(std::min(CORES, n_sample));
 
       // Create a index list indicating which thread is availible for use
@@ -511,6 +551,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
           availible_thread_idx.pop();
           sample++;
         } else {
+          // TODO: don't wait for the oldest thread to join. You can look at
+          // existence of csv file, and decide which you should wait for next
+
           // Wait for the oldest thread to join
           int oldest_thread_idx = assigned_thread_idx.front().first;
           int corresponding_sample = assigned_thread_idx.front().second;
@@ -644,36 +687,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
       continue;
 
     } else {  // Update parameters
-      if (FLAGS_is_multithread) {
-        // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
-        for (int sample = 0; sample < n_sample; sample++) {
-          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
-          VectorXd success =
-            readCSV(dir + prefix + string("is_success.csv")).col(0);
-          if (success(0)) {
-            w_sol_vec.push_back(readCSV(dir + prefix + string("w.csv")));
-            A_vec.push_back(readCSV(dir + prefix + string("A.csv")));
-            H_vec.push_back(readCSV(dir + prefix + string("H.csv")));
-            y_vec.push_back(readCSV(dir + prefix + string("y.csv")));
-            lb_vec.push_back(readCSV(dir + prefix + string("lb.csv")));
-            ub_vec.push_back(readCSV(dir + prefix + string("ub.csv")));
-            b_vec.push_back(readCSV(dir + prefix + string("b.csv")));
-            c_vec.push_back(readCSV(dir + prefix + string("c.csv")));
-            B_vec.push_back(readCSV(dir + prefix + string("B.csv")));
-
-            bool rm = true;
-            rm = (remove((dir + prefix + string("A.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("H.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("y.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("lb.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("ub.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("b.csv")).c_str()) == 0) & rm;
-            rm = (remove((dir + prefix + string("B.csv")).c_str()) == 0) & rm;
-            if ( !rm )
-              cout << "Error deleting files\n";
-          }
-        }
-      }
+      // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
+      readApproxQpFiles(&w_sol_vec, &A_vec, &H_vec, &y_vec, &lb_vec, &ub_vec,
+                        &b_vec, &c_vec, &B_vec,
+                        n_sample, iter, dir);
 
       int n_succ_sample = c_vec.size();
 
