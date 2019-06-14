@@ -99,8 +99,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   if(FLAGS_is_multithread){
     cout << "Make sure that you have built this file with "
-    "--config=snopt_fortran flag.\n Also, in .bazelrc file, have the following"
-    "code\n"
+    "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
+    " code\n"
     "----------------\n+#build --define=WITH_SNOPT=ON\n"
     "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
     "Proceed? (Y/N)\n";
@@ -110,7 +110,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "Ending the program.\n";
       return 0;
     } else {
-      cout << "Continue constructing the problem...\n";
+      cout << "Continue constructing the problem...\n\n";
     }
   }
 
@@ -454,11 +454,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // stride_length = 0.3;
           // init_file_pass_in = string("19_2_w.csv");
           // init_file_pass_in = string("1_0_w.csv");
-          
+
           // stride_length = 0.314706; ground_incline = -0.0553895; init_file_pass_in = string("1_2_w.csv");
           stride_length = 0.294027; ground_incline = -0.00499089; init_file_pass_in = string("1_4_w.csv");
           // stride_length = 0.27763; ground_incline = 0.0635912; init_file_pass_in = string("1_6_w.csv");
-
         }
 
         // Trajectory optimization with fixed model paramters
