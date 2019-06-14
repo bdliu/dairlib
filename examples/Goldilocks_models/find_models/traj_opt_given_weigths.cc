@@ -82,13 +82,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                          double duration, int max_iter,
                          string directory,
                          string init_file, string prefix,
-                         vector<VectorXd> * w_sol_vec,
+                         /*vector<VectorXd> * w_sol_vec,
                          vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,
                          vector<VectorXd> * y_vec,
                          vector<VectorXd> * lb_vec, vector<VectorXd> * ub_vec,
                          vector<VectorXd> * b_vec,
                          vector<VectorXd> * c_vec,
-                         vector<MatrixXd> * B_vec,
+                         vector<MatrixXd> * B_vec,*/
                          double Q_double, double R_double,
                          double eps_reg,
                          bool is_get_nominal,
@@ -357,19 +357,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
-  cout << "batch# = " << batch << endl;
-  cout << "    stride_length = " << stride_length << " | "
-       << "ground_incline = " << ground_incline << " | "
-       << "init_file = " << init_file << endl;
   // cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
         *gm_traj_opt.dircon, gm_traj_opt.dircon->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
-  cout << "    Solve time:" << elapsed.count() << " | ";
   SolutionResult solution_result = result.get_solution_result();
-  cout << solution_result <<  " | ";
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
     // Way 1
@@ -394,8 +388,24 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
       N_accum -= 1;  // due to overlaps between modes
     }
   }
+  /*cout << "batch# = " << batch << endl;
+  cout << "    stride_length = " << stride_length << " | "
+       << "ground_incline = " << ground_incline << " | "
+       << "init_file = " << init_file << endl;
+  cout << "    Solve time:" << elapsed.count() << " | ";
+  cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() <<
-       " (tau cost = " << tau_cost << ")\n";
+       " (tau cost = " << tau_cost << ")\n";*/
+  string string_to_print = "batch# = " + to_string(batch) +
+  "\n    stride_length = " + to_string(stride_length) +
+  " | ground_incline = " + to_string(ground_incline) +
+  " | init_file = " + init_file +
+  "\n    Solve time:" + to_string(elapsed.count()) +
+  " | " + to_string(solution_result) +
+  " | Cost:" + to_string(result.get_optimal_cost()) +
+  " (tau cost = " + to_string(tau_cost) + ")\n";
+  cout << string_to_print;
+
   VectorXd is_success(1);
   if (result.is_success()) is_success << 1;
   else is_success << 0;
@@ -630,7 +640,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     }
 
     // Push the solution to the vector
-    w_sol_vec->push_back(w_sol);
+    /*w_sol_vec->push_back(w_sol);
     H_vec->push_back(H);
     b_vec->push_back(b);
     c_vec->push_back(c);
@@ -638,19 +648,19 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     lb_vec->push_back(lb);
     ub_vec->push_back(ub);
     y_vec->push_back(y);
-    B_vec->push_back(B);
+    B_vec->push_back(B);*/
 
     // Store the vectors and matrices
     // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("c.csv"), c);
     writeCSV(directory + prefix + string("c_without_tau.csv"), c_without_tau);
-    /*writeCSV(directory + prefix + string("H.csv"), H);
+    writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
     writeCSV(directory + prefix + string("lb.csv"), lb);
     writeCSV(directory + prefix + string("ub.csv"), ub);
     writeCSV(directory + prefix + string("y.csv"), y);
-    writeCSV(directory + prefix + string("B.csv"), B);*/
+    writeCSV(directory + prefix + string("B.csv"), B);
 
     // Store s, ds, dds and tau into csv files
     // cout << "\nStoring s, ds and dds into csv.\n";

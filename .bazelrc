@@ -49,5 +49,5 @@ build --action_env=CCACHE_DISABLE=1
 # customizations somehow.
 
 # build with snopt
-build --define=WITH_SNOPT=ON
-#build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON
+#build --define=WITH_SNOPT=ON
+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON

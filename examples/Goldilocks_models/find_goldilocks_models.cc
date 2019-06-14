@@ -62,7 +62,7 @@ DEFINE_bool(previous_iter_is_success, true, "Is the previous iter successful?");
 DEFINE_bool(is_zero_touchdown_impact, false,
             "No impact force at fist touchdown");
 DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
-DEFINE_bool(is_multithread, false, "Use multi-thread or not");
+DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 3, "Sampling # for ground incline");
@@ -96,6 +96,23 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 
 int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  if(FLAGS_is_multithread){
+    cout << "Make sure that you have built this file with "
+    "--config=snopt_fortran flag.\n Also, in .bazelrc file, have the following"
+    "code\n"
+    "----------------\n+#build --define=WITH_SNOPT=ON\n"
+    "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
+    "Proceed? (Y/N)\n";
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+      cout << "Ending the program.\n";
+      return 0;
+    } else {
+      cout << "Continue constructing the problem...\n";
+    }
+  }
 
   // Create MBP
   MultibodyPlant<double> plant;
@@ -447,7 +464,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // Trajectory optimization with fixed model paramters
         if (is_multithread) {
           cout << "add task to thread\n";
-          /*threads.push_back(std::thread(trajOptGivenWeights,
+          threads.push_back(std::thread(trajOptGivenWeights,
                                         std::ref(plant), std::ref(plant_autoDiff),
                                         n_s, n_sDDot, n_tau,
                                         n_feature_s, n_feature_sDDot, B_tau,
@@ -461,10 +478,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
                                         FLAGS_is_zero_touchdown_impact,
                                         extend_model_this_iter,
                                         FLAGS_is_add_tau_in_cost,
-                                        sample));*/
+                                        sample));
           cout << "Finished adding task to thread\n";
         } else {
-          trajOptGivenWeights(plant, plant_autoDiff,
+          /*trajOptGivenWeights(plant, plant_autoDiff,
                               n_s, n_sDDot, n_tau,
                               n_feature_s, n_feature_sDDot,
                               B_tau, theta_s, theta_sDDot,
@@ -486,7 +503,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
           if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
-            break;
+            break;*/
         }
       }  // for(int sample...)
 
@@ -599,7 +616,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
     } else {  // Update parameters
       // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
-      /*for (int sample = 0; sample < n_sample; sample++) {
+      for (int sample = 0; sample < n_sample; sample++) {
         prefix = to_string(iter) +  "_" + to_string(sample) + "_";
         VectorXd success =
           readCSV(dir + prefix + string("is_success.csv")).col(0);
@@ -625,7 +642,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           if ( !rm )
             cout << "Error deleting files\n";
         }
-      }*/
+      }
 
       int n_succ_sample = c_vec.size();
 
