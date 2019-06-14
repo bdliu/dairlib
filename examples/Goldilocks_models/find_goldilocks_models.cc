@@ -509,30 +509,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
           assigned_thread_idx.push(
             std::make_pair(availible_thread_idx.front(), sample));
           availible_thread_idx.pop();
-          /* // old code without multi-thread
-          trajOptGivenWeights(plant, plant_autoDiff,
-                              n_s, n_sDDot, n_tau,
-                              n_feature_s, n_feature_sDDot,
-                              B_tau, theta_s, theta_sDDot,
-                              stride_length, ground_incline,
-                              duration, max_inner_iter_pass_in,
-                              dir, init_file_pass_in, prefix,
-                              &w_sol_vec, &A_vec, &H_vec,
-                              &y_vec, &lb_vec, &ub_vec, &b_vec, &c_vec, &B_vec,
-                              Q_double, R,
-                              eps_regularization,
-                              is_get_nominal,
-                              FLAGS_is_zero_touchdown_impact,
-                              extend_model_this_iter,
-                              FLAGS_is_add_tau_in_cost,
-                              sample);
-          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
-          int sample_success =
-            (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
-          samples_are_success = (samples_are_success & (sample_success == 1));
-          a_sample_is_success = (a_sample_is_success | (sample_success == 1));
-          if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
-            break;*/
           sample++;
         } else {
           // Wait for the oldest thread to join
@@ -551,10 +527,24 @@ int findGoldilocksModels(int argc, char* argv[]) {
             (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
-          // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug){
-          //   //TODO: kill all threads here
-          //   break;
-          // }
+          // If a sample failed, stop evaluating.
+          if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
+            // Wait for the assigned threads to join, and then break;
+            cout << "Sameple #" << corresponding_sample << "was not successful."
+                 " Wait for all threads to join and stop current iteration.\n";
+            while (!assigned_thread_idx.empty()) {
+              int oldest_thread_idx = assigned_thread_idx.front().first;
+              string string_to_be_print = "Waiting for thread # " +
+                                          to_string(oldest_thread_idx) +
+                                          " to join...\n";
+              cout << string_to_be_print;
+              threads[oldest_thread_idx]->join();
+              delete threads[oldest_thread_idx];
+              assigned_thread_idx.pop();
+            }
+            break;
+            //TODO: can I kill the thread instead of waiting for it to finish?
+          }
 
           availible_thread_idx.push(oldest_thread_idx);
           assigned_thread_idx.pop();
