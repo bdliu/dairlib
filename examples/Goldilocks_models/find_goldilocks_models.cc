@@ -3,6 +3,8 @@
 #include <thread>  // multi-threading
 #include <chrono>
 #include <ctime>
+#include <queue>  // First in first out
+#include <utility>  // std::pair, std::make_pair
 
 #include "examples/Goldilocks_models/find_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -63,6 +65,7 @@ DEFINE_bool(is_zero_touchdown_impact, false,
             "No impact force at fist touchdown");
 DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
 DEFINE_bool(is_multithread, true, "Use multi-thread or not");
+DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 3, "Sampling # for ground incline");
@@ -78,6 +81,43 @@ DEFINE_double(h_step, 1e-4, "The step size for outer loop");
 //                 // 1e-2 is a good compromise on both speed and gittering
 //                 // 1e-1 caused divergence when close to optimal sol
 DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
+
+void getInitFileName(string * init_file, const string & nominal_traj_init_file,
+                     int iter, int sample, bool is_get_nominal,
+                     bool previous_iter_is_success, bool has_been_all_success,
+                     bool is_debug) {
+  if (is_get_nominal && previous_iter_is_success)
+    *init_file = nominal_traj_init_file;
+  else if (is_get_nominal && !previous_iter_is_success)
+    *init_file = string("0_0_w.csv");
+  else if (!has_been_all_success && previous_iter_is_success) {
+    *init_file = string("0_0_w.csv");  // Use nominal traj
+    // *init_file = string("");  // No initial guess for the first iter
+    // *init_file = string("w0.csv");  // w0 as initial guess for the first iter
+  }
+  else if (!has_been_all_success && !previous_iter_is_success)
+    *init_file = to_string(iter) +  "_" +
+                 to_string(sample) + string("_w.csv");
+  else if (iter == 1)
+    *init_file = string("0_0_w.csv");
+  else
+    *init_file = to_string(iter - 1) +  "_" +
+                 to_string(sample) + string("_w.csv");
+
+  //Testing
+  if (is_debug) {
+    // *init_file = to_string(iter) +  "_" +
+    //                     to_string(sample) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
+    // *init_file = string("1_2_w.csv");
+    // stride_length = 0.3;
+    // *init_file = string("19_2_w.csv");
+    // *init_file = string("1_0_w.csv");
+
+    // stride_length = 0.314706; ground_incline = -0.0553895; *init_file = string("1_2_w.csv");
+    // stride_length = 0.294027; ground_incline = -0.00499089; *init_file = string("1_4_w.csv");
+    // stride_length = 0.27763; ground_incline = 0.0635912; *init_file = string("1_6_w.csv");
+  }
+}
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
@@ -97,13 +137,13 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  if(FLAGS_is_multithread){
+  if (FLAGS_is_multithread) {
     cout << "Make sure that you have built this file with "
-    "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
-    " code\n"
-    "----------------\n+#build --define=WITH_SNOPT=ON\n"
-    "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
-    "Proceed? (Y/N)\n";
+         "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
+         " code\n"
+         "----------------\n+#build --define=WITH_SNOPT=ON\n"
+         "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
+         "Proceed? (Y/N)\n";
     char answer[1];
     cin >> answer;
     if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
@@ -412,75 +452,65 @@ int findGoldilocksModels(int argc, char* argv[]) {
       start_with_adjusting_stepsize = false;
     } else {
       // Create vector of threads for multithreading
-      std::vector<std::thread> threads;
-      bool is_multithread = FLAGS_is_multithread;
+      int CORES = static_cast<int>(std::thread::hardware_concurrency());
+      if (FLAGS_n_thread_to_use > 0) CORES = FLAGS_n_thread_to_use;
+      std::vector<std::thread *> threads(std::min(CORES, n_sample));
 
-      for (int sample = 0; sample < n_sample; sample++) {
-        /// setup for each sample
-        double stride_length = is_get_nominal ? stride_length_0 :
-                               stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
-        double ground_incline = is_get_nominal ? ground_incline_0 :
-                                ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
-        if (!is_get_nominal && is_stochastic) {
-          stride_length += dist_sl(e1);
-          ground_incline += dist_gi(e2);
-        }
+      // Create a index list indicating which thread is availible for use
+      std::queue<int> availible_thread_idx;
+      for (int i = 0; i < CORES; i++)
+        availible_thread_idx.push(i);
+      std::queue<std::pair<int, int>> assigned_thread_idx;
 
-        prefix = to_string(iter) +  "_" + to_string(sample) + "_";
-        string init_file_pass_in;
-        if (is_get_nominal && previous_iter_is_success)
-          init_file_pass_in = init_file;
-        else if (is_get_nominal && !previous_iter_is_success)
-          init_file_pass_in = string("0_0_w.csv");
-        else if (!has_been_all_success && previous_iter_is_success) {
-          init_file_pass_in = string("0_0_w.csv");  // Use nominal traj
-          // init_file_pass_in = string("");  // No initial guess for the first iter
-          // init_file_pass_in = string("w0.csv");  // w0 as initial guess for the first iter
-        }
-        else if (!has_been_all_success && !previous_iter_is_success)
-          init_file_pass_in = to_string(iter) +  "_" +
-                              to_string(sample) + string("_w.csv");
-        else if (iter == 1)
-          init_file_pass_in = string("0_0_w.csv");
-        else
-          init_file_pass_in = to_string(iter - 1) +  "_" +
-                              to_string(sample) + string("_w.csv");
+      // Evaluate samples
+      int sample = 0;
+      while ((sample < n_sample) || !assigned_thread_idx.empty()) {
+        // Evaluate a sample when there is an availible thread. Otherwise, wait.
+        if ((sample < n_sample) && !availible_thread_idx.empty()) {
+          // setup for each sample
+          double stride_length = is_get_nominal ? stride_length_0 :
+                                 stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
+          double ground_incline = is_get_nominal ? ground_incline_0 :
+                                  ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
+          if (!is_get_nominal && is_stochastic) {
+            stride_length += dist_sl(e1);
+            ground_incline += dist_gi(e2);
+          }
 
-        //Testing
-        if (FLAGS_is_debug) {
-          // init_file_pass_in = to_string(iter) +  "_" +
-          //                     to_string(sample) + string("_w.csv");//////////////////////////////////////////////////////////////////////////
-          // init_file_pass_in = string("1_2_w.csv");
-          // stride_length = 0.3;
-          // init_file_pass_in = string("19_2_w.csv");
-          // init_file_pass_in = string("1_0_w.csv");
+          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          string init_file_pass_in;
+          getInitFileName(&init_file_pass_in, init_file, iter, sample,
+                          is_get_nominal,
+                          previous_iter_is_success, has_been_all_success,
+                          FLAGS_is_debug);
 
-          // stride_length = 0.314706; ground_incline = -0.0553895; init_file_pass_in = string("1_2_w.csv");
-          stride_length = 0.294027; ground_incline = -0.00499089; init_file_pass_in = string("1_4_w.csv");
-          // stride_length = 0.27763; ground_incline = 0.0635912; init_file_pass_in = string("1_6_w.csv");
-        }
-
-        // Trajectory optimization with fixed model paramters
-        if (is_multithread) {
-          cout << "add task to thread\n";
-          threads.push_back(std::thread(trajOptGivenWeights,
-                                        std::ref(plant), std::ref(plant_autoDiff),
-                                        n_s, n_sDDot, n_tau,
-                                        n_feature_s, n_feature_sDDot, B_tau,
-                                        std::ref(theta_s), std::ref(theta_sDDot),
-                                        stride_length, ground_incline,
-                                        duration, max_inner_iter_pass_in,
-                                        dir, init_file_pass_in, prefix,
-                                        Q_double, R,
-                                        eps_regularization,
-                                        is_get_nominal,
-                                        FLAGS_is_zero_touchdown_impact,
-                                        extend_model_this_iter,
-                                        FLAGS_is_add_tau_in_cost,
-                                        sample));
-          cout << "Finished adding task to thread\n";
-        } else {
-          /*trajOptGivenWeights(plant, plant_autoDiff,
+          // Trajectory optimization with fixed model paramters
+          string string_to_be_print = "Adding sample #" + to_string(sample) +
+                                      " to thread # " + to_string(availible_thread_idx.front()) + "...\n";
+          cout << string_to_be_print;
+          threads[availible_thread_idx.front()] = new std::thread(trajOptGivenWeights,
+              std::ref(plant), std::ref(plant_autoDiff),
+              n_s, n_sDDot, n_tau,
+              n_feature_s, n_feature_sDDot, B_tau,
+              std::ref(theta_s), std::ref(theta_sDDot),
+              stride_length, ground_incline,
+              duration, max_inner_iter_pass_in,
+              dir, init_file_pass_in, prefix,
+              Q_double, R,
+              eps_regularization,
+              is_get_nominal,
+              FLAGS_is_zero_touchdown_impact,
+              extend_model_this_iter,
+              FLAGS_is_add_tau_in_cost,
+              sample);
+          // string_to_be_print = "Finished adding sample #" + to_string(sample) +
+          //                      " to thread # " + to_string(availible_thread_idx.front()) + ".\n";
+          // cout << string_to_be_print;
+          assigned_thread_idx.push(
+            std::make_pair(availible_thread_idx.front(), sample));
+          availible_thread_idx.pop();
+          /* // old code without multi-thread
+          trajOptGivenWeights(plant, plant_autoDiff,
                               n_s, n_sDDot, n_tau,
                               n_feature_s, n_feature_sDDot,
                               B_tau, theta_s, theta_sDDot,
@@ -503,24 +533,34 @@ int findGoldilocksModels(int argc, char* argv[]) {
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
           if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
             break;*/
-        }
-      }  // for(int sample...)
+          sample++;
+        } else {
+          // Wait for the oldest thread to join
+          int oldest_thread_idx = assigned_thread_idx.front().first;
+          int corresponding_sample = assigned_thread_idx.front().second;
+          string string_to_be_print = "Waiting for thread # " +
+                                      to_string(oldest_thread_idx) +
+                                      " to join...\n";
+          cout << string_to_be_print;
+          threads[oldest_thread_idx]->join();
+          delete threads[oldest_thread_idx];
 
-      if (is_multithread) {
-        for (int sample = 0; sample < n_sample; sample++) {
-          threads[sample].join();
-          // delete threads[sample];
-
-          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          // Record success history
+          prefix = to_string(iter) +  "_" + to_string(corresponding_sample) + "_";
           int sample_success =
             (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
-          // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug)
+          // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug){
+          //   //TODO: kill all threads here
           //   break;
-        }  // for(int sample...)
-      }
-    }
+          // }
+
+          availible_thread_idx.push(oldest_thread_idx);
+          assigned_thread_idx.pop();
+        }
+      }  // while(sample < n_sample)
+    }  // end if-else (start_with_adjusting_stepsize)
     if (FLAGS_is_debug) break;
 
     // Logic for how to iterate
@@ -614,32 +654,34 @@ int findGoldilocksModels(int argc, char* argv[]) {
       continue;
 
     } else {  // Update parameters
-      // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
-      for (int sample = 0; sample < n_sample; sample++) {
-        prefix = to_string(iter) +  "_" + to_string(sample) + "_";
-        VectorXd success =
-          readCSV(dir + prefix + string("is_success.csv")).col(0);
-        if (success(0)) {
-          w_sol_vec.push_back(readCSV(dir + prefix + string("w.csv")));
-          A_vec.push_back(readCSV(dir + prefix + string("A.csv")));
-          H_vec.push_back(readCSV(dir + prefix + string("H.csv")));
-          y_vec.push_back(readCSV(dir + prefix + string("y.csv")));
-          lb_vec.push_back(readCSV(dir + prefix + string("lb.csv")));
-          ub_vec.push_back(readCSV(dir + prefix + string("ub.csv")));
-          b_vec.push_back(readCSV(dir + prefix + string("b.csv")));
-          c_vec.push_back(readCSV(dir + prefix + string("c.csv")));
-          B_vec.push_back(readCSV(dir + prefix + string("B.csv")));
+      if (FLAGS_is_multithread) {
+        // Read in w_sol_vec, A_vec, H_vec, y_vec, lb_vec, ub_vec, b_vec, c_vec, B_vec;
+        for (int sample = 0; sample < n_sample; sample++) {
+          prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          VectorXd success =
+            readCSV(dir + prefix + string("is_success.csv")).col(0);
+          if (success(0)) {
+            w_sol_vec.push_back(readCSV(dir + prefix + string("w.csv")));
+            A_vec.push_back(readCSV(dir + prefix + string("A.csv")));
+            H_vec.push_back(readCSV(dir + prefix + string("H.csv")));
+            y_vec.push_back(readCSV(dir + prefix + string("y.csv")));
+            lb_vec.push_back(readCSV(dir + prefix + string("lb.csv")));
+            ub_vec.push_back(readCSV(dir + prefix + string("ub.csv")));
+            b_vec.push_back(readCSV(dir + prefix + string("b.csv")));
+            c_vec.push_back(readCSV(dir + prefix + string("c.csv")));
+            B_vec.push_back(readCSV(dir + prefix + string("B.csv")));
 
-          bool rm = true;
-          rm = (remove((dir + prefix + string("A.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("H.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("y.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("lb.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("ub.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("b.csv")).c_str()) == 0) & rm;
-          rm = (remove((dir + prefix + string("B.csv")).c_str()) == 0) & rm;
-          if ( !rm )
-            cout << "Error deleting files\n";
+            bool rm = true;
+            rm = (remove((dir + prefix + string("A.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("H.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("y.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("lb.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("ub.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("b.csv")).c_str()) == 0) & rm;
+            rm = (remove((dir + prefix + string("B.csv")).c_str()) == 0) & rm;
+            if ( !rm )
+              cout << "Error deleting files\n";
+          }
         }
       }
 
