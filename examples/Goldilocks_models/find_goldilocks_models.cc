@@ -155,6 +155,154 @@ void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
   }
 }
 
+void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
+                                     string dir,
+                                     const vector<MatrixXd> & B_vec,
+                                     const vector<MatrixXd> & A_vec,
+                                     const vector<MatrixXd> & H_vec,
+                                     const vector<VectorXd> & b_vec,
+                                     const vector<VectorXd> & lb_vec,
+                                     const vector<VectorXd> & ub_vec,
+                                     const vector<VectorXd> & y_vec,
+                                     const vector<VectorXd> & w_sol_vec) {
+  string prefix = to_string(sample) + "_";
+
+  DRAKE_ASSERT(b_vec[sample].cols() == 1);
+  DRAKE_ASSERT(lb_vec[sample].cols() == 1);
+  DRAKE_ASSERT(ub_vec[sample].cols() == 1);
+  DRAKE_ASSERT(y_vec[sample].cols() == 1);
+  DRAKE_ASSERT(w_sol_vec[sample].cols() == 1);
+
+  int nt_i = B_vec[sample].cols();
+  int nw_i = A_vec[sample].cols();
+
+  int nl_i = 0;
+  double tol = 1e-4;
+  for (int i = 0; i < y_vec[sample].rows(); i++) {
+    if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
+        y_vec[sample](i) <= lb_vec[sample](i) + tol)
+      nl_i++;
+  }
+
+  MatrixXd A_active(nl_i, nw_i);
+  MatrixXd B_active(nl_i, nt_i);
+  VectorXd y_active(nl_i);
+
+  nl_i = 0;
+  for (int i = 0; i < y_vec[sample].rows(); i++) {
+    if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
+        y_vec[sample](i) <= lb_vec[sample](i) + tol) {
+      A_active.row(nl_i) = A_vec[sample].row(i);
+      B_active.row(nl_i) = B_vec[sample].row(i);
+      y_active(nl_i) = y_vec[sample](i);
+      nl_i++;
+    }
+  }
+
+  bool is_testing = true;
+  if (is_testing) {
+    if (sample == 0) {
+      cout << "\n (After extracting active constraints) Run traj opt to "
+           "check if your quadratic approximation is correct\n";
+    }
+    nl_i = A_active.rows();
+    MathematicalProgram quadprog;
+    auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
+    quadprog.AddLinearConstraint( A_active,
+                                  VectorXd::Zero(nl_i),
+                                  VectorXd::Zero(nl_i),
+                                  w2);
+    quadprog.AddQuadraticCost(H_vec[sample], b_vec[sample], w2);
+    const auto result = Solve(quadprog);
+    auto solution_result = result.get_solution_result();
+    cout << "sample #" << sample << endl;
+    cout << "    " << solution_result << " | ";
+    cout << "Cost:" << result.get_optimal_cost() << " | ";
+    if (result.is_success()) {
+      VectorXd w_sol_check = result.GetSolution(
+                               quadprog.decision_variables());
+      cout << "w_sol norm:" << w_sol_check.norm() << endl;
+      // cout << "This should be zero\n" <<
+      //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
+      cout << "    if this is not zero, then w=0 is not optimal: " <<
+           w_sol_check.transpose()*b_vec[sample] << endl;
+    }
+  }
+
+  // Only add the rows that are linearly independent
+  // cout << "Start extracting independent rows of A\n";
+  std::vector<int> full_row_rank_idx;
+  full_row_rank_idx.push_back(0);
+  for (int i = 1; i < nl_i; i++) {
+    // Construct test matrix
+    int n_current_rows = full_row_rank_idx.size();
+    MatrixXd A_test(n_current_rows + 1, nw_i);
+    for (unsigned int j = 0 ; j < full_row_rank_idx.size(); j++) {
+      A_test.block(j, 0, 1, nw_i) =
+        A_active.row(full_row_rank_idx[j]);
+    }
+    A_test.block(n_current_rows, 0, 1, nw_i) = A_active.row(i);
+
+    // Perform svd to check rank
+    Eigen::BDCSVD<MatrixXd> svd(A_test);
+    // double sigular_value = svd.singularValues()(n_current_rows);
+    if (svd.singularValues()(n_current_rows) > indpt_row_tol) {
+      full_row_rank_idx.push_back(i);
+    }
+  }
+  // cout << "Finished extracting independent rows of A\n\n";
+
+  nl_i = full_row_rank_idx.size();
+
+  // Assign the rows
+  MatrixXd A_full_row_rank(nl_i, nw_i);
+  MatrixXd B_full_row_rank(nl_i, nt_i);
+  VectorXd y_full_row_rank(nl_i);
+  for (int i = 0; i < nl_i; i++) {
+    A_full_row_rank.row(i) = A_active.row(full_row_rank_idx[i]);
+    B_full_row_rank.row(i) = B_active.row(full_row_rank_idx[i]);
+    y_full_row_rank(i) = y_active(full_row_rank_idx[i]);
+  }
+
+  // Store the results in csv files
+  VectorXd nw_i_VectorXd(1); nw_i_VectorXd << nw_i;
+  VectorXd nl_i_VectorXd(1); nl_i_VectorXd << nl_i;
+  writeCSV(dir + prefix + string("nw_i.csv"), nw_i_VectorXd);
+  writeCSV(dir + prefix + string("nl_i.csv"), nl_i_VectorXd);
+  writeCSV(dir + prefix + string("A_full_row_rank.csv"), A_full_row_rank);
+  writeCSV(dir + prefix + string("B_full_row_rank.csv"), B_full_row_rank);
+  writeCSV(dir + prefix + string("y_full_row_rank.csv"), y_full_row_rank);
+
+  cout << "sample #" << sample;
+  cout << "    A active and independent rows = " << nl_i << endl;
+}
+
+void readNonredundentMatrixFile(vector<double> * nw_vec,
+                                vector<double> * nl_vec,
+                                vector<MatrixXd> * A_active_vec,
+                                vector<MatrixXd> * B_active_vec,
+                                vector<VectorXd> * y_active_vec,
+                                int n_succ_sample, string dir) {
+  for (int sample = 0; sample < n_succ_sample; sample++) {
+    string prefix = to_string(sample) + "_";
+
+    nw_vec->push_back(readCSV(dir + prefix + string("nw_i.csv"))(0));
+    nl_vec->push_back(readCSV(dir + prefix + string("nl_i.csv"))(0));
+    A_active_vec->push_back(readCSV(dir + prefix + string("A_full_row_rank.csv")));
+    B_active_vec->push_back(readCSV(dir + prefix + string("B_full_row_rank.csv")));
+    y_active_vec->push_back(readCSV(dir + prefix + string("y_full_row_rank.csv")));
+
+    bool rm = true;
+    rm = (remove((dir + prefix + string("nw_i.csv")).c_str()) == 0) & rm;
+    rm = (remove((dir + prefix + string("nl_i.csv")).c_str()) == 0) & rm;
+    rm = (remove((dir + prefix + string("A_full_row_rank.csv")).c_str()) == 0) & rm;
+    rm = (remove((dir + prefix + string("B_full_row_rank.csv")).c_str()) == 0) & rm;
+    rm = (remove((dir + prefix + string("y_full_row_rank.csv")).c_str()) == 0) & rm;
+    if ( !rm )
+      cout << "Error deleting files\n";
+  }
+}
+
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
   MatrixXd abs_resid = (A * X - B).cwiseAbs();
@@ -356,7 +504,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nMultithreading settings:\n";
   int CORES = static_cast<int>(std::thread::hardware_concurrency());
   if (FLAGS_n_thread_to_use > 0) CORES = FLAGS_n_thread_to_use;
-  cout << "# of threads to be used" << CORES << endl;
+  cout << "# of threads to be used " << CORES << endl;
 
   // Some setup
   cout << "\nOther settings:\n";
@@ -526,7 +674,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
           // Trajectory optimization with fixed model paramters
           string string_to_be_print = "Adding sample #" + to_string(sample) +
-                                      " to thread # " + to_string(availible_thread_idx.front()) + "...\n";
+                                      " to thread #" + to_string(availible_thread_idx.front()) + "...\n";
           cout << string_to_be_print;
           threads[availible_thread_idx.front()] = new std::thread(trajOptGivenWeights,
               std::ref(plant), std::ref(plant_autoDiff),
@@ -557,7 +705,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // Wait for the oldest thread to join
           int oldest_thread_idx = assigned_thread_idx.front().first;
           int corresponding_sample = assigned_thread_idx.front().second;
-          string string_to_be_print = "Waiting for thread # " +
+          string string_to_be_print = "Waiting for thread #" +
                                       to_string(oldest_thread_idx) +
                                       " to join...\n";
           cout << string_to_be_print;
@@ -577,7 +725,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                  " Wait for all threads to join and stop current iteration.\n";
             while (!assigned_thread_idx.empty()) {
               int oldest_thread_idx = assigned_thread_idx.front().first;
-              string string_to_be_print = "Waiting for thread # " +
+              string string_to_be_print = "Waiting for thread #" +
                                           to_string(oldest_thread_idx) +
                                           " to join...\n";
               cout << string_to_be_print;
@@ -727,121 +875,37 @@ int findGoldilocksModels(int argc, char* argv[]) {
         }
       }
       else {
-        // Extract active and independent constraints
-        cout << "Extracting active and independent rows of A\n";
+        // Extract active and independent constraints (multithreading)
+        std::vector<std::thread *> threads(std::min(CORES, n_succ_sample));
+        cout << "Extracting active and independent rows of A...\n";
+        int sample = 0;
+        while (sample < n_succ_sample) {
+          int sample_end = (sample + CORES >= n_succ_sample) ?
+                           n_succ_sample : sample + CORES;
+          int thread_idx = 0;
+          for (int sample_i = sample; sample_i < sample_end; sample_i++) {
+            threads[thread_idx] = new std::thread(
+              extractActiveAndIndependentRows,
+              sample_i, indpt_row_tol, dir,
+              std::ref(B_vec), std::ref(A_vec), std::ref(H_vec),
+              std::ref(b_vec), std::ref(lb_vec), std::ref(ub_vec),
+              std::ref(y_vec), std::ref(w_sol_vec));
+            thread_idx++;
+          }
+          thread_idx = 0;
+          for (int sample_i = sample; sample_i < sample_end; sample_i++) {
+            threads[thread_idx]->join();
+            delete threads[thread_idx];
+            thread_idx++;
+          }
+          sample = sample_end;
+        }
+        // Read the matrices after extractions
         vector<double> nw_vec;  // size of decision var of traj opt for all tasks
         vector<double> nl_vec;  // # of rows of active constraints for all tasks
-        for (int sample = 0; sample < n_succ_sample; sample++) {
-          DRAKE_ASSERT(b_vec[sample].cols() == 1);
-          DRAKE_ASSERT(lb_vec[sample].cols() == 1);
-          DRAKE_ASSERT(ub_vec[sample].cols() == 1);
-          DRAKE_ASSERT(y_vec[sample].cols() == 1);
-          DRAKE_ASSERT(w_sol_vec[sample].cols() == 1);
-
-          int nt_i = B_vec[sample].cols();
-          int nw_i = A_vec[sample].cols();
-          nw_vec.push_back(nw_i);
-
-          int nl_i = 0;
-          double tol = 1e-4;
-          for (int i = 0; i < y_vec[sample].rows(); i++) {
-            if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
-                y_vec[sample](i) <= lb_vec[sample](i) + tol)
-              nl_i++;
-          }
-
-          MatrixXd A_active(nl_i, nw_i);
-          MatrixXd B_active(nl_i, nt_i);
-          VectorXd y_active(nl_i);
-
-          nl_i = 0;
-          for (int i = 0; i < y_vec[sample].rows(); i++) {
-            if (y_vec[sample](i) >= ub_vec[sample](i) - tol ||
-                y_vec[sample](i) <= lb_vec[sample](i) + tol) {
-              A_active.row(nl_i) = A_vec[sample].row(i);
-              B_active.row(nl_i) = B_vec[sample].row(i);
-              y_active(nl_i) = y_vec[sample](i);
-              nl_i++;
-            }
-          }
-
-
-
-
-          cout << "\n (After extracting active constraints) Run traj opt to "
-               "check if your quadratic approximation is correct\n";
-          nl_i = A_active.rows();
-          nw_i = A_active.cols();
-          MathematicalProgram quadprog;
-          auto w2 = quadprog.NewContinuousVariables(nw_i, "w2");
-          quadprog.AddLinearConstraint( A_active,
-                                        VectorXd::Zero(nl_i),
-                                        VectorXd::Zero(nl_i),
-                                        w2);
-          quadprog.AddQuadraticCost(H_vec[sample], b_vec[sample], w2);
-          const auto result2 = Solve(quadprog);
-          auto solution_result2 = result2.get_solution_result();
-          cout << solution_result2 << " | ";
-          cout << "Cost:" << result2.get_optimal_cost() << " | ";
-          if (result2.is_success()) {
-            VectorXd w_sol_check = result2.GetSolution(
-                                     quadprog.decision_variables());
-            cout << "w_sol norm:" << w_sol_check.norm() << endl;
-            // cout << "This should be zero\n" <<
-            //      VectorXd::Ones(nl_i).transpose()*A_active*w_sol_check << endl;
-            cout << "if this is not zero, then w=0 is not optimal: " <<
-                 w_sol_check.transpose()*b_vec[sample] << endl;
-          }
-
-
-
-
-
-
-
-          // Only add the rows that are linearly independent
-          // cout << "Start extracting independent rows of A\n";
-          std::vector<int> full_row_rank_idx;
-          full_row_rank_idx.push_back(0);
-          for (int i = 1; i < nl_i; i++) {
-            // Construct test matrix
-            int n_current_rows = full_row_rank_idx.size();
-            MatrixXd A_test(n_current_rows + 1, nw_i);
-            for (unsigned int j = 0 ; j < full_row_rank_idx.size(); j++) {
-              A_test.block(j, 0, 1, nw_i) =
-                A_active.row(full_row_rank_idx[j]);
-            }
-            A_test.block(n_current_rows, 0, 1, nw_i) = A_active.row(i);
-
-            // Perform svd to check rank
-            Eigen::BDCSVD<MatrixXd> svd(A_test);
-            // double sigular_value = svd.singularValues()(n_current_rows);
-            if (svd.singularValues()(n_current_rows) > indpt_row_tol) {
-              full_row_rank_idx.push_back(i);
-            }
-          }
-          // cout << "Finished extracting independent rows of A\n\n";
-
-          nl_i = full_row_rank_idx.size();
-          nl_vec.push_back(nl_i);
-
-          // Assign the rows
-          MatrixXd A_full_row_rank(nl_i, nw_i);
-          MatrixXd B_full_row_rank(nl_i, nt_i);
-          VectorXd y_full_row_rank(nl_i);
-          for (int i = 0; i < nl_i; i++) {
-            A_full_row_rank.row(i) = A_active.row(full_row_rank_idx[i]);
-            B_full_row_rank.row(i) = B_active.row(full_row_rank_idx[i]);
-            y_full_row_rank(i) = y_active(full_row_rank_idx[i]);
-          }
-
-          A_active_vec.push_back(A_full_row_rank);
-          B_active_vec.push_back(B_full_row_rank);
-          y_active_vec.push_back(y_full_row_rank);
-
-          cout << "A active and independent rows = " <<
-               A_active_vec[sample].rows() << endl;
-        }  // end extracting active and independent constraints
+        readNonredundentMatrixFile(&nw_vec, &nl_vec,
+                                   &A_active_vec, &B_active_vec, &y_active_vec,
+                                   n_succ_sample, dir);
         cout << endl;
 
 
@@ -1121,7 +1185,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
             break;
           }
         }
-      }  // end if goes goes down
+      }  // end if
     }  // end if(!is_get_nominal)
   }  // end for
 

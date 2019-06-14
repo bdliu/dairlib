@@ -396,7 +396,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() <<
        " (tau cost = " << tau_cost << ")\n";*/
-  string string_to_print = "batch# = " + to_string(batch) +
+  string string_to_print = "sample #" + to_string(batch) +
   "\n    stride_length = " + to_string(stride_length) +
   " | ground_incline = " + to_string(ground_incline) +
   " | init_file = " + init_file +
