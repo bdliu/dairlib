@@ -353,6 +353,132 @@ MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
 //   return X;
 // }
 
+void calcWInTermsOfTheta(int sample, string dir,
+                         const vector<double> & nl_vec,
+                         const vector<double> & nw_vec,
+                         const vector<MatrixXd> & A_active_vec,
+                         const vector<MatrixXd> & B_active_vec,
+                         const vector<MatrixXd> & H_vec,
+                         const vector<VectorXd> & b_vec) {
+  string prefix = to_string(sample) + "_";
+
+  // Method 1: use optimization program to solve it??? /////////////////////////
+
+  // Method 2: use schur complement (see notes) ////////////////////////////////
+  /*
+  // This one requires the Hessian H to be pd.
+  // Also, although this method might be more computationally efficient, the
+  // accuracy is not as high as when we use inverse() directly. The reason is
+  // that the condition number of A and invH is high, so AinvHA' makes it very
+  // ill-conditioned.
+  MatrixXd AinvHA = A_active_vec[sample] * solveInvATimesB(
+                      H_vec[sample], A_active_vec[sample].transpose());
+  VectorXd invQc = solveInvATimesB(H_vec[sample], b_vec[sample]);
+  MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[sample]);
+  VectorXd F = -solveInvATimesB(AinvHA, A_active_vec[sample] * invQc);
+  // Testing
+  Eigen::BDCSVD<MatrixXd> svd(AinvHA);
+  cout << "AinvHA':\n";
+  cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+  cout << "  smallest singular value is "
+          << svd.singularValues().tail(1) << endl;
+  cout << "The condition number of A and invH are large. That's why AinvHA'"
+          "is ill-conditioned.\n";
+  // cout << "singular values are \n" << svd.singularValues() << endl;
+
+  MatrixXd Pi = -solveInvATimesB(H_vec[sample],
+                                 A_active_vec[sample].transpose() * E);
+  VectorXd qi = -solveInvATimesB(H_vec[sample],
+                        b_vec[sample] + A_active_vec[sample].transpose() * F);
+  cout << "qi norm (this number should be close to 0) = "
+       << qi.norm() << endl;
+  P_vec.push_back(Pi);
+  q_vec.push_back(qi);
+  */
+
+  // Method 3: use inverse() directly //////////////////////////////////////////
+  // H_ext = [H A'; A 0]
+  int nl_i = nl_vec[sample];
+  int nw_i = nw_vec[sample];
+  MatrixXd H_ext(nw_i + nl_i, nw_i + nl_i);
+  H_ext.block(0, 0, nw_i, nw_i) = H_vec[sample];
+  H_ext.block(0, nw_i, nw_i, nl_i) = A_active_vec[sample].transpose();
+  H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[sample];
+  H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
+
+  // Testing
+  // Eigen::BDCSVD<MatrixXd> svd(H_vec[sample]);
+  // cout << "H:\n";
+  // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
+  // cout << "  smallest singular value is "
+  //         << svd.singularValues().tail(1) << endl;
+  // // cout << "singular values are \n" << svd.singularValues() << endl;
+  // // Testing
+  if (sample == 0) {
+    Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
+    cout << "H_ext:\n";
+    cout << "  biggest singular value is " <<
+         svd_3.singularValues()(0) << endl;
+    cout << "  smallest singular value is "
+         << svd_3.singularValues().tail(1) << endl;
+  }
+  // cout << "\nStart inverting the matrix.\n";
+  MatrixXd inv_H_ext = H_ext.inverse();
+  // cout << "Finsihed inverting the matrix.\n";
+  // // Testing
+  // Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
+  // cout << "inv_H_ext:\n";
+  // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
+  // cout << "  smallest singular value is "
+  //      << svd_5.singularValues().tail(1) << endl;
+
+  MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
+  MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
+
+  MatrixXd Pi = -inv_H_ext12 * B_active_vec[sample];
+  VectorXd qi = -inv_H_ext11 * b_vec[sample];
+  writeCSV(dir + prefix + string("Pi.csv"), Pi);
+  writeCSV(dir + prefix + string("qi.csv"), qi);
+
+  // Testing
+  MatrixXd abs_Pi = Pi.cwiseAbs();
+  VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
+  VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
+  // cout << "sum-abs-Pi: " <<
+  //      left_one.transpose()*abs_Pi*right_one << endl;
+  // cout << "sum-abs-Pi divide by m*n: " <<
+  //      left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
+  //      << endl;
+  double max_Pi_element = abs_Pi(0, 0);
+  for (int i = 0; i < abs_Pi.rows(); i++)
+    for (int j = 0; j < abs_Pi.cols(); j++) {
+      if (abs_Pi(i, j) > max_Pi_element) max_Pi_element = abs_Pi(i, j);
+    }
+  string to_be_print = "sample #" + to_string(sample) + ":  " +
+                       "max element of abs-Pi = " + to_string(max_Pi_element) +
+                       "\n           qi norm (this number should be close to 0) = " +
+                       to_string(qi.norm()) + "\n";
+  cout << to_be_print;
+}
+
+void readPiQiFile(vector<MatrixXd> * P_vec, vector<VectorXd> * q_vec,
+                  int n_succ_sample, string dir) {
+  for (int sample = 0; sample < n_succ_sample; sample++) {
+    string prefix = to_string(sample) + "_";
+
+    P_vec->push_back(readCSV(dir + prefix + string("Pi.csv")));
+    q_vec->push_back(readCSV(dir + prefix + string("qi.csv")));
+
+    bool rm = true;
+    rm = (remove((dir + prefix + string("Pi.csv")).c_str()) == 0) & rm;
+    rm = (remove((dir + prefix + string("qi.csv")).c_str()) == 0) & rm;
+    if ( !rm )
+      cout << "Error deleting files\n";
+  }
+}
+
+
+
 int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -946,7 +1072,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         cout << endl;
 
 
-
         // Reference for solving a sparse linear system
         // https://eigen.tuxfamily.org/dox/group__TopicSparseSystems.html
         // https://eigen.tuxfamily.org/dox/group__LeastSquares.html
@@ -977,110 +1102,36 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
 
         // Get w in terms of theta (Get P_i and q_i where w = P_i * theta + q_i)
+        // cout << "Getting P matrix and q vecotr\n";
+        // vector<std::thread *> threads(std::min(CORES, n_succ_sample));
+        sample = 0;
+        while (sample < n_succ_sample) {
+          int sample_end = (sample + CORES >= n_succ_sample) ?
+                           n_succ_sample : sample + CORES;
+          int thread_idx = 0;
+          for (int sample_i = sample; sample_i < sample_end; sample_i++) {
+            threads[thread_idx] = new std::thread(
+              calcWInTermsOfTheta,
+              sample_i, dir,
+              std::ref(nl_vec), std::ref(nw_vec),
+              std::ref(A_active_vec), std::ref(B_active_vec),
+              std::ref(H_vec), std::ref(b_vec));
+            thread_idx++;
+          }
+          thread_idx = 0;
+          for (int sample_i = sample; sample_i < sample_end; sample_i++) {
+            threads[thread_idx]->join();
+            delete threads[thread_idx];
+            thread_idx++;
+          }
+          sample = sample_end;
+        }
+        // Read P_i and q_i
         vector<MatrixXd> P_vec;
         vector<VectorXd> q_vec;
-        P_vec.clear();
-        q_vec.clear();
-        // cout << "Getting P matrix and q vecotr\n";
-        // Method 1: use optimization program to solve it???
-
-        // Method 2: use schur complement (see notes)
-        /*
-        // This one requires the Hessian H to be pd.
-        // Also, although this method might be more computationally efficient, the
-        // accuracy is not as high as when we use inverse() directly. The reason is
-        // that the condition number of A and invH is high, so AinvHA' makes it very
-        // ill-conditioned.
-        for (int sample = 0; sample < n_succ_sample; sample++) {
-          MatrixXd AinvHA = A_active_vec[sample] * solveInvATimesB(
-                              H_vec[sample], A_active_vec[sample].transpose());
-          VectorXd invQc = solveInvATimesB(H_vec[sample], b_vec[sample]);
-          MatrixXd E = solveInvATimesB(AinvHA, B_active_vec[sample]);
-          VectorXd F = -solveInvATimesB(AinvHA, A_active_vec[sample] * invQc);
-          // Testing
-          Eigen::BDCSVD<MatrixXd> svd(AinvHA);
-          cout << "AinvHA':\n";
-          cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-          cout << "  smallest singular value is "
-                  << svd.singularValues().tail(1) << endl;
-          cout << "The condition number of A and invH are large. That's why AinvHA'"
-                  "is ill-conditioned.\n";
-          // cout << "singular values are \n" << svd.singularValues() << endl;
-
-          MatrixXd Pi = -solveInvATimesB(H_vec[sample],
-                                         A_active_vec[sample].transpose() * E);
-          VectorXd qi = -solveInvATimesB(H_vec[sample],
-                                b_vec[sample] + A_active_vec[sample].transpose() * F);
-          cout << "qi norm (this number should be close to 0) = "
-               << qi.norm() << endl;
-          P_vec.push_back(Pi);
-          q_vec.push_back(qi);
-        }*/
-
-        // Method 3: use inverse() directly
-        // H_ext = [H A'; A 0]
-        for (int sample = 0; sample < n_succ_sample; sample++) {
-          int nl_i = nl_vec[sample];
-          int nw_i = nw_vec[sample];
-          MatrixXd H_ext(nw_i + nl_i, nw_i + nl_i);
-          H_ext.block(0, 0, nw_i, nw_i) = H_vec[sample];
-          H_ext.block(0, nw_i, nw_i, nl_i) = A_active_vec[sample].transpose();
-          H_ext.block(nw_i, 0, nl_i, nw_i) = A_active_vec[sample];
-          H_ext.block(nw_i, nw_i, nl_i, nl_i) = MatrixXd::Zero(nl_i, nl_i);
-
-          // Testing
-          // Eigen::BDCSVD<MatrixXd> svd(H_vec[sample]);
-          // cout << "H:\n";
-          // cout << "  biggest singular value is " << svd.singularValues()(0) << endl;
-          // cout << "  smallest singular value is "
-          //         << svd.singularValues().tail(1) << endl;
-          // // cout << "singular values are \n" << svd.singularValues() << endl;
-          // // Testing
-          if (sample == 0) {
-            Eigen::BDCSVD<MatrixXd> svd_3(H_ext);
-            cout << "H_ext:\n";
-            cout << "  biggest singular value is " <<
-                 svd_3.singularValues()(0) << endl;
-            cout << "  smallest singular value is "
-                 << svd_3.singularValues().tail(1) << endl;
-          }
-          // cout << "\nStart inverting the matrix.\n";
-          MatrixXd inv_H_ext = H_ext.inverse();
-          // cout << "Finsihed inverting the matrix.\n";
-          // // Testing
-          // Eigen::BDCSVD<MatrixXd> svd_5(inv_H_ext);
-          // cout << "inv_H_ext:\n";
-          // cout << "  biggest singular value is " << svd_5.singularValues()(0) << endl;
-          // cout << "  smallest singular value is "
-          //      << svd_5.singularValues().tail(1) << endl;
-
-          MatrixXd inv_H_ext11 = inv_H_ext.block(0, 0, nw_i, nw_i);
-          MatrixXd inv_H_ext12 = inv_H_ext.block(0, nw_i, nw_i, nl_i);
-
-          MatrixXd Pi = -inv_H_ext12 * B_active_vec[sample];
-          VectorXd qi = -inv_H_ext11 * b_vec[sample];
-          P_vec.push_back(Pi);
-          q_vec.push_back(qi);
-
-          // Testing
-          MatrixXd abs_Pi = Pi.cwiseAbs();
-          VectorXd left_one = VectorXd::Ones(abs_Pi.rows());
-          VectorXd right_one = VectorXd::Ones(abs_Pi.cols());
-          // cout << "sum-abs-Pi: " <<
-          //      left_one.transpose()*abs_Pi*right_one << endl;
-          // cout << "sum-abs-Pi divide by m*n: " <<
-          //      left_one.transpose()*abs_Pi*right_one / (abs_Pi.rows()*abs_Pi.cols())
-          //      << endl;
-          double max_Pi_element = abs_Pi(0, 0);
-          for (int i = 0; i < abs_Pi.rows(); i++)
-            for (int j = 0; j < abs_Pi.cols(); j++) {
-              if (abs_Pi(i, j) > max_Pi_element) max_Pi_element = abs_Pi(i, j);
-            }
-          cout << "max element of abs-Pi = " << max_Pi_element << endl;
-          cout << "qi norm (this number should be close to 0) = "
-               << qi.norm() << endl;
-        }
-
+        readPiQiFile(&P_vec, &q_vec,
+                     n_succ_sample, dir);
+        cout << endl;
 
 
 
@@ -1099,9 +1150,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // cout << "  smallest singular value is "
         //         << svd_2.singularValues().tail(1) << endl;
         // // cout << "singular values are \n" << svd_2.singularValues() << endl;
-
-
-
 
 
         // Run a quadprog to check if the solution to the following problem is 0
@@ -1125,11 +1173,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
         VectorXd w_sol = result.GetSolution(quadprog.decision_variables());
         cout << "w_sol norm:" << w_sol.norm() << endl;
         cout << "Finished traj opt\n\n";*/
-
-
-
-
-
 
 
         /*// Check if Q_theta is pd
