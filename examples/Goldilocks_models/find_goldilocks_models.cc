@@ -1026,6 +1026,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       if (!current_iter_is_success)
         iter -= 1;
     } else if (extend_model_this_iter) {  // Extend the model
+      cout << "Start extending model...\n";
       extendModel(dir, iter, n_feature_s,
                   n_s, n_sDDot, n_tau,
                   n_feature_sDDot,
@@ -1242,7 +1243,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
 
         // Get gradient of the cost wrt theta (assume H_vec[sample] symmetric)
-        // cout << "Calculating gradient\n";
+        cout << "Calculating gradient\n";
         VectorXd gradient_cost = VectorXd::Zero(theta.size());
         for (int sample = 0; sample < n_succ_sample; sample++) {
           gradient_cost += P_vec[sample].transpose() * b_vec[sample] / n_succ_sample;
