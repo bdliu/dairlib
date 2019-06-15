@@ -121,7 +121,7 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
   }
 }
 
-inline bool file_exsit (const std::string & name) {
+inline bool file_exist (const std::string & name) {
   struct stat buffer;
   // cout << name << " exist? " << (stat (name.c_str(), &buffer) == 0) << endl;
   return (stat (name.c_str(), &buffer) == 0);
@@ -135,7 +135,7 @@ int selectThreadIdxToWait(const vector<pair<int, int>> & assigned_thread_idx,
     for (unsigned int i = 0; i < assigned_thread_idx.size(); i++) {
       string prefix = to_string(iter) +  "_" +
                       to_string(assigned_thread_idx[i].second) + "_";
-      if (file_exsit(dir + prefix + "thread_finished.csv")) {
+      if (file_exist(dir + prefix + "thread_finished.csv")) {
         bool rm = (remove((dir + prefix + string("thread_finished.csv")).c_str()) == 0);
         if ( !rm ) cout << "Error deleting files\n";
         // cout << prefix + "thread_finished.csv exists\n";
@@ -152,6 +152,37 @@ int selectThreadIdxToWait(const vector<pair<int, int>> & assigned_thread_idx,
   // should never read here
   cout << "Error: The code should never reach here.\n";
   return -1;
+}
+
+void waitForAllThreadsToJoin(vector<std::thread*> * threads,
+                             vector<pair<int, int>> * assigned_thread_idx,
+                             string dir, int iter) {
+  //TODO: can I kill the thread instead of waiting for it to finish?
+
+  while (!assigned_thread_idx->empty()) {
+    // Select index to wait and delete csv files
+    int selected_idx = selectThreadIdxToWait(*assigned_thread_idx, dir, iter);
+    int thread_to_wait_idx = (*assigned_thread_idx)[selected_idx].first;
+    string string_to_be_print = "Waiting for thread #" +
+                                to_string(thread_to_wait_idx) + " to join...\n";
+    // cout << string_to_be_print;
+    (*threads)[thread_to_wait_idx]->join();
+    delete (*threads)[thread_to_wait_idx];
+    string_to_be_print = "Thread #" + to_string(thread_to_wait_idx) +
+                         " has joined.\n";
+    // cout << string_to_be_print;
+    /*cout << "Before erase: ";
+    for (int i = 0; i < assigned_thread_idx->size(); i++) {
+      cout << (*assigned_thread_idx)[i].second << ", ";
+    }
+    cout << endl;*/
+    assigned_thread_idx->erase(assigned_thread_idx->begin() + selected_idx);
+    /*cout << "After erase: ";
+    for (int i = 0; i < assigned_thread_idx->size(); i++) {
+      cout << (*assigned_thread_idx)[i].second << ", ";
+    }
+    cout << endl;*/
+  }
 }
 
 void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
@@ -875,33 +906,24 @@ int findGoldilocksModels(int argc, char* argv[]) {
           threads[thread_to_wait_idx]->join();
           delete threads[thread_to_wait_idx];
 
+          availible_thread_idx.push(thread_to_wait_idx);
+          assigned_thread_idx.erase(assigned_thread_idx.begin() + selected_idx);
+
           // Record success history
           prefix = to_string(iter) +  "_" + to_string(corresponding_sample) + "_";
           int sample_success =
             (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
+
           // If a sample failed, stop evaluating.
           if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
             // Wait for the assigned threads to join, and then break;
             cout << "Sameple #" << corresponding_sample << "was not successful."
                  " Wait for all threads to join and stop current iteration.\n";
-            while (!assigned_thread_idx.empty()) {
-              int oldest_thread_idx = assigned_thread_idx.front().first;
-              string string_to_be_print = "Waiting for thread #" +
-                                          to_string(oldest_thread_idx) +
-                                          " to join...\n";
-              // cout << string_to_be_print;
-              threads[oldest_thread_idx]->join();
-              delete threads[oldest_thread_idx];
-              assigned_thread_idx.erase(assigned_thread_idx.begin());
-            }
+            waitForAllThreadsToJoin(&threads, &assigned_thread_idx, dir, iter);
             break;
-            //TODO: can I kill the thread instead of waiting for it to finish?
           }
-
-          availible_thread_idx.push(thread_to_wait_idx);
-          assigned_thread_idx.erase(assigned_thread_idx.begin() + selected_idx);
         }
       }  // while(sample < n_sample)
     }  // end if-else (start_with_adjusting_stepsize)
@@ -1027,7 +1049,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
                ". Redo this iteration.\n\n";
 
           if (iter + 1 == iter_start)
-            cout << "Step_direction might not have been defined yet. "
+            cout << "Step_direction might have not been defined yet. "
                  "Next line might give segmentation fault\n";
           // Descent
           theta = prev_theta + current_iter_step_size * step_direction;

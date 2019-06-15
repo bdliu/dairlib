@@ -15,8 +15,8 @@ elif len(sys.argv) == 3:
     iteration_start = int(sys.argv[1])
     iteration_end = int(sys.argv[2])
 
-name_idx = 3
-batch = 0
+name_idx = 0
+batch = 4
 directory = 'data/'
 
 name_list = ['s', 'ds', 'dds', 'tau']
@@ -83,5 +83,5 @@ for iteration in range(iteration_start,iteration_end+1):
         plt.show()
     else:
         plt.draw()
-        plt.pause(1)
+        plt.pause(.01)
         plt.clf()
