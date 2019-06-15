@@ -487,8 +487,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
          "make sure that you have built this file with "
          "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
          " code\n"
-         "----------------\n+#build --define=WITH_SNOPT=ON\n"
-         "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
+         "----------------\n#build --define=WITH_SNOPT=ON\n"
+         "build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
          "Lastly, make sure that there is no thread_finished file in data folder"
          ".\nProceed? (Y/N)\n";
     char answer[1];
