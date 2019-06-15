@@ -6,7 +6,6 @@
 #include <queue>  // First in first out
 #include <utility>  // std::pair, std::make_pair
 #include <sys/stat.h>  // Checking the existence of a file
-#include <fstream>  // Checking the existence of a file
 
 #include "examples/Goldilocks_models/find_models/traj_opt_given_weigths.h"
 #include "systems/goldilocks_models/file_utils.h"
@@ -30,6 +29,7 @@ using std::cin;
 using std::cout;
 using std::endl;
 using std::vector;
+using std::pair;
 using std::string;
 using std::to_string;
 using Eigen::Vector3d;
@@ -121,16 +121,37 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
   }
 }
 
-// inline bool file_exsit (const std::string & name) {
-//   struct stat buffer;
-//   cout << name << " exist? " << (stat (name.c_str(), &buffer) == 0) << endl;
-//   return (stat (name.c_str(), &buffer) == 0);
-// }
+inline bool file_exsit (const std::string & name) {
+  struct stat buffer;
+  // cout << name << " exist? " << (stat (name.c_str(), &buffer) == 0) << endl;
+  return (stat (name.c_str(), &buffer) == 0);
+}
 
-inline bool file_exsit(const std::string & name) {
-    std::ifstream f(name.c_str());
-    cout << name << " exist? " << f.good() << endl;
-    return f.good();
+int selectThreadIdxToWait(const vector<pair<int, int>> & assigned_thread_idx,
+                          string dir, int iter) {
+  bool no_files_exsit = true;
+  while (no_files_exsit) {
+    // cout << "Check if any file exists...\n";
+    for (unsigned int i = 0; i < assigned_thread_idx.size(); i++) {
+      string prefix = to_string(iter) +  "_" +
+                      to_string(assigned_thread_idx[i].second) + "_";
+      if (file_exsit(dir + prefix + "thread_finished.csv")) {
+        bool rm = (remove((dir + prefix + string("thread_finished.csv")).c_str()) == 0);
+        if ( !rm ) cout << "Error deleting files\n";
+        // cout << prefix + "thread_finished.csv exists\n";
+        return i;
+        no_files_exsit = false;
+        break;
+      }
+    }
+    if (no_files_exsit) {
+      // cout << "No files exists yet. Sleep for 1 seconds.\n";
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+  }
+  // should never read here
+  cout << "Error: The code should never reach here.\n";
+  return -1;
 }
 
 void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
@@ -245,7 +266,7 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
 
   // Only add the rows that are linearly independent
   // cout << "Start extracting independent rows of A\n";
-  std::vector<int> full_row_rank_idx;
+  vector<int> full_row_rank_idx;
   full_row_rank_idx.push_back(0);
   for (int i = 1; i < nl_i; i++) {
     // Construct test matrix
@@ -287,8 +308,8 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
   writeCSV(dir + prefix + string("B_full_row_rank.csv"), B_full_row_rank);
   writeCSV(dir + prefix + string("y_full_row_rank.csv"), y_full_row_rank);
 
-  cout << "sample #" << sample;
-  cout << "    A active and independent rows = " << nl_i << endl;
+  // cout << "sample #" << sample;
+  // cout << "    A active and independent rows = " << nl_i << endl;
 }
 
 void readNonredundentMatrixFile(vector<double> * nw_vec,
@@ -336,13 +357,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (FLAGS_is_multithread) {
-    cout << "If  you intend to use multiple threads, "
+    cout << "If you intend to use multiple threads, "
          "make sure that you have built this file with "
          "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
          " code\n"
          "----------------\n+#build --define=WITH_SNOPT=ON\n"
          "+build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
-         "Proceed? (Y/N)\n";
+         "Lastly, make sure that there is no thread_finished file in data folder"
+         ".\nProceed? (Y/N)\n";
     char answer[1];
     cin >> answer;
     if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
@@ -657,13 +679,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
       start_with_adjusting_stepsize = false;
     } else {
       // Create vector of threads for multithreading
-      std::vector<std::thread *> threads(std::min(CORES, n_sample));
+      vector<std::thread *> threads(std::min(CORES, n_sample));
 
       // Create a index list indicating which thread is availible for use
       std::queue<int> availible_thread_idx;
       for (int i = 0; i < CORES; i++)
         availible_thread_idx.push(i);
-      std::vector<std::pair<int, int>> assigned_thread_idx;
+      vector<pair<int, int>> assigned_thread_idx;
 
       // Evaluate samples
       int sample = 0;
@@ -690,7 +712,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // Trajectory optimization with fixed model paramters
           string string_to_be_print = "Adding sample #" + to_string(sample) +
                                       " to thread #" + to_string(availible_thread_idx.front()) + "...\n";
-          cout << string_to_be_print;
+          // cout << string_to_be_print;
           threads[availible_thread_idx.front()] = new std::thread(trajOptGivenWeights,
               std::ref(plant), std::ref(plant_autoDiff),
               n_s, n_sDDot, n_tau,
@@ -714,39 +736,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
           availible_thread_idx.pop();
           sample++;
         } else {
-          // Wait for threads to join
-          int thread_to_wait_idx;
-          int corresponding_sample;
+          // Select the thread to join
+          int selected_idx = selectThreadIdxToWait(assigned_thread_idx, dir, iter);
 
-          bool no_files_exsit = true;
-          while (no_files_exsit) {
-            cout << "Check if any file exists...\n";
-            for (unsigned int i = 0; i < assigned_thread_idx.size(); i++) {
-              prefix = to_string(iter) +  "_" +
-                       to_string(assigned_thread_idx[i].second) + "_";
-              if (file_exsit(dir + prefix + "thread_finished.csv")) {
-                cout << prefix + "thread_finished.csv exists\n";
-                thread_to_wait_idx = assigned_thread_idx[i].first;
-                corresponding_sample = assigned_thread_idx[i].second;
-                bool rm = (remove((dir + prefix + string("nw_i.csv")).c_str()) == 0);
-                if ( !rm ) cout << "Error deleting files\n";
-                no_files_exsit = false;
-                break;
-              }
-            }
-            if (no_files_exsit) {
-              cout << "No files exists yet. Sleep for 0.5 seconds.\n";
-              std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            }
-          }
-
-
-
-
+          // Wait for the selected thread to join
+          int thread_to_wait_idx = assigned_thread_idx[selected_idx].first;
+          int corresponding_sample = assigned_thread_idx[selected_idx].second;
           string string_to_be_print = "Waiting for thread #" +
                                       to_string(thread_to_wait_idx) +
                                       " to join...\n";
-          cout << string_to_be_print;
+          // cout << string_to_be_print;
           threads[thread_to_wait_idx]->join();
           delete threads[thread_to_wait_idx];
 
@@ -766,7 +765,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
               string string_to_be_print = "Waiting for thread #" +
                                           to_string(oldest_thread_idx) +
                                           " to join...\n";
-              cout << string_to_be_print;
+              // cout << string_to_be_print;
               threads[oldest_thread_idx]->join();
               delete threads[oldest_thread_idx];
               assigned_thread_idx.erase(assigned_thread_idx.begin());
@@ -776,7 +775,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           }
 
           availible_thread_idx.push(thread_to_wait_idx);
-          assigned_thread_idx.erase(assigned_thread_idx.begin());
+          assigned_thread_idx.erase(assigned_thread_idx.begin() + selected_idx);
         }
       }  // while(sample < n_sample)
     }  // end if-else (start_with_adjusting_stepsize)
@@ -914,7 +913,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       }
       else {
         // Extract active and independent constraints (multithreading)
-        std::vector<std::thread *> threads(std::min(CORES, n_succ_sample));
+        vector<std::thread *> threads(std::min(CORES, n_succ_sample));
         cout << "Extracting active and independent rows of A...\n";
         int sample = 0;
         while (sample < n_succ_sample) {
@@ -1200,7 +1199,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
         prev_theta = theta;
         // current_iter_step_size = h_step;
         current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
-        cout << "step size = " << current_iter_step_size << endl;
+        cout << "step size = " << current_iter_step_size << "\n\n";
         if (is_newton)
           theta = theta + current_iter_step_size * step_direction;
         else
