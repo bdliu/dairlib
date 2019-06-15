@@ -493,7 +493,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   //   writeCSV(directory + prefix + string("w (success).csv"), w_sol);
 
   if (is_get_nominal || !result.is_success()) {
-    return;
+    // Do nothing.
   } else if (extend_model) {  // Extending the model
     VectorXd theta_s_append = readCSV(directory +
                                       string("theta_s_append.csv")).col(0);

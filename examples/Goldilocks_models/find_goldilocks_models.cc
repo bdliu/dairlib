@@ -84,6 +84,16 @@ DEFINE_double(h_step, 1e-4, "The step size for outer loop");
 //                 // 1e-1 caused divergence when close to optimal sol
 DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
 
+bool userAnsweredYes() {
+  char answer[1];
+  cin >> answer;
+  if ((answer[0] == 'Y') || (answer[0] == 'y')) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void getInitFileName(string * init_file, const string & nominal_traj_init_file,
                      int iter, int sample, bool is_get_nominal,
                      bool previous_iter_is_success, bool has_been_all_success,
@@ -183,6 +193,78 @@ void waitForAllThreadsToJoin(vector<std::thread*> * threads,
     }
     cout << endl;*/
   }
+}
+
+void extendModel(string dir, int iter, int n_feature_s,
+                 int & n_s, int & n_sDDot, int & n_tau,
+                 int & n_feature_sDDot,
+                 int & n_theta_s, int & n_theta_sDDot, int & n_theta,
+                 MatrixXd & B_tau, VectorXd & theta_s, VectorXd & theta_sDDot,
+                 VectorXd & theta, VectorXd & prev_theta,
+                 VectorXd & step_direction, double & min_so_far) {
+
+  VectorXd theta_s_append = readCSV(dir +
+                                    string("theta_s_append.csv")).col(0);
+  int n_extend = theta_s_append.rows() / n_feature_s;
+
+  // update n_s, n_sDDot and n_tau
+  int old_n_s = n_s;
+  n_s += n_extend;
+  n_sDDot += n_extend;
+  n_tau += n_extend;
+  // update n_feature_sDDot
+  int old_n_feature_sDDot = n_feature_sDDot;
+  DynamicsExpression dyn_expression(n_sDDot, 0);
+  VectorXd dummy_s = VectorXd::Zero(n_s);
+  n_feature_sDDot = dyn_expression.getFeature(dummy_s, dummy_s).size();
+  // update n_theta_s and n_theta_sDDot
+  n_theta_s = n_s * n_feature_s;
+  n_theta_sDDot = n_sDDot * n_feature_sDDot;
+  n_theta = n_theta_s + n_theta_sDDot;
+  cout << "Updated n_s = " << n_s << endl;
+  cout << "Updated n_sDDot = " << n_sDDot << endl;
+  cout << "Updated n_tau = " << n_tau << endl;
+  cout << "Updated n_feature_sDDot = " << n_feature_sDDot << endl;
+  cout << "Updated n_theta_s = " << n_theta_s << endl;
+  cout << "Updated n_theta_sDDot = " << n_theta_sDDot << endl;
+  cout << "Updated n_theta = " << n_theta << endl;
+
+  // update B_tau
+  MatrixXd B_tau_old = B_tau;
+  B_tau.resize(n_sDDot, n_tau);
+  B_tau = MatrixXd::Zero(n_sDDot, n_tau);
+  B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
+  B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
+    MatrixXd::Identity(n_extend, n_extend);
+  cout << "Updated B_tau = \n" << B_tau << endl;
+  // update theta_s
+  string prefix = to_string(iter) +  "_";
+  writeCSV(dir + prefix + string("theta_s (before extension).csv"),
+           theta_s);
+  MatrixXd theta_s_old = theta_s;
+  theta_s.resize(n_theta_s);
+  theta_s << theta_s_old, theta_s_append;
+  // update theta_sDDot
+  writeCSV(dir + prefix + string("theta_sDDot (before extension).csv"),
+           theta_sDDot);
+  MatrixXd theta_sDDot_old = theta_sDDot;
+  theta_sDDot.resize(n_theta_sDDot);
+  theta_sDDot = VectorXd::Zero(n_theta_sDDot);
+  VectorXd new_idx = readCSV(dir +
+                             string("theta_sDDot_new_index.csv")).col(0);
+  for (int i = 0; i < old_n_feature_sDDot; i++)
+    for (int j = 0; j < old_n_s; j++)
+      theta_sDDot(new_idx(i) + j * n_feature_sDDot) = theta_sDDot_old(
+            i + j * old_n_feature_sDDot);
+  // update theta
+  theta.resize(n_theta);
+  theta << theta_s, theta_sDDot;
+
+  // Some setup
+  prev_theta.resize(n_theta);
+  prev_theta = theta;
+  step_direction.resize(n_theta);
+  min_so_far = 10000000;
 }
 
 void readApproxQpFiles(vector<VectorXd> * w_sol_vec, vector<MatrixXd> * A_vec,
@@ -522,9 +604,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
          "build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
          "Lastly, make sure that there is no thread_finished file in data folder"
          ".\nProceed? (Y/N)\n";
-    char answer[1];
-    cin >> answer;
-    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+    if (!userAnsweredYes()) {
       cout << "Ending the program.\n";
       return 0;
     } else {
@@ -604,14 +684,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
-  B_tau(2, 0) = 1;
-  B_tau(3, 1) = 1;
+  // B_tau(2, 0) = 1;
+  // B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
 
   // Reduced order model setup
@@ -654,9 +734,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // theta_s = VectorXd::Random(n_theta_s);
     // theta_sDDot = VectorXd::Random(n_theta_sDDot);
     cout << "Make sure that you use the right initial theta.\nProceed? (Y/N)\n";
-    char answer[1];
-    cin >> answer;
-    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+    if (!userAnsweredYes()) {
       cout << "Ending the program.\n";
       return 0;
     } else {
@@ -905,6 +983,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // cout << string_to_be_print;
           threads[thread_to_wait_idx]->join();
           delete threads[thread_to_wait_idx];
+          string_to_be_print = "Thread #" +
+                               to_string(thread_to_wait_idx) +
+                               " has joined.\n";
 
           availible_thread_idx.push(thread_to_wait_idx);
           assigned_thread_idx.erase(assigned_thread_idx.begin() + selected_idx);
@@ -919,7 +1000,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // If a sample failed, stop evaluating.
           if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
             // Wait for the assigned threads to join, and then break;
-            cout << "Sameple #" << corresponding_sample << "was not successful."
+            cout << "Sameple #" << corresponding_sample << " was not successful."
                  " Wait for all threads to join and stop current iteration.\n";
             waitForAllThreadsToJoin(&threads, &assigned_thread_idx, dir, iter);
             break;
@@ -945,72 +1026,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
       if (!current_iter_is_success)
         iter -= 1;
     } else if (extend_model_this_iter) {  // Extend the model
-      VectorXd theta_s_append = readCSV(dir +
-                                        string("theta_s_append.csv")).col(0);
-      int n_extend = theta_s_append.rows() / n_feature_s;
-
-      // update n_s, n_sDDot and n_tau
-      int old_n_s = n_s;
-      n_s += n_extend;
-      n_sDDot += n_extend;
-      n_tau += n_extend;
-      // update n_feature_sDDot
-      int old_n_feature_sDDot = n_feature_sDDot;
-      DynamicsExpression dyn_expression(n_sDDot, 0);
-      VectorXd dummy_s = VectorXd::Zero(n_s);
-      n_feature_sDDot = dyn_expression.getFeature(dummy_s, dummy_s).size();
-      // update n_theta_s and n_theta_sDDot
-      n_theta_s = n_s * n_feature_s;
-      n_theta_sDDot = n_sDDot * n_feature_sDDot;
-      n_theta = n_theta_s + n_theta_sDDot;
-      cout << "Updated n_s = " << n_s << endl;
-      cout << "Updated n_sDDot = " << n_sDDot << endl;
-      cout << "Updated n_tau = " << n_tau << endl;
-      cout << "Updated n_feature_sDDot = " << n_feature_sDDot << endl;
-      cout << "Updated n_theta_s = " << n_theta_s << endl;
-      cout << "Updated n_theta_sDDot = " << n_theta_sDDot << endl;
-      cout << "Updated n_theta = " << n_theta << endl;
-
-      // update B_tau
-      MatrixXd B_tau_old = B_tau;
-      B_tau.resize(n_sDDot, n_tau);
-      B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-      B_tau.block(0, 0, B_tau_old.rows(), B_tau_old.cols()) = B_tau_old;
-      B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
-        MatrixXd::Identity(n_extend, n_extend);
-      cout << "Updated B_tau = \n" << B_tau << endl;
-      // update theta_s
-      prefix = to_string(iter) +  "_";
-      writeCSV(dir + prefix + string("theta_s (before extension).csv"),
-               theta_s);
-      MatrixXd theta_s_old = theta_s;
-      theta_s.resize(n_theta_s);
-      theta_s << theta_s_old, theta_s_append;
-      // update theta_sDDot
-      writeCSV(dir + prefix + string("theta_sDDot (before extension).csv"),
-               theta_sDDot);
-      MatrixXd theta_sDDot_old = theta_sDDot;
-      theta_sDDot.resize(n_theta_sDDot);
-      theta_sDDot = VectorXd::Zero(n_theta_sDDot);
-      VectorXd new_idx = readCSV(dir +
-                                 string("theta_sDDot_new_index.csv")).col(0);
-      for (int i = 0; i < old_n_feature_sDDot; i++)
-        for (int j = 0; j < old_n_s; j++)
-          theta_sDDot(new_idx(i) + j * n_feature_sDDot) = theta_sDDot_old(
-                i + j * old_n_feature_sDDot);
-      // update theta
-      theta.resize(n_theta);
-      theta << theta_s, theta_sDDot;
-
-      // Some setup
-      cout << "Reset has_been_all_success to false, in case the next iter "
-           "is infeasible.\n";
-      prev_theta.resize(n_theta);
-      prev_theta = theta;
-      step_direction.resize(n_theta);
-      min_so_far = 10000000;
+      extendModel(dir, iter, n_feature_s,
+                  n_s, n_sDDot, n_tau,
+                  n_feature_sDDot,
+                  n_theta_s, n_theta_sDDot, n_theta,
+                  B_tau, theta_s, theta_sDDot, theta,
+                  prev_theta, step_direction, min_so_far);
 
       // So that we can re-run the current iter
+      cout << "Reset \"has_been_all_success\" to false, in case the next iter "
+           "is infeasible.\n";
       iter -= 1;
       has_been_all_success = false;
       previous_iter_is_success = false;
