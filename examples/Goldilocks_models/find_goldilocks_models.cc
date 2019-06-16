@@ -84,7 +84,9 @@ DEFINE_double(h_step, 1e-4, "The step size for outer loop");
 //                 // 1e-1 caused divergence when close to optimal sol
 DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
 
-bool userAnsweredYes() {
+// Not sure why using the below function caused a problem.
+// Valgrind said: Conditional jump or move depends on uninitialised value(s)
+/*bool userAnsweredYes() {
   char answer[1];
   cin >> answer;
   if ((answer[0] == 'Y') || (answer[0] == 'y')) {
@@ -92,7 +94,7 @@ bool userAnsweredYes() {
   } else {
     return false;
   }
-}
+}*/
 
 void getInitFileName(string * init_file, const string & nominal_traj_init_file,
                      int iter, int sample, bool is_get_nominal,
@@ -604,7 +606,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
          "build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
          "Lastly, make sure that there is no thread_finished file in data folder"
          ".\nProceed? (Y/N)\n";
-    if (!userAnsweredYes()) {
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
       cout << "Ending the program.\n";
       return 0;
     } else {
@@ -734,7 +738,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // theta_s = VectorXd::Random(n_theta_s);
     // theta_sDDot = VectorXd::Random(n_theta_sDDot);
     cout << "Make sure that you use the right initial theta.\nProceed? (Y/N)\n";
-    if (!userAnsweredYes()) {
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
       cout << "Ending the program.\n";
       return 0;
     } else {
