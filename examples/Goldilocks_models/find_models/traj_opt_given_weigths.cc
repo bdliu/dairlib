@@ -71,6 +71,50 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
+void augmentConstraintToFixThetaScaling(MatrixXd & B, MatrixXd & A,
+                                        VectorXd & y, VectorXd & lb, VectorXd & ub,
+                                        int n_s, int n_feature_s,
+                                        const VectorXd & theta_s) {
+  int n_c = B.rows();
+  int n_t = B.cols();
+  int n_w = A.cols();
+
+  MatrixXd B_old = B;
+  B.resize(n_c + n_s, n_t);
+  B = MatrixXd::Zero(n_c + n_s, n_t);
+  B.block(0, 0, n_c, n_t) = B_old;
+  for (int i = 0; i < n_s; i++) {
+    B.block(n_c + i, i * n_feature_s, 1, n_feature_s) =
+      VectorXd::Ones(n_feature_s).transpose();
+  }
+
+  MatrixXd A_old = A;
+  A.resize(n_c + n_s, n_w);
+  A = MatrixXd::Zero(n_c + n_s, n_w);
+  A.block(0, 0, n_c, n_w) = A_old;
+
+  MatrixXd y_old = y;
+  y.resize(n_c + n_s);
+  VectorXd y_append = VectorXd::Zero(n_s);
+  for (int i = 0; i < n_s; i++) {
+    for (int j = 0; j < n_feature_s; j++) {
+      y_append(i) += theta_s(j + i * n_feature_s);
+    }
+  }
+  y << y_old, y_append;
+
+  MatrixXd lb_old = lb;
+  lb.resize(n_c + n_s);
+  lb << lb_old, y_append;
+
+  MatrixXd ub_old = ub;
+  ub.resize(n_c + n_s);
+  ub << ub_old, y_append;
+
+  cout << "parameters sum per position = " << y_append.transpose() << endl;
+}
+
+
 void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                          const MultibodyPlant<AutoDiffXd> & plant_autoDiff,
                          int n_s, int n_sDDot, int n_tau,
@@ -397,13 +441,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   cout << "Cost:" << result.get_optimal_cost() <<
        " (tau cost = " << tau_cost << ")\n";*/
   string string_to_print = "sample #" + to_string(batch) +
-  "\n    stride_length = " + to_string(stride_length) +
-  " | ground_incline = " + to_string(ground_incline) +
-  " | init_file = " + init_file +
-  "\n    Solve time:" + to_string(elapsed.count()) +
-  " | " + to_string(solution_result) +
-  " | Cost:" + to_string(result.get_optimal_cost()) +
-  " (tau cost = " + to_string(tau_cost) + ")\n";
+                           "\n    stride_length = " + to_string(stride_length) +
+                           " | ground_incline = " + to_string(ground_incline) +
+                           " | init_file = " + init_file +
+                           "\n    Solve time:" + to_string(elapsed.count()) +
+                           " | " + to_string(solution_result) +
+                           " | Cost:" + to_string(result.get_optimal_cost()) +
+                           " (tau cost = " + to_string(tau_cost) + ")\n";
   cout << string_to_print;
 
   VectorXd is_success(1);
@@ -638,6 +682,11 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
       N_accum += num_time_samples[l];
       N_accum -= 1;  // due to overlaps between modes
     }
+
+    // Augment the constraint matrices and vectors (B, A, y, lb, ub)
+    // so that we fix the scaling of the model parameters
+    augmentConstraintToFixThetaScaling(B, A, y, lb, ub,
+                                       n_s, n_feature_s, theta_s);
 
     // Push the solution to the vector
     /*w_sol_vec->push_back(w_sol);
