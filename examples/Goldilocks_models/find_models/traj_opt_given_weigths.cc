@@ -74,7 +74,7 @@ using systems::SubvectorPassThrough;
 void augmentConstraintToFixThetaScaling(MatrixXd & B, MatrixXd & A,
                                         VectorXd & y, VectorXd & lb, VectorXd & ub,
                                         int n_s, int n_feature_s,
-                                        const VectorXd & theta_s) {
+                                        const VectorXd & theta_s, int batch) {
   int n_c = B.rows();
   int n_t = B.cols();
   int n_w = A.cols();
@@ -111,7 +111,8 @@ void augmentConstraintToFixThetaScaling(MatrixXd & B, MatrixXd & A,
   ub.resize(n_c + n_s);
   ub << ub_old, y_append;
 
-  cout << "parameters sum per position = " << y_append.transpose() << endl;
+  if (batch == 0)
+    cout << "parameters sum per position = " << y_append.transpose() << endl;
 }
 
 
@@ -686,7 +687,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     // Augment the constraint matrices and vectors (B, A, y, lb, ub)
     // so that we fix the scaling of the model parameters
     augmentConstraintToFixThetaScaling(B, A, y, lb, ub,
-                                       n_s, n_feature_s, theta_s);
+                                       n_s, n_feature_s, theta_s, batch);
 
     // Push the solution to the vector
     /*w_sol_vec->push_back(w_sol);

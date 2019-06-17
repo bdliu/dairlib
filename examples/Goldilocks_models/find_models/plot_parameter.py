@@ -8,15 +8,15 @@ import numpy as np
 idx_start = 0
 idx_end = 6
 kin_or_dyn = 1
-if len(sys.argv) == 2:
+iter_start = 1
+if len(sys.argv) >= 2:
     idx_start = int(sys.argv[1])
-elif len(sys.argv) == 3:
-    idx_start = int(sys.argv[1])
+if len(sys.argv) >= 3:
     idx_end = int(sys.argv[2])
-elif len(sys.argv) == 4:
-    idx_start = int(sys.argv[1])
-    idx_end = int(sys.argv[2])
+if len(sys.argv) >= 4:
     kin_or_dyn = int(sys.argv[3])
+if len(sys.argv) >= 5:
+    iter_start = int(sys.argv[4])
 
 
 row_idx_to_be_plotted = range(idx_start,idx_end)
@@ -24,7 +24,6 @@ name = 'theta_sDDot' # theta_s or theta_sDDot
 if kin_or_dyn == 0:
     name = 'theta_s'
 
-iter_start = 1
 directory = 'data/'
 
 while 1:
