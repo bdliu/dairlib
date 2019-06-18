@@ -697,6 +697,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   B_tau(2, 0) = 1;
   B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
+  prefix = "";
+  writeCSV(dir + prefix + string("B_tau.csv"), B_tau);
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant);

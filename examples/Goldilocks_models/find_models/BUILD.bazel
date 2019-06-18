@@ -153,7 +153,9 @@ cc_binary(
     name = "scale_theta",
     srcs = ["scale_theta.cc"],
     deps = [
+        "//common",
         "//systems/goldilocks_models",
+        "//examples/Goldilocks_models:kinematics_expression",
         "//examples/Goldilocks_models:dynamics_expression",
         "@gflags",
         "@drake//common",
