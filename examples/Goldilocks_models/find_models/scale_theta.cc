@@ -35,11 +35,11 @@ namespace goldilocks_models {
 
 DEFINE_int32(iter_start, 0, "Which iteration");
 DEFINE_int32(iter_end, 0, "Which iteration");
-DEFINE_int32(n_s, 2, "dimension of the RoM");
+DEFINE_int32(n_s, 4, "dimension of the RoM");
 DEFINE_double(scaling_factor, -1, "Scaling factor");
 
 DEFINE_bool(is_active_model, true, "Model has input?");
-DEFINE_int32(n_tau, 1, "dimension of the input of the RoM");
+DEFINE_int32(n_tau, 2, "dimension of the input of the RoM");
 DEFINE_int32(num_traj_opt_knots, 20, "# of traj opt knot points");
 DEFINE_int32(num_batch, 1, "total number of batch");
 
@@ -52,8 +52,6 @@ inline bool file_exist (const std::string & name) {
 // Terminal command samples:
 //  ./bazel-bin/examples/Goldilocks_models/scale_theta --iter=211 --num_linear_term=4 --num_quadratic_term=10 --scaling_factor=0.2 --n_s=2 --num_traj_opt_knots=20 --n_tau=1
 //  ./bazel-bin/examples/Goldilocks_models/scale_theta --iter=212 --num_linear_term=4 --num_quadratic_term=10 --scaling_factor=0.2 --n_s=2 --is_active_model=false
-
-// Notice that we currently do not update t_and_s, t_and_tau, etc.
 
 // Assumptions:
 // 1. The highest order is quadratic
@@ -196,7 +194,6 @@ int doMain(int argc, char* argv[]) {
     // Parameters part
     for (int s_row = 0; s_row < FLAGS_n_s; s_row++) {
       // iterate through each element of s
-      cout << "s_row = " << s_row << endl;
 
       // Scaling of kinematics parameters
       theta_s.segment(s_row * n_feature_s, n_feature_s) *= scaling_factors(s_row);
@@ -218,17 +215,35 @@ int doMain(int argc, char* argv[]) {
       writeCSV(prefix + string("_theta_sDDot_new.csv"), theta_sDDot);
     }  // end for (each row of s)
 
+    // Update t_and_s, t_and_ds, t_and_dds
+    for (int batch = 0; batch < FLAGS_num_batch; batch++) {
+      prefix = directory + to_string(iter) +  "_" + to_string(batch);
+      MatrixXd t_s = readCSV(prefix + string("_t_and_s.csv"));
+      MatrixXd t_ds = readCSV(prefix + string("_t_and_ds.csv"));
+      MatrixXd t_dds = readCSV(prefix + string("_t_and_dds.csv"));
+      for (int s_row = 0; s_row < FLAGS_n_s; s_row++) {
+        t_s.row(1 + s_row) *= scaling_factors(s_row);
+        t_ds.row(1 + s_row) *= scaling_factors(s_row);
+        t_dds.row(1 + s_row) *= scaling_factors(s_row);
+      }
+      writeCSV(prefix + string("_t_and_s_new.csv"), t_s);
+      writeCSV(prefix + string("_t_and_ds_new.csv"), t_ds);
+      writeCSV(prefix + string("_t_and_dds_new.csv"), t_dds);
+    }
+
     // Input part
     if (FLAGS_is_active_model) {
       for (int batch = 0; batch < FLAGS_num_batch; batch++) {
         prefix = directory + to_string(iter) +  "_" + to_string(batch);
         VectorXd w = readCSV(prefix + string("_w.csv")).col(0);
 
-        // Check if the idx are correct
+        // Read in inputs
         MatrixXd t_tau = readCSV(prefix + string("_t_and_tau.csv"));
         DRAKE_DEMAND(t_tau.rows() == FLAGS_n_tau + 1);
         DRAKE_DEMAND(t_tau.cols() == FLAGS_num_traj_opt_knots);
         MatrixXd tau = t_tau.block(1, 0, FLAGS_n_tau, FLAGS_num_traj_opt_knots);
+
+        // Check if the idx are correct
         double idx_start = w.rows() - FLAGS_n_tau * FLAGS_num_traj_opt_knots;
         for (int j = 0; j < FLAGS_num_traj_opt_knots; j++) {
           for (int i = 0; i < FLAGS_n_tau; i++) {
@@ -240,19 +255,24 @@ int doMain(int argc, char* argv[]) {
         // iterate through each element of s
         for (int s_row = 0; s_row < FLAGS_n_s; s_row++) {
           for (int i = 0; i < FLAGS_n_tau; i++) {
+            // Identify which element of tau we should update
+            // (We assume one input element go to one position element only.)
             VectorXd tau_temp = VectorXd::Zero(FLAGS_n_tau);
             tau_temp(i) = 1;
-            // We assume one input element go to one position element only.
             if ((B_tau * tau_temp)(s_row) == 1) {
               cout << "(s_row = " << s_row << ", tau_idx = " << i << ")\n";
+              // Update w
               for (int j = 0; j < FLAGS_num_traj_opt_knots; j++) {
                 w(idx_start + j * FLAGS_n_tau + i) *= scaling_factors(s_row);
               }
+              // Update t_and_tau
+              t_tau.row(1 + i) *= scaling_factors(s_row);
             }
           }
         }  // end for (each row of s)
 
         writeCSV(prefix + string("_w_new.csv"), w);
+        writeCSV(prefix + string("_t_and_tau_new.csv"), t_tau);
       }  // end for (batch)
     }  // end if (FLAGS_is_active_model)
 
