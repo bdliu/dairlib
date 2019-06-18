@@ -9,13 +9,17 @@ import sys
 
 iteration_start = 1
 iteration_end = 35
-if len(sys.argv) == 2:
-    iteration_start = int(sys.argv[1])
-elif len(sys.argv) == 3:
-    iteration_start = int(sys.argv[1])
-    iteration_end = int(sys.argv[2])
-
+iteration_spacing = 1
 name_idx = 0
+if len(sys.argv) >= 2:
+    iteration_start = int(sys.argv[1])
+if len(sys.argv) >= 3:
+    iteration_end = int(sys.argv[2])
+if len(sys.argv) >= 4:
+    iteration_spacing = int(sys.argv[3])
+if len(sys.argv) >= 5:
+    name_idx = int(sys.argv[4])
+
 batch = 4
 directory = 'data/'
 
@@ -40,7 +44,7 @@ min_val = min(min_list)
 # Plot
 fig = plt.figure(1)
 
-for iteration in range(iteration_start,iteration_end+1):
+for iteration in range(iteration_start,iteration_end+1,iteration_spacing):
     ax = fig.gca()
     if os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv'):
         matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_t_and_'+name+'.csv', delimiter=",")
