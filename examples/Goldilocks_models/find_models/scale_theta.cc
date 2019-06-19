@@ -96,7 +96,9 @@ int doMain(int argc, char* argv[]) {
     cout << "The model doesn't have input.\n";
   }
 
-  cout << "Are the above numbers correct? (Y/N)\n";
+  cout << "We are currently using 1-norm for scaling.\n";
+
+  cout << "Are the above numbers and settings correct? (Y/N)\n";
   char answer[1];
   cin >> answer;
   if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
@@ -184,7 +186,7 @@ int doMain(int argc, char* argv[]) {
         // Get scaling factor
         double theta_sum = 0;
         for (int j = 0; j < n_feature_s; j++) {
-          theta_sum += theta_s(j + s_row * n_feature_s);
+          theta_sum += abs(theta_s(j + s_row * n_feature_s)); // 1-norm
         }
         scaling_factors(s_row) = 1 / theta_sum;
       }

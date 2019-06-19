@@ -686,8 +686,9 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
 
     // Augment the constraint matrices and vectors (B, A, y, lb, ub)
     // so that we fix the scaling of the model parameters
-    augmentConstraintToFixThetaScaling(B, A, y, lb, ub,
-                                       n_s, n_feature_s, theta_s, batch);
+    /*augmentConstraintToFixThetaScaling(B, A, y, lb, ub,
+                                       n_s, n_feature_s, theta_s, batch);*/
+
 
     // Push the solution to the vector
     /*w_sol_vec->push_back(w_sol);
