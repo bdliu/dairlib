@@ -36,6 +36,7 @@
 
 #include "systems/goldilocks_models/file_utils.h"
 
+#include "examples/Goldilocks_models/planning/kinematics_constraint_cost.h"
 #include "examples/Goldilocks_models/planning/kinematics_constraint_given_r.h"
 #include "examples/Goldilocks_models/planning/kinematics_constraint_only_pos.h"
 #include "examples/Goldilocks_models/planning/FoM_stance_foot_constraint_given_pos.h"
@@ -75,6 +76,8 @@ DEFINE_int32(n_nodes, 20, "# of nodes per mode");
 DEFINE_int32(n_feature_kin, 70, "# of kinematics features");
 DEFINE_double(dt, 0.1, "Duration per step * 2");
 DEFINE_bool(is_do_inverse_kin, false, "Do inverse kinematics for presentation");
+
+DEFINE_double(realtime_factor, 1, "Visualization realtime factor");
 
 map<string, int> doMakeNameToPositionsMap() {
   // Create a plant
@@ -191,6 +194,8 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
 
   // Do inverse kinematics
   for (int i = 0; i < FLAGS_n_mode; i++) {
+    cout << "\n\n\n";
+
     if (start_with_left_stance)
       left_stance = (i % 2) ? false : true;
     else
@@ -223,13 +228,13 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       // cout << "Adding RoM-FoM mapping constraint...\n";
       VectorXd r_i = states.col(j + (FLAGS_n_nodes - 1) * i).head(n_r);
       cout << "r_i = " << r_i << endl;
-
-      MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
-      AutoDiffVecXd r_i_autoDiff = initializeAutoDiff(r_i);
-      drake::math::initializeAutoDiffGivenGradientMatrix(
-        r_i, grad_r, r_i_autoDiff);
-      // auto kin_constraint = std::make_shared<planning::KinematicsConstraintGivenR>(
-      //                         n_r, r_i_autoDiff, 7, FLAGS_n_feature_kin, theta_kin);
+      //////////////////////// Hard Constraint Version//////////////////////////
+      /*// // MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
+      // // AutoDiffVecXd r_i_autoDiff = initializeAutoDiff(r_i);
+      // // drake::math::initializeAutoDiffGivenGradientMatrix(
+      // //   r_i, grad_r, r_i_autoDiff);
+      // // auto kin_constraint = std::make_shared<planning::KinematicsConstraintGivenR>(
+      // //                         n_r, r_i_autoDiff, 7, FLAGS_n_feature_kin, theta_kin);
       auto kin_constraint = std::make_shared<planning::KinematicsConstraintOnlyPos>(
                               n_r, 7, FLAGS_n_feature_kin, theta_kin);
       if (left_stance) {
@@ -246,8 +251,28 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
         // math_prog.AddConstraint(kin_constraint, q_swap);
         math_prog.AddConstraint(kin_constraint, {r, q_swap});
       }
+      // math_prog.AddLinearConstraint(r == r_i);
+      // cout << "q = " << q.transpose() << endl;*/
+      //////////////////////////////////////////////////////////////////////////
+      //////////////////////// Soft Constraint Version//////////////////////////
+      auto kin_cost = std::make_shared<planning::KinematicsConstraintCost>(
+                        n_r, 7, FLAGS_n_feature_kin, theta_kin);
+      if (left_stance) {
+        // math_prog.AddCost(kin_cost, q);
+        math_prog.AddCost(kin_cost, {r, q});
+      } else {
+        VectorXDecisionVariable q_swap(7);
+        q_swap << q.segment(0, 3),
+               q.segment(4, 1),
+               q.segment(3, 1),
+               q.segment(6, 1),
+               q.segment(5, 1);
+        // cout << "q_swap = " << q_swap.transpose() << endl;
+        // math_prog.AddCost(kin_cost, q_swap);
+        math_prog.AddCost(kin_cost, {r, q_swap});
+      }
       math_prog.AddLinearConstraint(r == r_i);
-      // cout << "q = " << q.transpose() << endl;
+      //////////////////////////////////////////////////////////////////////////
 
       // Add stance foot constraint
       // cout << "Adding full-order model stance foot constraint...\n";
@@ -257,16 +282,18 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       math_prog.AddConstraint(fom_sf_constraint, q);
 
       // Add cost
-      // MatrixXd Id = MatrixXd::Identity(1, 1);
-      // VectorXd zero_1d_vec = VectorXd::Zero(1);
-      // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
-      MatrixXd Id = MatrixXd::Identity(7, 7);
-      VectorXd zero_7d_vec = VectorXd::Zero(7);
       VectorXd interpolated_q = x0_each_mode.col(i).head(7) +
                                 (xf_each_mode.col(i).head(7) - x0_each_mode.col(i).head(7))
                                 * j / (FLAGS_n_nodes - 1);
       // cout << "interpolated_q = " << interpolated_q.transpose() << endl;
-      math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
+      //////////////////////////////////////////////////////////////////////////
+      // // MatrixXd Id = MatrixXd::Identity(1, 1);
+      // // VectorXd zero_1d_vec = VectorXd::Zero(1);
+      // // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
+      // MatrixXd Id = MatrixXd::Identity(7, 7);
+      // VectorXd zero_7d_vec = VectorXd::Zero(7);
+      // math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
+      //////////////////////////////////////////////////////////////////////////
 
       // Set initial guess
       math_prog.SetInitialGuess(r, r_i);
@@ -284,6 +311,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       auto solution_result = result.get_solution_result();
       cout << solution_result << " | Cost:" << result.get_optimal_cost() << endl;
       VectorXd q_sol = result.GetSolution(q);
+      cout << "q_sol = " << q_sol.transpose() << endl;
 
       q_at_all_knots.col(j + (FLAGS_n_nodes - 1) * i) = q_sol;
       // q_at_all_knots.col(j + (FLAGS_n_nodes - 1) * i) = interpolated_q;
@@ -303,7 +331,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
   double dt = FLAGS_dt;
   std::vector<double> T_breakpoint;
   std::vector<MatrixXd> Y;
-  bool add_one_extra_frame_to_pause = true;
+  bool add_one_extra_frame_to_pause = false;
   double t0 = 0;
   if (add_one_extra_frame_to_pause) {
     T_breakpoint.push_back(0);
@@ -312,8 +340,10 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
     Y.push_back(qv);
     t0 = 1;
   }
-  for (int i = 0; i < states.cols(); i++)
+  for (int i = 0; i < states.cols(); i++) {
     T_breakpoint.push_back(t0 + i * dt);
+    // cout << t0 + i * dt << endl;
+  }
   for (int i = 0; i < states.cols(); i++) {
     VectorXd qv(14);
     qv << q_at_all_knots.col(i), VectorXd::Zero(7);
@@ -343,7 +373,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
   auto diagram = builder.Build();
   // while (true)
   drake::systems::Simulator<double> simulator(*diagram);
-  simulator.set_target_realtime_rate(1);
+  simulator.set_target_realtime_rate(FLAGS_realtime_factor);
   simulator.Initialize();
   simulator.StepTo(pp_xtraj.end_time());
 

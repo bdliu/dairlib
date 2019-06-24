@@ -21,6 +21,8 @@
 
 #include "examples/Goldilocks_models/planning/RoM_planning_traj_opt.h"
 
+#include "drake/solvers/choose_best_solver.h"
+
 using std::cin;
 using std::cout;
 using std::endl;
@@ -217,6 +219,9 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     trajopt->SetInitialGuessForAllVariables(z0);
   }
 
+  // Testing
+  cout << "\nChoose the best solver: " << drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
+
   // Solve
   cout << "\nSolving optimization problem...\n";
   start = std::chrono::high_resolution_clock::now();
@@ -228,6 +233,9 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   SolutionResult solution_result = result.get_solution_result();
   cout << solution_result <<  " | ";
   cout << "Cost:" << result.get_optimal_cost() << ")\n";
+
+  // Check which solver we are using
+  cout << "Solver: " << result.get_solver_id().name() << endl;
 
   // Extract solution
   VectorXd z_sol = result.GetSolution(trajopt->decision_variables());

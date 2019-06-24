@@ -34,6 +34,8 @@
 #include "examples/Goldilocks_models/goldilocks_utils.h"
 #include "examples/Goldilocks_models/dynamics_expression.h"
 
+#include "drake/solvers/choose_best_solver.h"
+
 using Eigen::Vector3d;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
@@ -402,6 +404,10 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
   }
 
+  // Testing
+  // cout << "Choose the best solver: " <<
+  //   drake::solvers::ChooseBestSolver(*(gm_traj_opt.dircon)).name() << endl;
+
   // cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const MathematicalProgramResult result = Solve(
@@ -450,6 +456,9 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                            " | Cost:" + to_string(result.get_optimal_cost()) +
                            " (tau cost = " + to_string(tau_cost) + ")\n";
   cout << string_to_print;
+
+  // Check which solver we are using
+  // cout << "Solver: " << result.get_solver_id().name() << endl;
 
   VectorXd is_success(1);
   if (result.is_success()) is_success << 1;

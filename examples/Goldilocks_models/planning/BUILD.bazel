@@ -91,6 +91,24 @@ cc_library(
         "//examples/Goldilocks_models:kinematics_expression",
     ],
 )
+cc_library(
+    name = "kinematics_constraint_cost",
+    srcs = [
+        "kinematics_constraint_cost.cc",
+    ],
+    hdrs = [
+        "kinematics_constraint_cost.h"
+    ],
+    deps = [
+        "@drake//solvers:mathematical_program",
+        "@drake//solvers:constraint",
+        "@drake//solvers:cost",
+        "@drake//manipulation/util",
+        "@drake//math:gradient",
+        "//multibody:utils",
+        "//examples/Goldilocks_models:kinematics_expression",
+    ],
+)
 
 
 cc_library(
@@ -227,6 +245,7 @@ cc_binary(
         "@drake//geometry:geometry_visualization",
         "@drake//systems/rendering:multibody_position_to_geometry_pose",  
         "@drake//solvers:mathematical_program",
+        ":kinematics_constraint_cost",
         ":kinematics_constraint_given_r",
         ":kinematics_constraint_only_pos",
         ":FoM_stance_foot_constraint_given_pos",
