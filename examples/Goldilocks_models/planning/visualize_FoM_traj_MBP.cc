@@ -77,6 +77,8 @@ DEFINE_int32(n_feature_kin, 70, "# of kinematics features");
 DEFINE_double(dt, 0.1, "Duration per step * 2");
 DEFINE_bool(is_do_inverse_kin, false, "Do inverse kinematics for presentation");
 
+DEFINE_bool(is_soft_constraint, true, "Put IK constraint in cost");
+
 DEFINE_double(realtime_factor, 1, "Visualization realtime factor");
 
 map<string, int> doMakeNameToPositionsMap() {
@@ -229,49 +231,53 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       VectorXd r_i = states.col(j + (FLAGS_n_nodes - 1) * i).head(n_r);
       cout << "r_i = " << r_i << endl;
       //////////////////////// Hard Constraint Version//////////////////////////
-      /*// // MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
-      // // AutoDiffVecXd r_i_autoDiff = initializeAutoDiff(r_i);
-      // // drake::math::initializeAutoDiffGivenGradientMatrix(
-      // //   r_i, grad_r, r_i_autoDiff);
-      // // auto kin_constraint = std::make_shared<planning::KinematicsConstraintGivenR>(
-      // //                         n_r, r_i_autoDiff, 7, FLAGS_n_feature_kin, theta_kin);
-      auto kin_constraint = std::make_shared<planning::KinematicsConstraintOnlyPos>(
-                              n_r, 7, FLAGS_n_feature_kin, theta_kin);
-      if (left_stance) {
-        // math_prog.AddConstraint(kin_constraint, q);
-        math_prog.AddConstraint(kin_constraint, {r, q});
-      } else {
-        VectorXDecisionVariable q_swap(7);
-        q_swap << q.segment(0, 3),
-               q.segment(4, 1),
-               q.segment(3, 1),
-               q.segment(6, 1),
-               q.segment(5, 1);
-        // cout << "q_swap = " << q_swap.transpose() << endl;
-        // math_prog.AddConstraint(kin_constraint, q_swap);
-        math_prog.AddConstraint(kin_constraint, {r, q_swap});
+      if (!FLAGS_is_soft_constraint) {
+        // // MatrixXd grad_r = MatrixXd::Zero(n_r, 7);
+        // // AutoDiffVecXd r_i_autoDiff = initializeAutoDiff(r_i);
+        // // drake::math::initializeAutoDiffGivenGradientMatrix(
+        // //   r_i, grad_r, r_i_autoDiff);
+        // // auto kin_constraint = std::make_shared<planning::KinematicsConstraintGivenR>(
+        // //                         n_r, r_i_autoDiff, 7, FLAGS_n_feature_kin, theta_kin);
+        auto kin_constraint = std::make_shared<planning::KinematicsConstraintOnlyPos>(
+                                n_r, 7, FLAGS_n_feature_kin, theta_kin);
+        if (left_stance) {
+          // math_prog.AddConstraint(kin_constraint, q);
+          math_prog.AddConstraint(kin_constraint, {r, q});
+        } else {
+          VectorXDecisionVariable q_swap(7);
+          q_swap << q.segment(0, 3),
+                 q.segment(4, 1),
+                 q.segment(3, 1),
+                 q.segment(6, 1),
+                 q.segment(5, 1);
+          // cout << "q_swap = " << q_swap.transpose() << endl;
+          // math_prog.AddConstraint(kin_constraint, q_swap);
+          math_prog.AddConstraint(kin_constraint, {r, q_swap});
+        }
+        // math_prog.AddLinearConstraint(r == r_i);
+        // cout << "q = " << q.transpose() << endl;
       }
-      // math_prog.AddLinearConstraint(r == r_i);
-      // cout << "q = " << q.transpose() << endl;*/
       //////////////////////////////////////////////////////////////////////////
       //////////////////////// Soft Constraint Version//////////////////////////
-      auto kin_cost = std::make_shared<planning::KinematicsConstraintCost>(
-                        n_r, 7, FLAGS_n_feature_kin, theta_kin);
-      if (left_stance) {
-        // math_prog.AddCost(kin_cost, q);
-        math_prog.AddCost(kin_cost, {r, q});
-      } else {
-        VectorXDecisionVariable q_swap(7);
-        q_swap << q.segment(0, 3),
-               q.segment(4, 1),
-               q.segment(3, 1),
-               q.segment(6, 1),
-               q.segment(5, 1);
-        // cout << "q_swap = " << q_swap.transpose() << endl;
-        // math_prog.AddCost(kin_cost, q_swap);
-        math_prog.AddCost(kin_cost, {r, q_swap});
+      else {
+        auto kin_cost = std::make_shared<planning::KinematicsConstraintCost>(
+                          n_r, 7, FLAGS_n_feature_kin, theta_kin);
+        if (left_stance) {
+          // math_prog.AddCost(kin_cost, q);
+          math_prog.AddCost(kin_cost, {r, q});
+        } else {
+          VectorXDecisionVariable q_swap(7);
+          q_swap << q.segment(0, 3),
+                 q.segment(4, 1),
+                 q.segment(3, 1),
+                 q.segment(6, 1),
+                 q.segment(5, 1);
+          // cout << "q_swap = " << q_swap.transpose() << endl;
+          // math_prog.AddCost(kin_cost, q_swap);
+          math_prog.AddCost(kin_cost, {r, q_swap});
+        }
+        math_prog.AddLinearConstraint(r == r_i);
       }
-      math_prog.AddLinearConstraint(r == r_i);
       //////////////////////////////////////////////////////////////////////////
 
       // Add stance foot constraint
@@ -287,17 +293,19 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
                                 * j / (FLAGS_n_nodes - 1);
       // cout << "interpolated_q = " << interpolated_q.transpose() << endl;
       //////////////////////////////////////////////////////////////////////////
-      // // MatrixXd Id = MatrixXd::Identity(1, 1);
-      // // VectorXd zero_1d_vec = VectorXd::Zero(1);
-      // // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
-      // MatrixXd Id = MatrixXd::Identity(7, 7);
-      // VectorXd zero_7d_vec = VectorXd::Zero(7);
-      // math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
+      if (!FLAGS_is_soft_constraint) {
+        // MatrixXd Id = MatrixXd::Identity(1, 1);
+        // VectorXd zero_1d_vec = VectorXd::Zero(1);
+        // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
+        MatrixXd Id = MatrixXd::Identity(7, 7);
+        VectorXd zero_7d_vec = VectorXd::Zero(7);
+        math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
+      }
       //////////////////////////////////////////////////////////////////////////
 
       // Set initial guess
-      math_prog.SetInitialGuess(r, r_i);
-      math_prog.SetInitialGuess(q, interpolated_q);
+      // math_prog.SetInitialGuess(r, r_i);
+      // math_prog.SetInitialGuess(q, interpolated_q);
 
       // math_prog.SetSolverOption(drake::solvers::GurobiSolver::id(), "BarConvTol", 1E-9);
       // math_prog.SetSolverOption(drake::solvers::SnoptSolver::id(),

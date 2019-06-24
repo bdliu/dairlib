@@ -45,8 +45,8 @@ void KinematicsConstraintCost::DoEval(const Eigen::Ref<const AutoDiffVecXd>& rq,
 
   AutoDiffVecXd h = kin_expression_.getExpression(theta_kin_, q);
 
-  VectorX<AutoDiffXd> output(n_r_);
-  output << r - h;
+  VectorX<AutoDiffXd> output(1);
+  output = (r - h).transpose() * (r - h);
 
   // Impose dynamics constraint
   *value = output;
