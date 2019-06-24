@@ -55,7 +55,7 @@ namespace planning {
 class KinematicsConstraintCost : public Cost {
  public:
   KinematicsConstraintCost(int n_r, int n_q, int n_feature_kin,
-                       const VectorXd & theta_kin,
+                       const VectorXd & theta_kin, double weight,
                        const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
@@ -74,6 +74,8 @@ class KinematicsConstraintCost : public Cost {
   int n_x_;
   VectorXd theta_kin_;
   KinematicsExpression<AutoDiffXd> kin_expression_;
+
+  double weight_;
 
 };
 }  // namespace planning

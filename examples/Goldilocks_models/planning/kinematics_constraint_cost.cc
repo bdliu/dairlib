@@ -8,6 +8,7 @@ namespace planning {
 KinematicsConstraintCost::KinematicsConstraintCost(int n_r, int n_q,
     int n_feature_kin,
     const VectorXd & theta_kin,
+    double weight,
     const std::string& description):
   Cost(n_r + n_q,
        description),
@@ -16,7 +17,8 @@ KinematicsConstraintCost::KinematicsConstraintCost(int n_r, int n_q,
   n_q_(n_q),
   n_x_(2 * n_q),
   theta_kin_(theta_kin),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_r, n_feature_kin)) {
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_r, n_feature_kin)),
+  weight_(weight) {
 
   // Check the theta size
   DRAKE_DEMAND(n_r * n_feature_kin == theta_kin.size());
@@ -46,7 +48,7 @@ void KinematicsConstraintCost::DoEval(const Eigen::Ref<const AutoDiffVecXd>& rq,
   AutoDiffVecXd h = kin_expression_.getExpression(theta_kin_, q);
 
   VectorX<AutoDiffXd> output(1);
-  output = (r - h).transpose() * (r - h);
+  output = weight_* (r - h).transpose() * (r - h);
 
   // Impose dynamics constraint
   *value = output;

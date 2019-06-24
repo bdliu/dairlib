@@ -78,6 +78,7 @@ DEFINE_double(dt, 0.1, "Duration per step * 2");
 DEFINE_bool(is_do_inverse_kin, false, "Do inverse kinematics for presentation");
 
 DEFINE_bool(is_soft_constraint, true, "Put IK constraint in cost");
+DEFINE_double(soft_constraint_weight, 10, "Cost weight for soft constraint");
 
 DEFINE_double(realtime_factor, 1, "Visualization realtime factor");
 
@@ -261,7 +262,8 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       //////////////////////// Soft Constraint Version//////////////////////////
       else {
         auto kin_cost = std::make_shared<planning::KinematicsConstraintCost>(
-                          n_r, 7, FLAGS_n_feature_kin, theta_kin);
+                          n_r, 7, FLAGS_n_feature_kin, theta_kin,
+                          FLAGS_soft_constraint_weight);
         if (left_stance) {
           // math_prog.AddCost(kin_cost, q);
           math_prog.AddCost(kin_cost, {r, q});
@@ -288,19 +290,18 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
       math_prog.AddConstraint(fom_sf_constraint, q);
 
       // Add cost
+      // Among the feasible solutions, pick the one that's closest to interpolated_q
       VectorXd interpolated_q = x0_each_mode.col(i).head(7) +
                                 (xf_each_mode.col(i).head(7) - x0_each_mode.col(i).head(7))
                                 * j / (FLAGS_n_nodes - 1);
       // cout << "interpolated_q = " << interpolated_q.transpose() << endl;
       //////////////////////////////////////////////////////////////////////////
-      if (!FLAGS_is_soft_constraint) {
-        // MatrixXd Id = MatrixXd::Identity(1, 1);
-        // VectorXd zero_1d_vec = VectorXd::Zero(1);
-        // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
-        MatrixXd Id = MatrixXd::Identity(7, 7);
-        VectorXd zero_7d_vec = VectorXd::Zero(7);
-        math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
-      }
+      // MatrixXd Id = MatrixXd::Identity(1, 1);
+      // VectorXd zero_1d_vec = VectorXd::Zero(1);
+      // math_prog.AddQuadraticErrorCost(Id, zero_1d_vec, q.segment(2, 1));
+      MatrixXd Id = MatrixXd::Identity(7, 7);
+      VectorXd zero_7d_vec = VectorXd::Zero(7);
+      math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
       //////////////////////////////////////////////////////////////////////////
 
       // Set initial guess
