@@ -455,6 +455,10 @@ void readNonredundentMatrixFile(vector<double> * nw_vec,
 
 MatrixXd solveInvATimesB(const MatrixXd & A, const MatrixXd & B) {
   MatrixXd X = (A.transpose() * A).ldlt().solve(A.transpose() * B);
+
+  // TODO: Test if the following line works better
+  // MatrixXd X = A.completeOrthogonalDecomposition().solve(B);
+
   MatrixXd abs_resid = (A * X - B).cwiseAbs();
   VectorXd left_one = VectorXd::Ones(abs_resid.rows());
   VectorXd right_one = VectorXd::Ones(abs_resid.cols());
