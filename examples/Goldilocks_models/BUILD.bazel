@@ -72,7 +72,7 @@ cc_binary(
         "@drake//systems/primitives",
         "@drake//systems/trajectory_optimization",
         "@gflags",
-        "@drake//solvers:mathematical_program",
+        "@drake//solvers:mathematical_program_lite",
         "@drake//multibody/parsing",
         ":kinematics_expression",
         ":dynamics_expression",

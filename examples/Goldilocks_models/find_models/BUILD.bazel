@@ -118,7 +118,7 @@ cc_library(
         "kinematics_constraint.h"
     ],
     deps = [
-        "@drake//solvers:mathematical_program",
+        "@drake//solvers:mathematical_program_lite",
         "@drake//solvers:constraint",
         "@drake//manipulation/util",
         "//multibody:utils",
@@ -138,7 +138,7 @@ cc_library(
         "dynamics_constraint.h"
     ],
     deps = [
-        "@drake//solvers:mathematical_program",
+        "@drake//solvers:mathematical_program_lite",
         "@drake//solvers:constraint",
         "@drake//manipulation/util",
         "//multibody:utils",
