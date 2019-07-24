@@ -1,0 +1,49 @@
+load("@drake//tools/lint:lint.bzl", "add_lint_tests")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "operational_space_control",
+    srcs = [
+        "operational_space_control.cc",
+    ],
+    hdrs = [
+        "operational_space_control.h",
+    ],
+    deps = [
+        ":osc_tracking_data",
+        "//attic/multibody:utils",
+        "//systems/framework:vector",
+        "@drake//:drake_shared_library",
+    ],
+)
+
+
+cc_library(
+    name = "osc_tracking_data",
+    srcs = [
+        "osc_tracking_data.cc",
+    ],
+    hdrs = [
+        "osc_tracking_data.h",
+    ],
+    deps = [
+        ":osc_user_defined_traj",
+        "//systems/framework:vector",
+        "@drake//:drake_shared_library",
+    ],
+)
+
+cc_library(
+    name = "osc_user_defined_traj",
+    srcs = [
+        "osc_user_defined_traj.cc",
+    ],
+    hdrs = [
+        "osc_user_defined_traj.h",
+    ],
+    deps = [
+        "//systems/framework:vector",
+        "@drake//:drake_shared_library",
+    ],
+)
