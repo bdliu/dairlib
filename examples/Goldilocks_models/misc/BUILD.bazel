@@ -2,7 +2,7 @@ cc_binary(
     name = "solve_linear_sys_test",
     srcs = ["solve_linear_sys_test.cc"],
     deps = [
-        "@drake//common",
+        "@drake//:drake_shared_library",
     ],
 )
 
@@ -12,10 +12,7 @@ cc_binary(
     name = "symbolic_traj_test",
     srcs = ["symbolic_traj_test.cc"],
     deps = [
-        "@drake//common",
-        "@drake//solvers",
-        "@drake//solvers:mathematical_program",
-        "@drake//common/trajectories:piecewise_polynomial",
+        "@drake//:drake_shared_library",
         "//systems/trajectory_optimization:dircon",
         "//solvers:optimization_utils",
     ],
@@ -28,10 +25,7 @@ cc_binary(
     deps = [
         "//common",
         "//multibody:utils",
-        "@drake//multibody/parsing",
-        "@drake//systems/rendering:multibody_position_to_geometry_pose",
-        "@drake//systems/framework:system",
-        "@drake//math:gradient",
+        "@drake//:drake_shared_library",
     ],
 )
 

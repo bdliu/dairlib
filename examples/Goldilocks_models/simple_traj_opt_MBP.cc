@@ -19,6 +19,7 @@
 #include "common/find_resource.h"
 #include "systems/primitives/subvector_pass_through.h"
 
+#include "drake/solvers/solve.h"
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/constraint.h"
@@ -85,11 +86,11 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
   std::string full_name =
     FindResourceOrThrow("examples/Goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
-  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  plant.mutable_gravity_field().set_gravity_vector(
     -9.81 * Eigen::Vector3d::UnitZ());
   plant.WeldFrames(
     plant.world_frame(), plant.GetFrameByName("base"),
-    drake::math::RigidTransform<double>(Vector3d::Zero()).GetAsIsometry3());
+      drake::math::RigidTransform<double>(Vector3d::Zero()));
   plant.Finalize();
 
 
@@ -358,16 +359,15 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   std::cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
-  auto result = trajopt->Solve();
+  const auto result = Solve(*trajopt, trajopt->initial_guess());
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
   std::cout << "Solve time:" << elapsed.count() << std::endl;
-  std::cout << result << std::endl;
-  std::cout << "Cost:" << trajopt->GetOptimalCost() << std::endl;
+  std::cout << "Cost:" << result.get_optimal_cost() << std::endl;
 
   // store the solution of the decision variable
-  VectorXd z = trajopt->GetSolution(
+  VectorXd z = result.GetSolution(
                  trajopt->decision_variables()); //solution of all decision variables
   writeCSV(directory + output_prefix + string("z.csv"), z);
 
@@ -387,7 +387,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
-    trajopt->ReconstructStateTrajectory();
+    trajopt->ReconstructStateTrajectory(result);
   multibody::connectTrajectoryVisualizer(&plant, &builder, &scene_graph,
                                          pp_xtraj);
 
