@@ -26,35 +26,9 @@ namespace dairlib {
 namespace systems {
 namespace controllers {
 
-// Static member function
-void OperationalSpaceControl::AssignConstTrajToInputPorts(
-    OperationalSpaceControl* osc,
-    drake::systems::Diagram<double>* diagram,
-    drake::systems::Context<double>* diagram_context) {
-  vector<OscTrackingData*>* tracking_data_vec = osc->GetAllTrackingData();
-  for (auto tracking_data : *tracking_data_vec) {
-    if (!tracking_data->TrajIsConst()) continue;
+using multibody::GetBodyIndexFromName;
+using multibody::makeNameToVelocitiesMap;
 
-    string traj_name = tracking_data->GetName();
-
-    bool fix_port_value_successfully = false;
-    auto & osc_conext = diagram->GetMutableSubsystemContext(*osc,
-                        diagram_context);
-    // Find the correspond output port
-    for (int i = 0; i < osc->num_input_ports(); i++) {
-      if (traj_name.compare(osc->get_input_port(i).get_name()) == 0) {
-        osc_conext.FixInputPort(i /*osc->get_input_port(i).get_index()*/,
-                                drake::Value<PiecewisePolynomial<double>>(
-                                  tracking_data->GetFixedPosition()));
-        fix_port_value_successfully = true;
-        break;
-      }
-    }  // end for (ports)
-    DRAKE_DEMAND(fix_port_value_successfully);
-  }  // end for (OscTrackingData's)
-}
-
-// Constructor
 OperationalSpaceControl::OperationalSpaceControl(
     const RigidBodyTree<double>& tree_w_spr,
     const RigidBodyTree<double>& tree_wo_spr,
@@ -98,23 +72,31 @@ OperationalSpaceControl::OperationalSpaceControl(
 
   // Initialize the mapping from spring to no spring
   map_position_from_spring_to_no_spring_ = MatrixXd::Zero(n_q_, n_q_w_spr);
-  for (int i = 0; i < n_q_; i++)
+  for (int i = 0; i < n_q_; i++) {
+    bool successfully_added = false;
     for (int j = 0; j < n_q_w_spr; j++) {
       std::string name_wo_spr = tree_wo_spr_.get_position_name(i);
       std::string name_w_spr = tree_w_spr_.get_position_name(j);
       if (name_wo_spr.compare(0, name_wo_spr.size(), name_w_spr) == 0) {
         map_position_from_spring_to_no_spring_(i, j) = 1;
+        successfully_added = true;
       }
     }
+    DRAKE_DEMAND(successfully_added);
+  }
   map_velocity_from_spring_to_no_spring_ = MatrixXd::Zero(n_v_, n_v_w_spr);
-  for (int i = 0; i < n_v_; i++)
+  for (int i = 0; i < n_v_; i++) {
+    bool successfully_added = false;
     for (int j = 0; j < n_v_w_spr; j++) {
       std::string name_wo_spr = tree_wo_spr_.get_velocity_name(i);
       std::string name_w_spr = tree_w_spr_.get_velocity_name(j);
       if (name_wo_spr.compare(0, name_wo_spr.size(), name_w_spr) == 0) {
         map_velocity_from_spring_to_no_spring_(i, j) = 1;
+        successfully_added = true;
       }
     }
+    DRAKE_DEMAND(successfully_added);
+  }
 
   // Get input limits
   VectorXd u_min(n_u_);
@@ -131,23 +113,46 @@ OperationalSpaceControl::OperationalSpaceControl(
 }
 
 // Cost methods
-void OperationalSpaceControl::AddAccelerationCost(int joint_vel_idx, double w) {
+void OperationalSpaceControl::AddAccelerationCost(std::string joint_vel_name,
+                                                  double w) {
   if (W_joint_accel_.size() == 0) {
     W_joint_accel_ = Eigen::MatrixXd::Zero(n_v_, n_v_);
   }
-  W_joint_accel_(joint_vel_idx, joint_vel_idx) += w;
+  int idx = makeNameToVelocitiesMap(tree_wo_spr_).at(joint_vel_name);
+  W_joint_accel_(idx, idx) += w;
 }
 
 // Constraint methods
-void OperationalSpaceControl::AddContactPoint(int body_index,
+void OperationalSpaceControl::AddContactPoint(std::string body_name,
     Eigen::VectorXd pt_on_body) {
-  body_index_.push_back(body_index);
+  body_index_.push_back(GetBodyIndexFromName(tree_wo_spr_, body_name));
   pt_on_body_.push_back(pt_on_body);
 }
 void OperationalSpaceControl::AddStateAndContactPoint(int state,
-    int body_index, Eigen::VectorXd pt_on_body) {
+    std::string body_name, Eigen::VectorXd pt_on_body) {
   fsm_state_when_active_.push_back(state);
-  AddContactPoint(body_index, pt_on_body);
+  AddContactPoint(body_name, pt_on_body);
+}
+
+// Tracking data methods
+void OperationalSpaceControl::AddTrackingData(OscTrackingData* tracking_data,
+                                              double duration) {
+  tracking_data_vec_->push_back(tracking_data);
+  fixed_position_vec_.push_back(Eigen::VectorXd(0));
+  period_of_no_control_vec_.push_back(duration);
+
+  // Construct input ports and add element to traj_name_to_port_index_map_
+  string traj_name = tracking_data->GetName();
+  PiecewisePolynomial<double> pp = PiecewisePolynomial<double>();
+  int port_index = this->DeclareAbstractInputPort(traj_name,
+      drake::Value<drake::trajectories::Trajectory<double>> (pp)).get_index();
+  traj_name_to_port_index_map_[traj_name] = port_index;
+}
+void OperationalSpaceControl::AddConstTrackingData(
+    OscTrackingData* tracking_data, Eigen::VectorXd v, double duration) {
+  tracking_data_vec_->push_back(tracking_data);
+  fixed_position_vec_.push_back(v);
+  period_of_no_control_vec_.push_back(duration);
 }
 
 // Osc checkers and constructor
@@ -177,20 +182,6 @@ void OperationalSpaceControl::BuildOSC() {
   CheckConstraintSettings();
   for (auto tracking_data : *tracking_data_vec_) {
     tracking_data->CheckOscTrackingData();
-  }
-
-  // Construct input ports and traj_name_to_port_index_map_
-  for (auto tracking_data : *tracking_data_vec_) {
-    string traj_name = tracking_data->GetName();
-    int port_index;
-    if (tracking_data->TrajHasExp()) {
-      port_index = this->DeclareAbstractInputPort(traj_name,
-          drake::Value<ExponentialPlusPiecewisePolynomial<double>> {}).get_index();
-    } else {
-      port_index = this->DeclareAbstractInputPort(traj_name,
-          drake::Value<PiecewisePolynomial<double>> {}).get_index();
-    }
-    traj_name_to_port_index_map_[traj_name] = port_index;
   }
 
   // Construct QP
@@ -458,24 +449,32 @@ VectorXd OperationalSpaceControl::SolveQp(
   // 4. Tracking cost
   for (unsigned int i = 0; i < tracking_data_vec_->size(); i++) {
     auto tracking_data = tracking_data_vec_->at(i);
-    string traj_name = tracking_data->GetName();
-    int port_index = traj_name_to_port_index_map_.at(traj_name);
-    // Read in traj
-    const drake::AbstractValue* traj_intput =
-        this->EvalAbstractInput(context, port_index);
-    DRAKE_DEMAND(traj_intput != nullptr);
-    const drake::trajectories::Trajectory<double> & traj =
-        (tracking_data->TrajHasExp()) ?
-        traj_intput->get_value<ExponentialPlusPiecewisePolynomial<double>>() :
-        traj_intput->get_value<PiecewisePolynomial<double>>();
 
-    bool track_or_not = tracking_data->Update(x_w_spr,
-                        cache_w_spr, tree_w_spr_,
-                        x_wo_spr,
-                        cache_wo_spr, tree_wo_spr_,
-                        traj, t,
-                        fsm_state, time_since_last_state_switch);
-    if (track_or_not) {
+    // Check whether or not it is a constant trajectory, and update TrackingData
+    if (fixed_position_vec_.at(i).size() > 0){
+      // Create constant trajectory and update
+      tracking_data->Update(x_w_spr, cache_w_spr,
+          x_wo_spr, cache_wo_spr,
+          PiecewisePolynomial<double>(fixed_position_vec_.at(i)), t,
+          fsm_state);
+    } else {
+      // Read in traj from input port
+      string traj_name = tracking_data->GetName();
+      int port_index = traj_name_to_port_index_map_.at(traj_name);
+      const drake::AbstractValue* traj_intput =
+          this->EvalAbstractInput(context, port_index);
+      DRAKE_DEMAND(traj_intput != nullptr);
+      const drake::trajectories::Trajectory<double> & traj =
+          traj_intput->get_value<drake::trajectories::Trajectory<double>>();
+      // Update
+      tracking_data->Update(x_w_spr, cache_w_spr,
+                          x_wo_spr, cache_wo_spr,
+                          traj, t,
+                          fsm_state);
+    }
+
+    if (tracking_data->GetTrackOrNot() &&
+        time_since_last_state_switch >= period_of_no_control_vec_[i]) {
       VectorXd ddy_t = tracking_data->GetCommandOutput();
       MatrixXd W = tracking_data->GetWeight();
       MatrixXd J_t = tracking_data->GetJ();
@@ -533,7 +532,8 @@ VectorXd OperationalSpaceControl::SolveQp(
            0.5 * w_soft_constraint_*epsilon_sol.transpose()*epsilon_sol << endl;
     }
     // 4. Tracking cost
-    for (auto tracking_data : *tracking_data_vec_) {
+    for (unsigned int i = 0; i < tracking_data_vec_->size(); i++) {
+      auto tracking_data = tracking_data_vec_->at(i);
       if (tracking_data->GetTrackOrNot()) {
         VectorXd ddy_t = tracking_data->GetCommandOutput();
         MatrixXd W = tracking_data->GetWeight();
@@ -565,12 +565,12 @@ VectorXd OperationalSpaceControl::SolveQp(
 void OperationalSpaceControl::CalcOptimalInput(
     const drake::systems::Context<double>& context,
     systems::TimestampedVector<double>* control) const {
-  // Read in current state and simulation time
+  // Read in current state and time
   const OutputVector<double>* robot_output = (OutputVector<double>*)
       this->EvalVectorInput(context, state_port_);
   VectorXd q_w_spr = robot_output->GetPositions();
   if (is_quaternion_) {
-    multibody::CheckZeroQuaternion(&q_w_spr);
+    multibody::SetZeroQuaternionToIdentity(&q_w_spr);
   }
   VectorXd v_w_spr = robot_output->GetVelocities();
   VectorXd x_w_spr(tree_w_spr_.get_num_positions() +

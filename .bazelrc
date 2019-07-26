@@ -53,3 +53,6 @@ build --action_env=CCACHE_DISABLE=1
 #build:snopt --define=WITH_SNOPT=ON
 build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON
 #build:snopt_f2c --define=WITH_SNOPT_F2C=ON
+
+# use python3 by default
+build --python_path=python3

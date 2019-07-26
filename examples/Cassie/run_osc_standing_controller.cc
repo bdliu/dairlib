@@ -15,9 +15,10 @@
 #include "dairlib/lcmt_robot_output.hpp"
 #include "dairlib/lcmt_robot_input.hpp"
 #include "dairlib/lcmt_pd_config.hpp"
-#include "systems/robot_lcm_systems.h"
-#include "examples/Cassie/cassie_utils.h"
 #include "attic/multibody/rigidbody_utils.h"
+#include "examples/Cassie/cassie_utils.h"
+#include "systems/robot_lcm_systems.h"
+#include "systems/controllers/osc/operational_space_control.h"
 
 namespace dairlib {
 
@@ -34,6 +35,7 @@ using drake::systems::lcm::LcmPublisherSystem;
 using drake::systems::DiagramBuilder;
 
 using multibody::GetBodyIndexFromName;
+using systems::controllers::ComTrackingData;
 using systems::controllers::TransTaskSpaceTrackingData;
 using systems::controllers::RotTaskSpaceTrackingData;
 using systems::controllers::JointSpaceTrackingData;
@@ -90,18 +92,10 @@ int DoMain(int argc, char* argv[]) {
   // Create Operational space control
   auto osc = builder.AddSystem<systems::controllers::OperationalSpaceControl>(
                tree_with_springs, tree_without_springs, false, false);
-  // Get body index
-  int pelvis_idx_w_spr = pelvis_idx;
-  int pelvis_idx_wo_spr = GetBodyIndexFromName(
-                            tree_without_springs, "pelvis");
-  int left_toe_idx_wo_spr = GetBodyIndexFromName(
-                              tree_without_springs, "toe_left");
-  int right_toe_idx_wo_spr = GetBodyIndexFromName(
-                               tree_without_springs, "toe_right");
 
-  int n_v = tree_without_springs.get_num_velocities();
   // Cost
   // cout << "Adding cost\n";
+  int n_v = tree_without_springs.get_num_velocities();
   MatrixXd Q_accel = 0.00002 * MatrixXd::Identity(n_v, n_v);
   osc->SetAccelerationCostForAllJoints(Q_accel);
   // Soft constraint
@@ -114,10 +108,10 @@ int DoMain(int argc, char* argv[]) {
   osc->SetContactFriction(mu);
   Vector3d front_contact_disp(-0.0457, 0.112, 0);
   Vector3d rear_contact_disp(0.088, 0, 0);
-  osc->AddContactPoint(left_toe_idx_wo_spr, front_contact_disp);
-  osc->AddContactPoint(left_toe_idx_wo_spr, rear_contact_disp);
-  osc->AddContactPoint(right_toe_idx_wo_spr, front_contact_disp);
-  osc->AddContactPoint(right_toe_idx_wo_spr, rear_contact_disp);
+  osc->AddContactPoint("toe_left", front_contact_disp);
+  osc->AddContactPoint("toe_left", rear_contact_disp);
+  osc->AddContactPoint("toe_right", front_contact_disp);
+  osc->AddContactPoint("toe_right", rear_contact_disp);
   // Center of mass tracking
   // cout << "Adding center of mass tracking\n";
   Vector3d desired_com(0, 0, 0.89);
@@ -127,10 +121,10 @@ int DoMain(int argc, char* argv[]) {
   W_com(2, 2) = 2000;//2000
   MatrixXd K_p_com = 50 * MatrixXd::Identity(3, 3);
   MatrixXd K_d_com = 10 * MatrixXd::Identity(3, 3);
-  TransTaskSpaceTrackingData center_of_mass_traj("lipm_traj", 3,
-      K_p_com, K_d_com, W_com, true, false, true);
-  center_of_mass_traj.SetConstantTraj(desired_com);
-  osc->AddTrackingData(&center_of_mass_traj);
+  ComTrackingData center_of_mass_traj("lipm_traj", 3,
+      K_p_com, K_d_com, W_com,
+      &tree_with_springs, &tree_without_springs);
+  osc->AddConstTrackingData(&center_of_mass_traj, desired_com);
   // Pelvis rotation tracking
   // cout << "Adding pelvis rotation tracking\n";
   double w_pelvis_balance = 200;
@@ -152,12 +146,12 @@ int DoMain(int argc, char* argv[]) {
   K_d_pelvis(1, 1) = k_d_pelvis_balance;
   K_d_pelvis(2, 2) = k_d_heading;
   RotTaskSpaceTrackingData pelvis_rot_traj("pelvis_rot_traj", 3,
-      K_p_pelvis, K_d_pelvis, W_pelvis, true, false);
-  pelvis_rot_traj.AddFrameToTrack(pelvis_idx_w_spr, pelvis_idx_wo_spr);
+      K_p_pelvis, K_d_pelvis, W_pelvis,
+      &tree_with_springs, &tree_without_springs);
+  pelvis_rot_traj.AddFrameToTrack("pelvis");
   VectorXd pelvis_desired_quat(4);
   pelvis_desired_quat << 1, 0, 0, 0;
-  pelvis_rot_traj.SetConstantTraj(pelvis_desired_quat);
-  osc->AddTrackingData(&pelvis_rot_traj);
+  osc->AddConstTrackingData(&pelvis_rot_traj, pelvis_desired_quat);
   // Build OSC problem
   osc->BuildOSC();
   // Connect ports
@@ -166,14 +160,9 @@ int DoMain(int argc, char* argv[]) {
   builder.Connect(osc->get_output_port(0),
                   command_sender->get_input_port(0));
 
-
   // Create the diagram and context
   auto owned_diagram = builder.Build();
-
-  // Assign fixed value to osc constant traj port
   auto context = owned_diagram->CreateDefaultContext();
-  systems::controllers::OperationalSpaceControl::AssignConstTrajToInputPorts(
-      osc, owned_diagram.get(), context.get());
 
   // Create the simulator
   const auto& diagram = *owned_diagram;

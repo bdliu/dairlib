@@ -8,6 +8,9 @@ using std::endl;
 using Eigen::Vector2d;
 using Eigen::Vector3d;
 
+using drake::trajectories::PiecewisePolynomial;
+using drake::trajectories::ExponentialPlusPiecewisePolynomial;
+
 namespace dairlib {
 namespace systems {
 

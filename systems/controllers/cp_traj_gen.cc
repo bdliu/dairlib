@@ -33,8 +33,6 @@ CPTrajGenerator::CPTrajGenerator(const RigidBodyTree<double>& tree,
                                  double desired_final_vertical_foot_velocity,
                                  double max_CoM_to_CP_dist,
                                  double stance_duration_per_leg,
-                                 int left_stance_state,
-                                 int right_stance_state,
                                  int left_foot_idx,
                                  Eigen::Vector3d pt_on_left_foot,
                                  int right_foot_idx,
@@ -51,8 +49,6 @@ CPTrajGenerator::CPTrajGenerator(const RigidBodyTree<double>& tree,
     desired_final_vertical_foot_velocity_(desired_final_vertical_foot_velocity),
     max_CoM_to_CP_dist_(max_CoM_to_CP_dist),
     stance_duration_per_leg_(stance_duration_per_leg),
-    left_stance_(left_stance_state),
-    right_stance_(right_stance_state),
     left_foot_idx_(left_foot_idx),
     right_foot_idx_(right_foot_idx),
     pt_on_left_foot_(pt_on_left_foot),
@@ -70,18 +66,21 @@ CPTrajGenerator::CPTrajGenerator(const RigidBodyTree<double>& tree,
                   tree.get_num_positions(),
                   tree.get_num_velocities(),
                   tree.get_num_actuators())).get_index();
-
   fsm_port_ = this->DeclareVectorInputPort(
                 BasicVector<double>(1)).get_index();
+
+  PiecewisePolynomial<double> pp(VectorXd::Zero(0));
   if (is_using_predicted_com) {
     com_port_ = this->DeclareAbstractInputPort("CoM_traj",
-        drake::Value<ExponentialPlusPiecewisePolynomial<double>> {}).get_index();
+        drake::Value<drake::trajectories::Trajectory<double>>(pp)).get_index();
   }
   if (add_extra_control) {
     fp_port_ = this->DeclareVectorInputPort(BasicVector<double>(2)).get_index();
   }
-
-  this->DeclareAbstractOutputPort("cp_traj", &CPTrajGenerator::CalcTrajs);
+  // Provide an instance to allocate the memory first (for the output)
+  drake::trajectories::Trajectory<double>& traj_instance = pp;
+  this->DeclareAbstractOutputPort("cp_traj", traj_instance,
+      &CPTrajGenerator::CalcTrajs);
 
   // State variables inside this controller block
   DeclarePerStepDiscreteUpdateEvent(&CPTrajGenerator::DiscreteVariableUpdate);
@@ -132,7 +131,7 @@ EventStatus CPTrajGenerator::DiscreteVariableUpdate(
     // Modify the quaternion in the begining when the state is not received from
     // the robot yet (cannot have 0-norm quaternion when using doKinematics)
     if (is_quaternion_) {
-      multibody::CheckZeroQuaternion(&q);
+      multibody::SetZeroQuaternionToIdentity(&q);
     }
     cache.initialize(q);
     tree_.doKinematics(cache);
@@ -164,7 +163,7 @@ Vector2d CPTrajGenerator::calculateCapturePoint(const Context<double>& context,
   // Modify the quaternion in the begining when the state is not received from
   // the robot yet
   if (is_quaternion_){
-    multibody::CheckZeroQuaternion(&q);
+    multibody::SetZeroQuaternionToIdentity(&q);
   }
   cache.initialize(q);
   tree_.doKinematics(cache);
@@ -189,9 +188,9 @@ Vector2d CPTrajGenerator::calculateCapturePoint(const Context<double>& context,
         this->EvalAbstractInput(context, com_port_);
     DRAKE_ASSERT(com_traj_output != nullptr);
     const auto & com_traj = com_traj_output->get_value <
-                            ExponentialPlusPiecewisePolynomial<double >> ();
+                            drake::trajectories::Trajectory<double >> ();
     CoM = com_traj.value(end_time_of_this_interval);
-    dCoM = com_traj.derivative().value(end_time_of_this_interval);
+    dCoM = com_traj.MakeDerivative(1)->value(end_time_of_this_interval);
   } else {
     // Get the current center of mass position and velocity
     MatrixXd J_com = tree_.centerOfMassJacobian(cache);
@@ -291,7 +290,7 @@ PiecewisePolynomial<double> CPTrajGenerator::createSplineForSwingFoot(
 
 
 void CPTrajGenerator::CalcTrajs(const Context<double>& context,
-                                PiecewisePolynomial<double>* traj) const {
+                                drake::trajectories::Trajectory<double>* traj) const {
   // Read in current state
   const OutputVector<double>* robot_output = (OutputVector<double>*)
       this->EvalVectorInput(context, state_port_);
@@ -324,10 +323,12 @@ void CPTrajGenerator::CalcTrajs(const Context<double>& context,
   Vector3d init_swing_foot_pos = swing_foot_pos_td;
 
   // Assign traj
-  *traj = createSplineForSwingFoot(start_time_of_this_interval,
-                                   end_time_of_this_interval,
-                                   init_swing_foot_pos,
-                                   CP);
+  PiecewisePolynomial<double>* casted_traj = (PiecewisePolynomial<double>*)
+      dynamic_cast<PiecewisePolynomial<double>*> (traj);
+  *casted_traj = createSplineForSwingFoot(start_time_of_this_interval,
+                                          end_time_of_this_interval,
+                                          init_swing_foot_pos,
+                                          CP);
 }
 }  // namespace systems
 }  // namespace dairlib

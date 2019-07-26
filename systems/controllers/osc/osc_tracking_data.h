@@ -10,8 +10,6 @@
 
 #include "systems/framework/output_vector.h"
 
-#include "systems/controllers/osc/osc_user_defined_traj.h"
-
 namespace dairlib {
 namespace systems {
 namespace controllers {
@@ -41,36 +39,37 @@ namespace controllers {
 /// Users can implement their own derived classes if the current implementation
 /// here is not comprehensive enough.
 
-/// Two methods for the users:
-/// - SetConstantTraj(), to set constant trajectory value
-/// - SetNoControlPeriod() to set a period of not tracking the desired traj (the
-///   period starts when the finite state machine switches to a new state)
-
 class OscTrackingData {
  public:
   OscTrackingData(std::string name, int n_r,
                   Eigen::MatrixXd K_p,
                   Eigen::MatrixXd K_d,
                   Eigen::MatrixXd W,
-                  bool traj_is_const,
-                  bool traj_has_exp);
+                  const RigidBodyTree<double>* tree_w_spr,
+                  const RigidBodyTree<double>* tree_wo_spr);
 
   OscTrackingData() {}  // Default constructor
 
-  // Setters
-  void SetConstantTraj(Eigen::VectorXd v) {fixed_position_ = v;}
-  void SetNoControlPeriod(double duration) {period_of_no_control_ = duration;}
-
-  // Updater and getters used by osc block
+  // Update() updates the caches. It does the following things in order:
+  //  - update track_at_current_step_
+  //  - update desired output
+  //  - update feedback output (Calling virtual methods)
+  //  - update command output (desired output with pd control)
+  // Inputs/Arguments:
+  //  - `x_w_spr`, state of the robot (with spring)
+  //  - `cache_w_spr`, kinematics cache of the robot (without spring)
+  //  - `x_wo_spr`, state of the robot (with spring)
+  //  - `cache_wo_spr`, kinematics cache of the robot (without spring)
+  //  - `traj`, desired trajectory
+  //  - `t`, current time
+  //  - `finite_state_machine_state`, current finite state machine state
   bool Update(Eigen::VectorXd x_w_spr,
               KinematicsCache<double>& cache_w_spr,
-              const RigidBodyTree<double>& tree_w_spr,
               Eigen::VectorXd x_wo_spr,
               KinematicsCache<double>& cache_wo_spr,
-              const RigidBodyTree<double>& tree_wo_spr,
               const drake::trajectories::Trajectory<double>& traj, double t,
-              int finite_state_machine_state,
-              double time_since_last_state_switch);
+              int finite_state_machine_state);
+  // Getters used by osc block
   Eigen::VectorXd GetOutput() {return y_;}
   Eigen::MatrixXd GetJ() {return J_;}
   Eigen::VectorXd GetJdotTimesV() {return JdotV_;}
@@ -83,16 +82,12 @@ class OscTrackingData {
   // Getters
   std::string GetName() {return name_;};
   int GetTrajDim() {return n_r_;};
-  bool TrajIsConst() {return traj_is_const_;}
-  bool TrajHasExp() {return traj_has_exp_;}
-  Eigen::VectorXd GetFixedPosition() {return fixed_position_;}
   bool GetTrackOrNot() {return track_at_current_step_;}
 
   // Print feedback and desired values
   void PrintFeedbackAndDesiredValues(Eigen::VectorXd dv);
 
   // Finalize and ensure that users construct OscTrackingData class correctly.
-  // (called in OSC constructor)
   void CheckOscTrackingData();
 
  protected:
@@ -114,24 +109,26 @@ class OscTrackingData {
   // If `state_` is empty, then the tracking is always on.
   std::vector<int> state_;
 
+  /// OSC calculates feedback positions/velocities from `tree_w_spr_`,
+  /// but in the optimization it uses `tree_wo_spr_`. The reason of using
+  /// RigidBodyTree without spring is that the OSC cannot track desired
+  /// acceleration instantaneously when springs exist. (relative degrees of 4)
+  const RigidBodyTree<double>* tree_w_spr_;
+  const RigidBodyTree<double>* tree_wo_spr_;
+
  private:
   // Check if we should do tracking in the current state
-  void UpdateTrackingFlag(int finite_state_machine_state,
-                  double time_since_last_state_switch);
+  void UpdateTrackingFlag(int finite_state_machine_state);
 
   // Updaters of feedback output, jacobian and dJ/dt * v
   virtual void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
-                               KinematicsCache<double>& cache_w_spr,
-                               const RigidBodyTree<double>& tree_w_spr) = 0;
+                               KinematicsCache<double>& cache_w_spr) = 0;
   virtual void UpdateYdot(const Eigen::VectorXd& x_w_spr,
-                          KinematicsCache<double>& cache_w_spr,
-                          const RigidBodyTree<double>& tree_w_spr) = 0;
+                          KinematicsCache<double>& cache_w_spr) = 0;
   virtual void UpdateJ(const Eigen::VectorXd& x_wo_spr,
-                       KinematicsCache<double>& cache_wo_spr,
-                       const RigidBodyTree<double>& tree_wo_spr) = 0;
+                       KinematicsCache<double>& cache_wo_spr) = 0;
   virtual void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
-                           KinematicsCache<double>& cache_wo_spr,
-                           const RigidBodyTree<double>& tree_wo_spr) = 0;
+                           KinematicsCache<double>& cache_wo_spr) = 0;
   // Finalize and ensure that users construct OscTrackingData derived class
   // correctly.
   virtual void CheckDerivedOscTrackingData() = 0;
@@ -149,22 +146,36 @@ class OscTrackingData {
   // Cost weights
   Eigen::MatrixXd W_;
 
-  // Trajectory info
-  bool traj_is_const_;
-  bool traj_has_exp_;
-
-  // `fixed_position_` stores the fixed position and pass it to input port if
-  // the traj is a const
-  Eigen::VectorXd fixed_position_;
-
-  // A period when we don't apply control
-  // (starting at the time when fsm switches to a new state)
-  double period_of_no_control_ = 0;  // Unit: seconds
-
   // cache
   bool track_at_current_step_;
   int state_idx_ = 0;
   Eigen::VectorXd ddy_command_;
+};
+
+
+/// ComTrackingData is used when we want to track center of mass trajectory.
+class ComTrackingData final : public OscTrackingData {
+ public:
+  ComTrackingData(std::string name, int n_r,
+                  Eigen::MatrixXd K_p,
+                  Eigen::MatrixXd K_d,
+                  Eigen::MatrixXd W,
+                  const RigidBodyTree<double>* tree_w_spr,
+                  const RigidBodyTree<double>* tree_wo_spr);
+
+  ComTrackingData() {}  // Default constructor
+
+ private:
+  void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
+                       KinematicsCache<double>& cache_w_spr) final;
+  void UpdateYdot(const Eigen::VectorXd& x_w_spr,
+                  KinematicsCache<double>& cache_w_spr) final;
+  void UpdateJ(const Eigen::VectorXd& x_wo_spr,
+               KinematicsCache<double>& cache_wo_spr) final;
+  void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
+                   KinematicsCache<double>& cache_wo_spr) final;
+
+  void CheckDerivedOscTrackingData() final;
 };
 
 
@@ -175,8 +186,8 @@ class TaskSpaceTrackingData : public OscTrackingData {
                         Eigen::MatrixXd K_p,
                         Eigen::MatrixXd K_d,
                         Eigen::MatrixXd W,
-                        bool traj_is_const,
-                        bool traj_has_exp);
+                        const RigidBodyTree<double>* tree_w_spr,
+                        const RigidBodyTree<double>* tree_wo_spr);
 
   TaskSpaceTrackingData() {}  // Default constructor
 
@@ -186,58 +197,41 @@ class TaskSpaceTrackingData : public OscTrackingData {
   // If `body_index_w_spr_` is empty, `body_index_wo_spr_` replaces it.
   std::vector<int> body_index_w_spr_;
   std::vector<int> body_index_wo_spr_;
-
- private:
 };
 
 
 /// TransTaskSpaceTrackingData is used when we want to track a trajectory
 /// (translational position) in the task space.
 
-/// `track_center_of_mass_` should be set to true when we track center of mass.
-
-/// If `track_center_of_mass_` is false, AddPointToTrack() should be called
-/// to specify what is the point that tracks the desired trajectory
+/// AddPointToTrack() should be called to specify what is the point that
+/// follows the desired trajectory
 class TransTaskSpaceTrackingData final : public TaskSpaceTrackingData {
  public:
   TransTaskSpaceTrackingData(std::string name, int n_r,
                              Eigen::MatrixXd K_p,
                              Eigen::MatrixXd K_d,
                              Eigen::MatrixXd W,
-                             bool traj_is_const = false,
-                             bool traj_has_exp = false,
-                             bool track_center_of_mass = false);
+                             const RigidBodyTree<double>* tree_w_spr,
+                             const RigidBodyTree<double>* tree_wo_spr);
 
   TransTaskSpaceTrackingData() {}  // Default constructor
 
-  void AddPointToTrack(int body_index_wo_spr,
+  void AddPointToTrack(std::string body_name,
       Eigen::Vector3d pt_on_body = Eigen::Vector3d::Zero());
-  void AddStateAndPointToTrack(int state, int body_index_wo_spr,
-      Eigen::Vector3d pt_on_body = Eigen::Vector3d::Zero());
-  void AddPointToTrack(int body_index_w_spr, int body_index_wo_spr,
-      Eigen::Vector3d pt_on_body = Eigen::Vector3d::Zero());
-  void AddStateAndPointToTrack(int state, int body_index_w_spr,
-      int body_index_wo_spr,
+  void AddStateAndPointToTrack(int state, std::string body_name,
       Eigen::Vector3d pt_on_body = Eigen::Vector3d::Zero());
 
  private:
   void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
-                       KinematicsCache<double>& cache_w_spr,
-                       const RigidBodyTree<double>& tree_w_spr) final;
+                       KinematicsCache<double>& cache_w_spr) final;
   void UpdateYdot(const Eigen::VectorXd& x_w_spr,
-                  KinematicsCache<double>& cache_w_spr,
-                  const RigidBodyTree<double>& tree_w_spr) final;
+                  KinematicsCache<double>& cache_w_spr) final;
   void UpdateJ(const Eigen::VectorXd& x_wo_spr,
-               KinematicsCache<double>& cache_wo_spr,
-               const RigidBodyTree<double>& tree_wo_spr) final;
+               KinematicsCache<double>& cache_wo_spr) final;
   void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
-                   KinematicsCache<double>& cache_wo_spr,
-                   const RigidBodyTree<double>& tree_wo_spr) final;
+                   KinematicsCache<double>& cache_wo_spr) final;
 
   void CheckDerivedOscTrackingData() final;
-
-  // Whether or not we are tracking the center of mass of the robot
-  bool track_center_of_mass_;
 
   // `pt_on_body` is the position w.r.t. the origin of the body
   std::vector<Eigen::Vector3d> pt_on_body_;
@@ -256,34 +250,25 @@ class RotTaskSpaceTrackingData final : public TaskSpaceTrackingData {
                            Eigen::MatrixXd K_p,
                            Eigen::MatrixXd K_d,
                            Eigen::MatrixXd W,
-                           bool traj_is_const = false,
-                           bool traj_has_exp = false);
+                           const RigidBodyTree<double>* tree_w_spr,
+                           const RigidBodyTree<double>* tree_wo_spr);
 
   RotTaskSpaceTrackingData() {}  // Default constructor
 
-  void AddFrameToTrack(int body_index_wo_spr,
+  void AddFrameToTrack(std::string body_name,
       Eigen::Isometry3d frame_pose = Eigen::Isometry3d::Identity());
-  void AddStateAndFrameToTrack(int state, int body_index_wo_spr,
-      Eigen::Isometry3d frame_pose = Eigen::Isometry3d::Identity());
-  void AddFrameToTrack(int body_index_w_spr, int body_index_wo_spr,
-      Eigen::Isometry3d frame_pose = Eigen::Isometry3d::Identity());
-  void AddStateAndFrameToTrack(int state, int body_index_w_spr,
-      int body_index_wo_spr,
+  void AddStateAndFrameToTrack(int state, std::string body_name,
       Eigen::Isometry3d frame_pose = Eigen::Isometry3d::Identity());
 
  private:
   void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
-                       KinematicsCache<double>& cache_w_spr,
-                       const RigidBodyTree<double>& tree_w_spr) final;
+                       KinematicsCache<double>& cache_w_spr) final;
   void UpdateYdot(const Eigen::VectorXd& x_w_spr,
-                  KinematicsCache<double>& cache_w_spr,
-                  const RigidBodyTree<double>& tree_w_spr) final;
+                  KinematicsCache<double>& cache_w_spr) final;
   void UpdateJ(const Eigen::VectorXd& x_wo_spr,
-               KinematicsCache<double>& cache_wo_spr,
-               const RigidBodyTree<double>& tree_wo_spr) final;
+               KinematicsCache<double>& cache_wo_spr) final;
   void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
-                   KinematicsCache<double>& cache_wo_spr,
-                   const RigidBodyTree<double>& tree_wo_spr) final;
+                   KinematicsCache<double>& cache_wo_spr) final;
 
   void CheckDerivedOscTrackingData() final;
 
@@ -300,43 +285,30 @@ class RotTaskSpaceTrackingData final : public TaskSpaceTrackingData {
 /// Note that one instance of `JointSpaceTrackingData` allows to track 1 joint.
 class JointSpaceTrackingData final : public OscTrackingData {
  public:
-  JointSpaceTrackingData(std::string name, int n_r,
+  JointSpaceTrackingData(std::string name,
                          Eigen::MatrixXd K_p,
                          Eigen::MatrixXd K_d,
                          Eigen::MatrixXd W,
-                         bool traj_is_const = false,
-                         bool traj_has_exp = false);
+                         const RigidBodyTree<double>* tree_w_spr,
+                         const RigidBodyTree<double>* tree_wo_spr);
 
   JointSpaceTrackingData() {}  // Default constructor
 
-  void AddJointToTrack(int joint_pos_idx_wo_spr,
-                       int joint_vel_idx_wo_spr);
+  void AddJointToTrack(std::string joint_pos_name,
+                       std::string joint_vel_name);
   void AddStateAndJointToTrack(int state,
-                               int joint_pos_idx_wo_spr,
-                               int joint_vel_idx_wo_spr);
-  void AddJointToTrack(int joint_pos_idx_w_spr,
-                       int joint_vel_idx_w_spr,
-                       int joint_pos_idx_wo_spr,
-                       int joint_vel_idx_wo_spr);
-  void AddStateAndJointToTrack(int state,
-                               int joint_pos_idx_w_spr,
-                               int joint_vel_idx_w_spr,
-                               int joint_pos_idx_wo_spr,
-                               int joint_vel_idx_wo_spr);
+                               std::string joint_pos_name,
+                               std::string joint_vel_name);
 
  private:
   void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
-                       KinematicsCache<double>& cache_w_spr,
-                       const RigidBodyTree<double>& tree_w_spr) final;
+                       KinematicsCache<double>& cache_w_spr) final;
   void UpdateYdot(const Eigen::VectorXd& x_w_spr,
-                  KinematicsCache<double>& cache_w_spr,
-                  const RigidBodyTree<double>& tree_w_spr) final;
+                  KinematicsCache<double>& cache_w_spr) final;
   void UpdateJ(const Eigen::VectorXd& x_wo_spr,
-               KinematicsCache<double>& cache_wo_spr,
-               const RigidBodyTree<double>& tree_wo_spr) final;
+               KinematicsCache<double>& cache_wo_spr) final;
   void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
-                   KinematicsCache<double>& cache_wo_spr,
-                   const RigidBodyTree<double>& tree_wo_spr) final;
+                   KinematicsCache<double>& cache_wo_spr) final;
 
   void CheckDerivedOscTrackingData() final;
 

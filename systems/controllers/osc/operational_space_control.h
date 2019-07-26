@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <memory>
@@ -9,14 +10,16 @@
 #include "drake/common/trajectories/piecewise_polynomial.h"
 #include "drake/common/trajectories/exponential_plus_piecewise_polynomial.h"
 
-#include "systems/framework/output_vector.h"
-#include "systems/controllers/osc/osc_tracking_data.h"
-
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/solve.h"
 
+#include "systems/framework/output_vector.h"
+#include "systems/controllers/osc/osc_tracking_data.h"
+#include "systems/controllers/control_utils.h"
+
 namespace dairlib {
 namespace systems {
+
 namespace controllers {
 
 /// `OperationalSpaceControl` takes in desired trajectory in world frame and
@@ -57,8 +60,8 @@ namespace controllers {
 
 /// If the desired trajectory is constant, users don't need to connect the
 /// input ports of `OperationalSpaceControl` to trajectory source blocks.
-/// Instead, the users have to call the function AssignConstTrajToInputPorts()
-/// after drake::systems::Diagram is built.
+/// Instead, the users have to call the function AddConstTrackingData() when
+/// adding TrackingData to OperationalSpaceControl.
 
 /// If the users want to create the desired trajectory source themselves,
 /// the outputs of trajectory blocks need to be of the derived classes of
@@ -75,18 +78,9 @@ namespace controllers {
 ///   4. (if the users created desired trajectory blocks by themselves) connect
 ///      `OperationalSpaceControl`'s input ports to corresponding output ports
 ///      of the trajectory source.
-///   5. (if the users added constant trajectories) after creating Diagram,
-///      call AssignConstTrajToInputPorts().
 
 class OperationalSpaceControl : public drake::systems::LeafSystem<double> {
  public:
-  // AssignConstTrajToInputPorts() assigns fixed values to the input ports
-  // which corresponds to the constant desired trajectories.
-  static void AssignConstTrajToInputPorts(OperationalSpaceControl* osc,
-      drake::systems::Diagram<double>* diagram,
-      drake::systems::Context<double>* diagram_context);
-
-  // Constructor
   OperationalSpaceControl(const RigidBodyTree<double>& tree_w_spr,
                           const RigidBodyTree<double>& tree_wo_spr,
                           bool used_with_finite_state_machine = true,
@@ -107,7 +101,7 @@ class OperationalSpaceControl : public drake::systems::LeafSystem<double> {
   // Cost methods
   void SetInputCost(Eigen::MatrixXd W) {W_input_ = W;}
   void SetAccelerationCostForAllJoints(Eigen::MatrixXd W) {W_joint_accel_ = W;}
-  void AddAccelerationCost(int joint_vel_idx, double w);
+  void AddAccelerationCost(std::string joint_vel_name, double w);
 
   // Constraint methods
   void DisableAcutationConstraint() {with_input_constraints_ = false;}
@@ -115,28 +109,34 @@ class OperationalSpaceControl : public drake::systems::LeafSystem<double> {
   void SetWeightOfSoftContactConstraint(double w_soft_constraint) {
     w_soft_constraint_ = w_soft_constraint;
   }
-  void AddContactPoint(int body_index, Eigen::VectorXd pt_on_body);
+  void AddContactPoint(std::string body_name, Eigen::VectorXd pt_on_body);
   void AddStateAndContactPoint(int state,
-                               int body_index, Eigen::VectorXd pt_on_body);
+                               std::string body_name,
+                               Eigen::VectorXd pt_on_body);
 
   // Tracking data methods
-  void AddTrackingData(OscTrackingData* tracking_data) {
-    tracking_data_vec_->push_back(tracking_data);
-  }
-  std::vector<OscTrackingData*>* GetAllTrackingData() {
+  /// The third argument is used to set a period in which OSC does not track the
+  /// desired traj (the period starts when the finite state machine switches to
+  /// a new state)
+  void AddTrackingData(OscTrackingData* tracking_data, double duration = 0);
+  void AddConstTrackingData(OscTrackingData* tracking_data, Eigen::VectorXd v,
+      double duration = 0);
+  std::vector<OscTrackingData*>* GetAllTrackingData(){
     return tracking_data_vec_.get();
   }
   OscTrackingData* GetTrackingDataByIndex(int index) {
     return tracking_data_vec_->at(index);
   }
 
-  // Osc problem constructor
+  // Osc leafsystem builder
   void BuildOSC();
 
  private:
   // Osc checkers and constructor-related methods
   void CheckCostSettings();
   void CheckConstraintSettings();
+
+  // Get solution of OSC
   Eigen::VectorXd SolveQp(Eigen::VectorXd x_w_spr, Eigen::VectorXd x_wo_spr,
       const drake::systems::Context<double>& context, double t,
       int fsm_state, double time_since_last_state_switch) const;
@@ -162,7 +162,7 @@ class OperationalSpaceControl : public drake::systems::LeafSystem<double> {
   Eigen::MatrixXd map_position_from_spring_to_no_spring_;
   Eigen::MatrixXd map_velocity_from_spring_to_no_spring_;
 
-  // Map from trajectory names to input port indices
+  // Map from (non-const) trajectory names to input port indices
   std::map<std::string, int> traj_name_to_port_index_map_;
 
   // RBT's.
@@ -230,9 +230,14 @@ class OperationalSpaceControl : public drake::systems::LeafSystem<double> {
   // contact (constraint)
   std::vector<bool> CalcActiveContactIndices(int fsm_state) const;
 
-  // OSC tracking data member (store pointer because of caching)
+  // OSC tracking data (stored as a pointer because of caching)
   std::unique_ptr<std::vector<OscTrackingData*>> tracking_data_vec_ =
-        std::make_unique<std::vector<OscTrackingData*>>();
+      std::make_unique<std::vector<OscTrackingData*>>();
+  // Fixed position of constant trajectories
+  std::vector<Eigen::VectorXd> fixed_position_vec_;
+  // A period when we don't apply control (Unit: seconds)
+  // The period startd at the time when fsm switches to a new state.
+  std::vector<double> period_of_no_control_vec_;
 };
 
 

@@ -1,6 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <Eigen/Dense>
+
+#include "drake/common/trajectories/piecewise_polynomial.h"
+#include "drake/common/trajectories/exponential_plus_piecewise_polynomial.h"
+#include "drake/common/copyable_unique_ptr.h"
 
 namespace dairlib {
 namespace systems {

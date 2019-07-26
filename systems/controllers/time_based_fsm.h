@@ -12,9 +12,6 @@ namespace systems {
 
 /// Constructor inputs:
 /// - rigid body tree
-/// - integer representing the first state
-/// - integer representing the second state
-/// - initial state
 /// - duration of each state
 /// - offset of the time when the state switches
 
@@ -32,9 +29,6 @@ namespace systems {
 class TimeBasedFiniteStateMachine : public drake::systems::LeafSystem<double> {
  public:
   TimeBasedFiniteStateMachine(const RigidBodyTree<double>& tree,
-                              int first_state_number,
-                              int second_state_number,
-                              int initial_state_number,
                               double duration_per_state,
                               double time_shift = 0);
 
@@ -48,9 +42,9 @@ class TimeBasedFiniteStateMachine : public drake::systems::LeafSystem<double> {
 
   int state_port_;
 
-  int first_state_number_;
-  int second_state_number_;
-  int initial_state_number_;
+  int first_state_number_ = 0;
+  int second_state_number_ = 1;
+  int initial_state_number_ = -1;
   double duration_per_state_;
   double time_shift_;
 };
