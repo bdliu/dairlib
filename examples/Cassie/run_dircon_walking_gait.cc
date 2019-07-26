@@ -175,22 +175,6 @@ void DoMain(double stride_length, double duration, int iter,
   // cout<<"n_x = "<<n_x<<"\n";
   // cout<<"n_u = "<<n_u<<"\n";
 
-  // Get name to input limit map
-  map<string, double> name_to_torque_lb_map;
-  for (JointActuatorIndex i(0); i < plant.num_actuators(); ++i) {
-    const JointActuator<double>& actuator = plant.get_joint_actuator(i);
-    auto name = actuator.name();
-    cout << name << " actuator.joint().acceleration_lower_limits() = " << actuator.joint().acceleration_lower_limits() << endl;
-    name_to_torque_lb_map[name] = actuator.joint().acceleration_lower_limits()(0);
-  }
-  map<string, double> name_to_torque_ub_map;
-  for (JointActuatorIndex i(0); i < plant.num_actuators(); ++i) {
-    const JointActuator<double>& actuator = plant.get_joint_actuator(i);
-    auto name = actuator.name();
-    cout << name << " actuator.joint().acceleration_upper_limits() = " << actuator.joint().acceleration_upper_limits() << endl;
-    name_to_torque_ub_map[name] = actuator.joint().acceleration_upper_limits()(0);
-  }
-
   // Set up contact constraints and construct dircon
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -385,71 +369,54 @@ void DoMain(double stride_length, double duration, int iter,
   trajopt->AddLinearConstraint(u0(actuators_map.at("toe_right_motor")) ==
                                uf(actuators_map.at("toe_left_motor")));
 
-  ////////////// TODO: edit below
-
   // u limit
   auto u = trajopt->input();
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_left_motor")) <=
-      name_to_torque_ub_map.at("hip_pitch_left_motor"));
+      u(actuators_map.at("hip_pitch_left_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_right_motor")) <=
-      name_to_torque_ub_map.at("hip_pitch_right_motor"));
+      u(actuators_map.at("hip_pitch_right_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_left_motor")) <=
-      name_to_torque_ub_map.at("hip_roll_left_motor"));
+      u(actuators_map.at("hip_roll_left_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_right_motor")) <=
-      name_to_torque_ub_map.at("hip_roll_right_motor"));
+      u(actuators_map.at("hip_roll_right_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_left_motor")) <=
-      name_to_torque_ub_map.at("hip_yaw_left_motor"));
+      u(actuators_map.at("hip_yaw_left_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_right_motor")) <=
-      name_to_torque_ub_map.at("hip_yaw_right_motor"));
+      u(actuators_map.at("hip_yaw_right_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_left_motor")) <=
-      name_to_torque_ub_map.at("knee_left_motor"));
+      u(actuators_map.at("knee_left_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_right_motor")) <=
-      name_to_torque_ub_map.at("knee_right_motor"));
+      u(actuators_map.at("knee_right_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_left_motor")) <=
-      name_to_torque_ub_map.at("toe_left_motor"));
+      u(actuators_map.at("toe_left_motor")) <= 300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_right_motor")) <=
-      name_to_torque_ub_map.at("toe_right_motor"));
+      u(actuators_map.at("toe_right_motor")) <= 300);
 
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_left_motor")) >=
-      name_to_torque_lb_map.at("hip_pitch_left_motor"));
+      u(actuators_map.at("hip_pitch_left_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_right_motor")) >=
-      name_to_torque_lb_map.at("hip_pitch_right_motor"));
+      u(actuators_map.at("hip_pitch_right_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_left_motor")) >=
-      name_to_torque_lb_map.at("hip_roll_left_motor"));
+      u(actuators_map.at("hip_roll_left_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_right_motor")) >=
-      name_to_torque_lb_map.at("hip_roll_right_motor"));
+      u(actuators_map.at("hip_roll_right_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_left_motor")) >=
-      name_to_torque_lb_map.at("hip_yaw_left_motor"));
+      u(actuators_map.at("hip_yaw_left_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_right_motor")) >=
-      name_to_torque_lb_map.at("hip_yaw_right_motor"));
+      u(actuators_map.at("hip_yaw_right_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_left_motor")) >=
-      name_to_torque_lb_map.at("knee_left_motor"));
+      u(actuators_map.at("knee_left_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_right_motor")) >=
-      name_to_torque_lb_map.at("knee_right_motor"));
+      u(actuators_map.at("knee_right_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_left_motor")) >=
-      name_to_torque_lb_map.at("toe_left_motor"));
+      u(actuators_map.at("toe_left_motor")) >= -300);
   trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_right_motor")) >=
-      name_to_torque_lb_map.at("toe_right_motor"));
+      u(actuators_map.at("toe_right_motor")) >= -300);
+
+
+  ////////////// TODO: edit below
+
+  
 /*
   // Knee joint limits
   auto x = trajopt->state();
