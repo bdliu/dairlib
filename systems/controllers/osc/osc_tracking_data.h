@@ -9,6 +9,7 @@
 #include "drake/common/trajectories/exponential_plus_piecewise_polynomial.h"
 
 #include "systems/framework/output_vector.h"
+#include "systems/controllers/osc/osc_user_defined_traj.h"
 
 namespace dairlib {
 namespace systems {
@@ -327,23 +328,21 @@ class AbstractTrackingData final : public OscTrackingData {
                        Eigen::MatrixXd K_p,
                        Eigen::MatrixXd K_d,
                        Eigen::MatrixXd W,
+                       const RigidBodyTree<double>* tree_w_spr,
+                       const RigidBodyTree<double>* tree_wo_spr,
                        OscUserDefinedTraj* user_defined_traj);
 
   AbstractTrackingData() {}  // Default constructor
 
  private:
   void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
-                       KinematicsCache<double>& cache_w_spr,
-                       const RigidBodyTree<double>& tree_w_spr) final;
+                       KinematicsCache<double>& cache_w_spr) final;
   void UpdateYdot(const Eigen::VectorXd& x_w_spr,
-                  KinematicsCache<double>& cache_w_spr,
-                  const RigidBodyTree<double>& tree_w_spr) final;
+                  KinematicsCache<double>& cache_w_spr) final;
   void UpdateJ(const Eigen::VectorXd& x_wo_spr,
-               KinematicsCache<double>& cache_wo_spr,
-               const RigidBodyTree<double>& tree_wo_spr) final;
+               KinematicsCache<double>& cache_wo_spr) final;
   void UpdateJdotV(const Eigen::VectorXd& x_wo_spr,
-                   KinematicsCache<double>& cache_wo_spr,
-                   const RigidBodyTree<double>& tree_wo_spr) final;
+                   KinematicsCache<double>& cache_wo_spr) final;
 
   void CheckDerivedOscTrackingData() final;
 
