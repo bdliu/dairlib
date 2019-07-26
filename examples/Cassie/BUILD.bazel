@@ -277,3 +277,18 @@ cc_binary(
         ]
 )
 
+cc_binary(
+    name = "run_dircon_walking_gait",
+    srcs = ["run_dircon_walking_gait.cc"],
+    data = glob(["examples/Cassie/urdf/cassie_fixed_springs.urdf"]),
+    deps = [
+        "//common",
+        "//systems/primitives",
+        "//systems/goldilocks_models",
+        "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
+        "@drake//:drake_shared_library",
+        "@gflags",
+    ],
+)
+
