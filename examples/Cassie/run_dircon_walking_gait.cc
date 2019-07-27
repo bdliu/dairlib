@@ -258,7 +258,8 @@ void DoMain(double stride_length, double duration, int iter,
                            "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level", 0);
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Verify level", 0);
 
   // Periodicity constraints
   auto x0 = trajopt->initial_state();
@@ -439,6 +440,9 @@ void DoMain(double stride_length, double duration, int iter,
   cout << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
   cout << "Cost:" << result.get_optimal_cost() << std::endl;
+
+  // Check which solver we are using
+  cout << "Solver: " << result.get_solver_id().name() << endl;
 
   // store the solution of the decision variable
   VectorXd z = result.GetSolution(trajopt->decision_variables());

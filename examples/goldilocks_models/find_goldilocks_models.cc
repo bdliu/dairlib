@@ -622,10 +622,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
   if (FLAGS_is_multithread) {
     cout << "If you intend to use multiple threads, "
          "make sure that you have built this file with "
-         "--config=snopt_fortran flag.\nAlso, in .bazelrc file, have the following"
-         " code\n"
-         "----------------\n#build --define=WITH_SNOPT=ON\n"
-         "build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n----------------\n"
+         "--config=snopt_fortran flag.\n"
+         "That is, you have bazel build --config=snopt_fortran [location]\n"
+         "Also, in .bazelrc file, have the following code\n"
+         "    ```\n"
+         "    #build --define=WITH_SNOPT=ON\n"
+         "    build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON\n"
+         "    ```\n"
          "Lastly, make sure that there is no thread_finished file in data folder"
          ".\nProceed? (Y/N)\n";
     char answer[1];
