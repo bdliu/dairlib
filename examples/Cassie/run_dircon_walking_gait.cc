@@ -54,6 +54,7 @@ using drake::solvers::Binding;
 using drake::solvers::Constraint;
 using drake::solvers::VectorXDecisionVariable;
 using drake::solvers::MatrixXDecisionVariable;
+using drake::solvers::SolutionResult;
 using drake::symbolic::Variable;
 using drake::symbolic::Expression;
 using drake::trajectories::PiecewisePolynomial;
@@ -261,7 +262,6 @@ void DoMain(double stride_length, double duration, int iter,
 
   // Periodicity constraints
   auto x0 = trajopt->initial_state();
-  // auto xf = trajopt->final_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
   // Floating base (z and rotation) should be the same
@@ -348,100 +348,66 @@ void DoMain(double stride_length, double duration, int iter,
   // u periodic constraint
   auto u0 = trajopt->input(0);
   auto uf = trajopt->input(N - 1);
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_pitch_left_motor")) ==
-                               uf(actuators_map.at("hip_pitch_right_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_roll_left_motor")) ==
-                               uf(actuators_map.at("hip_roll_right_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_yaw_left_motor")) ==
-                               uf(actuators_map.at("hip_yaw_right_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("knee_left_motor")) ==
-                               uf(actuators_map.at("knee_right_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("toe_left_motor")) ==
-                               uf(actuators_map.at("toe_right_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_pitch_right_motor")) ==
-                               uf(actuators_map.at("hip_pitch_left_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_roll_right_motor")) ==
-                               uf(actuators_map.at("hip_roll_left_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("hip_yaw_right_motor")) ==
-                               uf(actuators_map.at("hip_yaw_left_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("knee_right_motor")) ==
-                               uf(actuators_map.at("knee_left_motor")));
-  trajopt->AddLinearConstraint(u0(actuators_map.at("toe_right_motor")) ==
-                               uf(actuators_map.at("toe_left_motor")));
+  std::vector<std::string> left_motor_names {
+    "hip_pitch_left_motor",
+    "hip_roll_left_motor",
+    "hip_yaw_left_motor",
+    "knee_left_motor",
+    "toe_left_motor",
+  };
+  std::vector<std::string> right_motor_names {
+    "hip_pitch_right_motor",
+    "hip_roll_right_motor",
+    "hip_yaw_right_motor",
+    "knee_right_motor",
+    "toe_right_motor"
+  };
+  for (int i = 0; i < left_motor_names.size(); i++) {
+    trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
+                                 uf(actuators_map.at(right_motor_names[i])));
+    trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
+                                 uf(actuators_map.at(left_motor_names[i])));
+  }
 
   // u limit
   auto u = trajopt->input();
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_left_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_right_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_left_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_right_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_left_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_right_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_left_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_right_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_left_motor")) <= 300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_right_motor")) <= 300);
+  std::vector<std::string> motor_names {};
+  motor_names.insert(motor_names.end(),
+                     left_motor_names.begin(), left_motor_names.end() );
+  motor_names.insert(motor_names.end(),
+                     right_motor_names.begin(), right_motor_names.end() );
+  for (const auto & member : motor_names) {
+    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300);
+    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300);
+  }
 
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_left_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_pitch_right_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_left_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_roll_right_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_left_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("hip_yaw_right_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_left_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("knee_right_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_left_motor")) >= -300);
-  trajopt->AddConstraintToAllKnotPoints(
-      u(actuators_map.at("toe_right_motor")) >= -300);
-
-
-  ////////////// TODO: edit below
-
-  
-/*
-  // Knee joint limits
+  // joint limits
   auto x = trajopt->state();
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) >=
-                                        5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) >=
-                                        5.0 / 180.0 * M_PI);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_knee_pin")) <=
-                                        M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_knee_pin")) <=
-                                        M_PI / 2.0);
-
-  // hip joint limits
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) >=
-                                        -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) >=
-                                        -M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("left_hip_pin")) <=
-                                        M_PI / 2.0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("right_hip_pin")) <=
-                                        M_PI / 2.0);
+  std::vector<std::string> leg_pos_joint_names {
+    "hip_roll_left",
+    "hip_roll_right",
+    "hip_yaw_left",
+    "hip_yaw_right",
+    "hip_pitch_left",
+    "hip_pitch_right",
+    "knee_left",
+    "knee_right",
+    "ankle_joint_left",
+    "ankle_joint_right",
+    "toe_left",
+    "toe_right"};
+  for (const auto & member : leg_pos_joint_names) {
+    trajopt->AddConstraintToAllKnotPoints(
+      x(positions_map.at(member)) <=
+      plant.GetJointByName(member).position_upper_limits()(0));
+    trajopt->AddConstraintToAllKnotPoints(
+      x(positions_map.at(member)) >=
+      plant.GetJointByName(member).position_lower_limits()(0));
+  }
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(positions_map.at("planar_x")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("planar_x")) ==
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) ==
                                stride_length);
 
   // make sure it's left stance
@@ -450,7 +416,6 @@ void DoMain(double stride_length, double duration, int iter,
 
   // add cost
   const double R = 10;  // Cost on input effort
-  auto u = trajopt->input();
   trajopt->AddRunningCost(u.transpose()*R * u);
   MatrixXd Q = MatrixXd::Zero(2 * n_q, 2 * n_q);
   for (int i = 0; i < n_q; i++) {
@@ -467,9 +432,11 @@ void DoMain(double stride_length, double duration, int iter,
   cout << "Solving DIRCON (based on MultipleShooting)\n";
   auto start = std::chrono::high_resolution_clock::now();
   const auto result = Solve(*trajopt, trajopt->initial_guess());
+  SolutionResult solution_result = result.get_solution_result();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
+  cout << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
   cout << "Cost:" << result.get_optimal_cost() << std::endl;
 
@@ -504,7 +471,7 @@ void DoMain(double stride_length, double duration, int iter,
     simulator.Initialize();
     simulator.StepTo(pp_xtraj.end_time());
   }
-*/
+
   return ;
 }
 
