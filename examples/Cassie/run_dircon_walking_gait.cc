@@ -420,6 +420,8 @@ void DoMain(double stride_length, double duration, int iter,
   // parameters
   int n_c_per_leg = 1;
   bool one_continuous_mode = true;
+  bool double_stance = true;
+  if (double_stance) one_continuous_mode = true;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -513,6 +515,28 @@ void DoMain(double stride_length, double duration, int iter,
     right_options.setConstraintRelative(4, true);
   }
 
+  vector<DirconKinematicData<double>*> double_stance_constraint;
+  double_stance_constraint.push_back(&left_toe_front_constraint);
+  double_stance_constraint.push_back(&left_toe_rear_constraint);
+  right_stance_constraint.push_back(&right_toe_front_constraint);
+  right_stance_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_constraint.push_back(&distance_constraint_left);
+  double_stance_constraint.push_back(&distance_constraint_right);
+  // double_stance_constraint.push_back(&left_toe_mid_constraint);
+  auto double_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_constraint);
+
+  auto double_options = DirconOptions(double_dataset.countConstraints());
+  double_options.setConstraintRelative(0, true);
+  double_options.setConstraintRelative(1, true);
+  double_options.setConstraintRelative(3, true);
+  double_options.setConstraintRelative(4, true);
+  double_options.setConstraintRelative(6, true);
+  double_options.setConstraintRelative(7, true);
+  double_options.setConstraintRelative(9, true);
+  double_options.setConstraintRelative(10, true);
+
+
   // Stated in the MultipleShooting class:
   // This class assumes that there are a fixed number (N) time steps/samples,
   // and that the trajectory is discretized into timesteps h (N-1 of these),
@@ -525,8 +549,13 @@ void DoMain(double stride_length, double duration, int iter,
   num_time_samples.push_back(20); // First mode (20 sample points)
   min_dt.push_back(.01);
   max_dt.push_back(.3);
-  dataset_list.push_back(&left_dataset);
-  options_list.push_back(left_options);
+  if (double_stance) {
+    dataset_list.push_back(&double_dataset);
+    options_list.push_back(double_options);
+  } else {
+    dataset_list.push_back(&left_dataset);
+    options_list.push_back(left_options);
+  }
   if (!one_continuous_mode) {
     num_time_samples.push_back(1);  // Second mode (1 sample point)
     min_dt.push_back(.01);
