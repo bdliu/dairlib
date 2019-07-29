@@ -689,16 +689,22 @@ void DoMain(double stride_length, double duration, int iter,
 
 
   // Testing
-  /*int total_rows = 0;
+  int total_rows = 0;
   auto constraint_binding_vec = trajopt->GetAllConstraints();
   for (int i = 0; i < constraint_binding_vec.size(); i++) {
     const auto & binding = constraint_binding_vec[i];
-    cout << "Constraint row " << total_rows << " to row " <<
-         total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
-         binding.variables().transpose() << endl;
+    // cout << "Constraint row " << total_rows << " to row " <<
+    //      total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
+    //      binding.variables().transpose() << endl;
     total_rows += binding.evaluator()->num_constraints();
-  }*/
+  }
+  cout << "total_rows = " << total_rows << endl;
 
+
+  auto z_all = trajopt->decision_variables();
+  for (int i = 0; i < z_all.size(); i++) {
+    cout << i << " , " << z_all(i) << endl;
+  }
 
 
 

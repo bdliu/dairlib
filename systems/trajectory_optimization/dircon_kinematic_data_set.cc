@@ -55,7 +55,7 @@ void DirconKinematicDataSet<T>::updateData(const Context<T>& context,
   CacheKey key{DiscardGradient(state), DiscardGradient(forces),
       DiscardGradient(input)};
 
-  if (cache_.Contains(key)) {
+  if (false && cache_.Contains(key)) {
     auto data = cache_.GetData(key);
     c_ = data.c_;
     cdot_ = data.cdot_;
