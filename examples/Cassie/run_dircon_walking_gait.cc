@@ -1,5 +1,3 @@
-//TODO(yminchen): finish this file
-
 #include <gflags/gflags.h>
 
 #include <memory>
@@ -465,8 +463,10 @@ void DoMain(double stride_length, double duration, int iter,
 
 
   vector<DirconKinematicData<double>*> left_stance_constraint;
-  left_stance_constraint.push_back(&left_toe_front_constraint);
-  if (n_c_per_leg == 2) {
+  if (n_c_per_leg >= 1) {
+    left_stance_constraint.push_back(&left_toe_front_constraint);
+  }
+  if (n_c_per_leg >= 2) {
     left_stance_constraint.push_back(&left_toe_rear_constraint);
   }
   // left_stance_constraint.push_back(&left_toe_mid_constraint);
@@ -476,8 +476,10 @@ void DoMain(double stride_length, double duration, int iter,
                       &left_stance_constraint);
 
   vector<DirconKinematicData<double>*> right_stance_constraint;
-  right_stance_constraint.push_back(&right_toe_front_constraint);
-  if (n_c_per_leg == 2) {
+  if (n_c_per_leg >= 1) {
+    right_stance_constraint.push_back(&right_toe_front_constraint);
+  }
+  if (n_c_per_leg >= 2) {
     right_stance_constraint.push_back(&right_toe_rear_constraint);
   }
   // right_stance_constraint.push_back(&right_toe_mid_constraint);
@@ -487,15 +489,19 @@ void DoMain(double stride_length, double duration, int iter,
                        &right_stance_constraint);
 
   auto left_options = DirconOptions(left_dataset.countConstraints());
-  left_options.setConstraintRelative(0, true);
-  left_options.setConstraintRelative(1, true);
+  if (n_c_per_leg >= 1) {
+    left_options.setConstraintRelative(0, true);
+    left_options.setConstraintRelative(1, true);
+  }
   if (n_c_per_leg == 2) {
     left_options.setConstraintRelative(3, true);
     left_options.setConstraintRelative(4, true);
   }
   auto right_options = DirconOptions(right_dataset.countConstraints());
-  right_options.setConstraintRelative(0, true);
-  right_options.setConstraintRelative(1, true);
+  if (n_c_per_leg >= 1) {
+    right_options.setConstraintRelative(0, true);
+    right_options.setConstraintRelative(1, true);
+  }
   if (n_c_per_leg == 2) {
     right_options.setConstraintRelative(3, true);
     right_options.setConstraintRelative(4, true);
@@ -506,7 +512,7 @@ void DoMain(double stride_length, double duration, int iter,
   // and that the trajectory is discretized into timesteps h (N-1 of these),
   // state x (N of these), and control input u (N of these).
   vector<int> num_time_samples;
-  num_time_samples.push_back(20); // First mode (20 sample points)
+  num_time_samples.push_back(2); // First mode (20 sample points)
   num_time_samples.push_back(1);  // Second mode (1 sample point)
   vector<double> min_dt;
   min_dt.push_back(.01);
@@ -536,10 +542,7 @@ void DoMain(double stride_length, double duration, int iter,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Verify level", 0);
-
-  // Fix the time duration
-  trajopt->AddDurationBounds(duration, duration);
+                           "Verify level", 3);  // 0
 
   // Get the decision varaibles that will be used
   auto u = trajopt->input();
@@ -550,6 +553,9 @@ void DoMain(double stride_length, double duration, int iter,
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
   /*
+    // Fix the time duration
+    trajopt->AddDurationBounds(duration, duration);
+
     // Four bar linkage constraint
     trajopt->AddConstraintToAllKnotPoints(
       x(positions_map.at("knee_left"))
@@ -682,16 +688,16 @@ void DoMain(double stride_length, double duration, int iter,
 
 
 
-  // // Testing
-  // int total_rows = 0;
-  // auto constraint_binding_vec = trajopt->GetAllConstraints();
-  // for (int i = 0; i < constraint_binding_vec.size(); i++) {
-  //   const auto & binding = constraint_binding_vec[i];
-  //   cout << "Constraint row " << total_rows << " to row " <<
-  //        total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
-  //        binding.variables().transpose() << endl;
-  //   total_rows += binding.evaluator()->num_constraints();
-  // }
+  // Testing
+  /*int total_rows = 0;
+  auto constraint_binding_vec = trajopt->GetAllConstraints();
+  for (int i = 0; i < constraint_binding_vec.size(); i++) {
+    const auto & binding = constraint_binding_vec[i];
+    cout << "Constraint row " << total_rows << " to row " <<
+         total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
+         binding.variables().transpose() << endl;
+    total_rows += binding.evaluator()->num_constraints();
+  }*/
 
 
 
