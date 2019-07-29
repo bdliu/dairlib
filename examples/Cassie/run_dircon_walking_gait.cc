@@ -441,7 +441,7 @@ void DoMain(double stride_length, double duration, int iter,
   right_toe_front_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
-  /*const auto & thigh_left = plant.GetBodyByName("thigh_left");
+  const auto & thigh_left = plant.GetBodyByName("thigh_left");
   const auto & heel_spring_left = plant.GetBodyByName("heel_spring_left");
   const auto & thigh_right = plant.GetBodyByName("thigh_right");
   const auto & heel_spring_right = plant.GetBodyByName("heel_spring_right");
@@ -456,7 +456,7 @@ void DoMain(double stride_length, double duration, int iter,
   auto distance_constraint_right = DirconDistanceData<double>(plant,
                                    thigh_right, pt_on_thigh_right,
                                    heel_spring_right, pt_on_heel_spring,
-                                   rod_length);*/
+                                   rod_length);
 
   // Testing (mid contact point)
   /*Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
@@ -475,9 +475,9 @@ void DoMain(double stride_length, double duration, int iter,
   if (n_c_per_leg >= 2) {
     left_stance_constraint.push_back(&left_toe_rear_constraint);
   }
+  left_stance_constraint.push_back(&distance_constraint_left);
+  left_stance_constraint.push_back(&distance_constraint_right);
   // left_stance_constraint.push_back(&left_toe_mid_constraint);
-  // left_stance_constraint.push_back(&distance_constraint_left);
-  // left_stance_constraint.push_back(&distance_constraint_right);
   auto left_dataset = DirconKinematicDataSet<double>(plant,
                       &left_stance_constraint);
 
@@ -488,9 +488,9 @@ void DoMain(double stride_length, double duration, int iter,
   if (n_c_per_leg >= 2) {
     right_stance_constraint.push_back(&right_toe_rear_constraint);
   }
+  right_stance_constraint.push_back(&distance_constraint_left);
+  right_stance_constraint.push_back(&distance_constraint_right);
   // right_stance_constraint.push_back(&right_toe_mid_constraint);
-  // right_stance_constraint.push_back(&distance_constraint_left);
-  // right_stance_constraint.push_back(&distance_constraint_right);
   auto right_dataset = DirconKinematicDataSet<double>(plant,
                        &right_stance_constraint);
 
@@ -561,13 +561,14 @@ void DoMain(double stride_length, double duration, int iter,
   // Fix the time duration
   trajopt->AddDurationBounds(duration, duration);
 
-  // Four bar linkage constraint
-  trajopt->AddConstraintToAllKnotPoints(
-    x(positions_map.at("knee_left"))
-    + x(positions_map.at("ankle_joint_left")) == M_PI * 13 / 180.0);
-  trajopt->AddConstraintToAllKnotPoints(
-    x(positions_map.at("knee_right"))
-    + x(positions_map.at("ankle_joint_right")) == M_PI * 13 / 180.0);
+  // Four bar linkage constraint (setting geometric relationship is not
+  // sufficient. Also need constraint force.)
+  // trajopt->AddConstraintToAllKnotPoints(
+  //   x(positions_map.at("knee_left"))
+  //   + x(positions_map.at("ankle_joint_left")) == M_PI * 13 / 180.0);
+  // trajopt->AddConstraintToAllKnotPoints(
+  //   x(positions_map.at("knee_right"))
+  //   + x(positions_map.at("ankle_joint_right")) == M_PI * 13 / 180.0);
 
   // Initial quaterion norm constraint (set it to identity for now)
   trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
