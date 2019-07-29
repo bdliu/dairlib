@@ -413,7 +413,7 @@ void DoMain(double stride_length, double duration, int iter,
        plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
 
   // Set up contact/distance constraints and construct dircon
-  int n_c_per_leg = 2;
+  int n_c_per_leg = 0;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -570,9 +570,9 @@ void DoMain(double stride_length, double duration, int iter,
   trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-                               stride_length);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
+  //                              stride_length);
 
   // Periodicity constraints
   // Floating base (z and rotation) should be the same
@@ -714,15 +714,15 @@ void DoMain(double stride_length, double duration, int iter,
 
 
   // testing (add cost to help convergence postentially?)
-  vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
-  vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
-  MatrixXd S = 10 * MatrixXd::Identity(n_q + n_v, n_q + n_v);
-  for (int i = 0; i < N; i++) {
-    auto xi = trajopt->state(i);
-    VectorXd xi_seed(n_q + n_v);
-    xi_seed << q_seed.at(i), v_seed.at(i);
-    trajopt->AddQuadraticErrorCost(S, xi_seed, xi);
-  }
+  // vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
+  // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
+  // MatrixXd S = 10 * MatrixXd::Identity(n_q + n_v, n_q + n_v);
+  // for (int i = 0; i < N; i++) {
+  //   auto xi = trajopt->state(i);
+  //   VectorXd xi_seed(n_q + n_v);
+  //   xi_seed << q_seed.at(i), v_seed.at(i);
+  //   trajopt->AddQuadraticErrorCost(S, xi_seed, xi);
+  // }
 
 
 
@@ -742,16 +742,16 @@ void DoMain(double stride_length, double duration, int iter,
     MatrixXd z0 = readCSV(data_directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
   } else {
-    // Do inverse kinematics to get q initial guess
-    vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
-    // Do finite differencing to get v initial guess
-    vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
-    for (int i = 0; i < N; i++) {
-      auto xi = trajopt->state(i);
-      VectorXd xi_seed(n_q + n_v);
-      xi_seed << q_seed.at(i), v_seed.at(i);
-      trajopt->SetInitialGuess(xi, xi_seed);
-    }
+    // // Do inverse kinematics to get q initial guess
+    // vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
+    // // Do finite differencing to get v initial guess
+    // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
+    // for (int i = 0; i < N; i++) {
+    //   auto xi = trajopt->state(i);
+    //   VectorXd xi_seed(n_q + n_v);
+    //   xi_seed << q_seed.at(i), v_seed.at(i);
+    //   trajopt->SetInitialGuess(xi, xi_seed);
+    // }
     /*
     // Get approximated vdot by finite difference
     vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
@@ -774,8 +774,12 @@ void DoMain(double stride_length, double duration, int iter,
   // produces NAN value in some calculation.
   for (int i = 0; i < N; i++) {
     auto xi = trajopt->state(i);
-    if (trajopt->GetInitialGuess(xi.head(4)).norm() == 0) {
+    if ((trajopt->GetInitialGuess(xi.head(4)).norm() == 0) ||
+        std::isnan(trajopt->GetInitialGuess(xi.head(4)).norm())) {
       trajopt->SetInitialGuess(xi(0), 1);
+      trajopt->SetInitialGuess(xi(1), 0);
+      trajopt->SetInitialGuess(xi(2), 0);
+      trajopt->SetInitialGuess(xi(3), 0);
     }
   }
 
