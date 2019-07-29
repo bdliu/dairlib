@@ -225,8 +225,12 @@ vector<VectorXd> GetInitGuessForV(const vector<VectorXd>& q_seed, double dt,
   for (unsigned int i = 0; i < q_seed.size(); i++) {
     if (i == 0) {
       qdot_seed.push_back((q_seed[i + 1] - q_seed[i]) / dt);
-    } else {
+    } else if ( i == q_seed.size() - 1) {
       qdot_seed.push_back((q_seed[i] - q_seed[i - 1]) / dt);
+    } else {
+      VectorXd v_plus = (q_seed[i + 1] - q_seed[i]) / dt;
+      VectorXd v_minus = (q_seed[i] - q_seed[i - 1]) / dt;
+      qdot_seed.push_back((v_plus + v_minus)/2);
     }
   }
 
@@ -574,24 +578,35 @@ void DoMain(double stride_length, double duration, int iter,
   // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
   //                              stride_length);
 
+
+
+
+  // testing(initial z)
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
+
+
+
+
+
   // Periodicity constraints
   // Floating base (z and rotation) should be the same
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
-                               xf(positions_map.at("position[0]")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
-                               xf(positions_map.at("position[1]")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
-                               xf(positions_map.at("position[2]")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
-                               xf(positions_map.at("position[3]")));
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
-                               xf(positions_map.at("position[6]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[3]")) ==
-    xf(n_q + velocities_map.at("velocity[3]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[5]")) ==
-    xf(n_q + velocities_map.at("velocity[5]")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
+  //                              xf(positions_map.at("position[0]")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
+  //                              xf(positions_map.at("position[1]")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
+  //                              xf(positions_map.at("position[2]")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
+  //                              xf(positions_map.at("position[3]")));
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
+  //                              xf(positions_map.at("position[6]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[3]")) ==
+  //   xf(n_q + velocities_map.at("velocity[3]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[5]")) ==
+  //   xf(n_q + velocities_map.at("velocity[5]")));
   // TODO: Not sure how to impose period constraint in rotation for 3D walking
 
   // The legs joint positions and velocities should be mirrored between legs
