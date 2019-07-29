@@ -230,7 +230,7 @@ vector<VectorXd> GetInitGuessForV(const vector<VectorXd>& q_seed, double dt,
     } else {
       VectorXd v_plus = (q_seed[i + 1] - q_seed[i]) / dt;
       VectorXd v_minus = (q_seed[i] - q_seed[i - 1]) / dt;
-      qdot_seed.push_back((v_plus + v_minus)/2);
+      qdot_seed.push_back((v_plus + v_minus) / 2);
     }
   }
 
@@ -417,7 +417,9 @@ void DoMain(double stride_length, double duration, int iter,
        plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
 
   // Set up contact/distance constraints and construct dircon
-  int n_c_per_leg = 0;
+  // parameters
+  int n_c_per_leg = 1;
+  bool one_continuous_mode = true;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -516,27 +518,22 @@ void DoMain(double stride_length, double duration, int iter,
   // and that the trajectory is discretized into timesteps h (N-1 of these),
   // state x (N of these), and control input u (N of these).
   vector<int> num_time_samples;
-  num_time_samples.push_back(20); // First mode (20 sample points)
-  num_time_samples.push_back(1);  // Second mode (1 sample point)
   vector<double> min_dt;
-  min_dt.push_back(.01);
-  min_dt.push_back(.01);
   vector<double> max_dt;
-  max_dt.push_back(.3);
-  max_dt.push_back(.3);
-
-  int N = 0;
-  for (uint i = 0; i < num_time_samples.size(); i++)
-    N += num_time_samples[i];
-  N -= num_time_samples.size() - 1;  // because of overlaps between modes
-
   vector<DirconKinematicDataSet<double>*> dataset_list;
-  dataset_list.push_back(&left_dataset);
-  dataset_list.push_back(&right_dataset);
-
   vector<DirconOptions> options_list;
+  num_time_samples.push_back(20); // First mode (20 sample points)
+  min_dt.push_back(.01);
+  max_dt.push_back(.3);
+  dataset_list.push_back(&left_dataset);
   options_list.push_back(left_options);
-  options_list.push_back(right_options);
+  if (!one_continuous_mode) {
+    num_time_samples.push_back(1);  // Second mode (1 sample point)
+    min_dt.push_back(.01);
+    max_dt.push_back(.3);
+    dataset_list.push_back(&right_dataset);
+    options_list.push_back(right_options);
+  }
 
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list);
@@ -547,6 +544,11 @@ void DoMain(double stride_length, double duration, int iter,
                            "Major iterations limit", iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
+
+  int N = 0;
+  for (uint i = 0; i < num_time_samples.size(); i++)
+    N += num_time_samples[i];
+  N -= num_time_samples.size() - 1;  // because of overlaps between modes
 
   // Get the decision varaibles that will be used
   auto u = trajopt->input();
@@ -609,7 +611,6 @@ void DoMain(double stride_length, double duration, int iter,
   //   xf(n_q + velocities_map.at("velocity[5]")));
   // TODO: Not sure how to impose period constraint in rotation for 3D walking
 
-  // The legs joint positions and velocities should be mirrored between legs
   vector<std::string> left_joint_names {
     "hip_roll_left",
     "hip_yaw_left",
@@ -626,22 +627,6 @@ void DoMain(double stride_length, double duration, int iter,
     "ankle_joint_right",
     "toe_right"
   };
-  for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-    trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
-                                 xf(positions_map.at(right_joint_names[i])));
-    trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
-                                 xf(positions_map.at(left_joint_names[i])));
-  }
-  for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
-      xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
-      xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
-  }
-
-  // u periodic constraint
   vector<std::string> left_motor_names {
     "hip_pitch_left_motor",
     "hip_roll_left_motor",
@@ -656,12 +641,29 @@ void DoMain(double stride_length, double duration, int iter,
     "knee_right_motor",
     "toe_right_motor"
   };
-  for (unsigned int i = 0; i < left_motor_names.size(); i++) {
-    trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
-                                 uf(actuators_map.at(right_motor_names[i])));
-    trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
-                                 uf(actuators_map.at(left_motor_names[i])));
-  }
+  // // The legs joint positions and velocities should be mirrored between legs
+  // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+  //   trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
+  //                                xf(positions_map.at(right_joint_names[i])));
+  //   trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
+  //                                xf(positions_map.at(left_joint_names[i])));
+  // }
+  // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+  //   trajopt->AddLinearConstraint(
+  //     x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
+  //     xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
+  //   trajopt->AddLinearConstraint(
+  //     x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
+  //     xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
+  // }
+
+  // // u periodic constraint
+  // for (unsigned int i = 0; i < left_motor_names.size(); i++) {
+  //   trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
+  //                                uf(actuators_map.at(right_motor_names[i])));
+  //   trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
+  //                                uf(actuators_map.at(left_motor_names[i])));
+  // }
 
   // joint limits
   vector<std::string> joint_names {};
@@ -798,7 +800,7 @@ void DoMain(double stride_length, double duration, int iter,
     }
   }
 
-  cout << "Solving DIRCON (based on MultipleShooting)\n";
+  cout << "Solving DIRCON\n";
   auto start = std::chrono::high_resolution_clock::now();
   const auto result = Solve(*trajopt, trajopt->initial_guess());
   SolutionResult solution_result = result.get_solution_result();
