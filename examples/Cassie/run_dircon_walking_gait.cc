@@ -413,7 +413,7 @@ void DoMain(double stride_length, double duration, int iter,
        plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
 
   // Set up contact/distance constraints and construct dircon
-  int n_c_per_leg = 1;
+  int n_c_per_leg = 0;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -691,11 +691,11 @@ void DoMain(double stride_length, double duration, int iter,
   // Testing
   int total_rows = 0;
   auto constraint_binding_vec = trajopt->GetAllConstraints();
-  for (int i = 0; i < constraint_binding_vec.size(); i++) {
+  for (unsigned int i = 0; i < constraint_binding_vec.size(); i++) {
     const auto & binding = constraint_binding_vec[i];
-    // cout << "Constraint row " << total_rows << " to row " <<
-    //      total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
-    //      binding.variables().transpose() << endl;
+    cout << "Constraint row " << total_rows << " to row " <<
+         total_rows + binding.evaluator()->num_constraints() << ". Vars: " <<
+         binding.variables().transpose() << endl;
     total_rows += binding.evaluator()->num_constraints();
   }
   cout << "total_rows = " << total_rows << endl;
@@ -724,15 +724,14 @@ void DoMain(double stride_length, double duration, int iter,
     vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
     // Do finite differencing to get v initial guess
     vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
-
     for (int i = 0; i < N; i++) {
       auto xi = trajopt->state(i);
       VectorXd xi_seed(n_q + n_v);
       xi_seed << q_seed.at(i), v_seed.at(i);
       trajopt->SetInitialGuess(xi, xi_seed);
     }
-
-    /*// Get approximated vdot by finite difference
+    /*
+    // Get approximated vdot by finite difference
     vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
     // Solve QP to get u and lambda
     vector<VectorXd> u_seed(N, VectorXd::Zero(n_u));
@@ -741,15 +740,13 @@ void DoMain(double stride_length, double duration, int iter,
     GetInitGuessForUAndLambda(plant, left_dataset,
                               q_seed, v_seed, vdot_approx,
                               &u_seed, &lambda_seed);
-
     for (int i = 0; i < N; i++) {
       auto ui = trajopt->input(i);
       trajopt->SetInitialGuess(ui, u_seed.at(i));
 
-      // VectorXd xi_seed(n_q + n_v);
-      // xi_seed << q_seed.at(i), v_seed.at(i);
-      // trajopt->SetInitialGuess(xi, xi_seed);
-    }*/
+      // trajopt->SetInitialGuess(lambdai, lambda_seed.at(i));
+    }
+    */
   }
   // Careful: MUST set the initial guess for quaternion, since 0-norm quaterion
   // produces NAN value in some calculation.
