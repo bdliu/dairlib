@@ -518,11 +518,10 @@ void DoMain(double stride_length, double duration, int iter,
   vector<DirconKinematicData<double>*> double_stance_constraint;
   double_stance_constraint.push_back(&left_toe_front_constraint);
   double_stance_constraint.push_back(&left_toe_rear_constraint);
-  right_stance_constraint.push_back(&right_toe_front_constraint);
-  right_stance_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_constraint.push_back(&right_toe_front_constraint);
+  double_stance_constraint.push_back(&right_toe_rear_constraint);
   double_stance_constraint.push_back(&distance_constraint_left);
   double_stance_constraint.push_back(&distance_constraint_right);
-  // double_stance_constraint.push_back(&left_toe_mid_constraint);
   auto double_dataset = DirconKinematicDataSet<double>(plant,
                         &double_stance_constraint);
 
@@ -884,11 +883,11 @@ int main(int argc, char* argv[]) {
 
   double stride_length = 0.4;
   double duration = .5;
-  int iter = 1000000;
+  int iter = 10000000;
   string data_directory = "examples/Cassie/trajopt_data/";
   string init_file = FLAGS_init_file;
   // string init_file = "testing_z.csv";
-  string output_prefix = "testing_";
+  string output_prefix = "";
 
   dairlib::DoMain(stride_length, duration, iter,
                   data_directory, init_file, output_prefix);
