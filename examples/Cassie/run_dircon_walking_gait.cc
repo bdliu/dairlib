@@ -86,6 +86,7 @@ using dairlib::goldilocks_models::readCSV;
 using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
+DEFINE_int32(max_iter, 5000, "Iteration limit");
 
 namespace dairlib {
 
@@ -418,9 +419,9 @@ void DoMain(double stride_length, double duration, int iter,
 
   // Set up contact/distance constraints and construct dircon
   // parameters
-  int n_c_per_leg = 1;
+  int n_c_per_leg = 2;
   bool one_continuous_mode = true;
-  bool double_stance = true;
+  bool double_stance = false;
   if (double_stance) one_continuous_mode = true;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
@@ -780,8 +781,26 @@ void DoMain(double stride_length, double duration, int iter,
   // add cost
   const double R = 10;  // Cost on input effort
   trajopt->AddRunningCost(u.transpose()* R * u);
-  MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v);
+  MatrixXd Q = 0 * MatrixXd::Identity(n_v, n_v);
   trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
+
+
+
+  // Testing (add initial guess from xi, ui)
+  // MatrixXd x_i_input = readCSV(data_directory + "x_i.csv");
+  // MatrixXd u_i_input = readCSV(data_directory + "u_i.csv");
+  // for (int i = 0; i < N; i++) {
+  //   auto xi = trajopt->state(i);
+  //   trajopt->SetInitialGuess(xi, x_i_input.col(i));
+  //   auto ui = trajopt->input(i);
+  //   trajopt->SetInitialGuess(ui, u_i_input.col(i));
+  // }
+
+
+
+
+
+
 
   // initial guess
   if (!init_file.empty()) {
@@ -856,6 +875,7 @@ void DoMain(double stride_length, double duration, int iter,
   writeCSV(data_directory + string("u_i.csv"), input_at_knots);
   cout << "time_at_knots = \n" << time_at_knots << "\n";
   cout << "state_at_knots = \n" << state_at_knots << "\n";
+  cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
   cout << "input_at_knots = \n" << input_at_knots << "\n";
 
   // visualizer
@@ -882,8 +902,8 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   double stride_length = 0.4;
-  double duration = .5;
-  int iter = 10000000;
+  double duration = .25;
+  int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
   string init_file = FLAGS_init_file;
   // string init_file = "testing_z.csv";
