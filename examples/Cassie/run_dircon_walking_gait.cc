@@ -86,7 +86,8 @@ using dairlib::goldilocks_models::readCSV;
 using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
-DEFINE_int32(max_iter, 5000, "Iteration limit");
+DEFINE_int32(max_iter, 500, "Iteration limit");
+DEFINE_double(duration, 0.1, "Duration of the walking gait (s)");
 
 namespace dairlib {
 
@@ -546,7 +547,7 @@ void DoMain(double stride_length, double duration, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  num_time_samples.push_back(20); // First mode (20 sample points)
+  num_time_samples.push_back(int(40 * duration));  // 40 nodes per second
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (double_stance) {
@@ -557,7 +558,7 @@ void DoMain(double stride_length, double duration, int iter,
     options_list.push_back(left_options);
   }
   if (!one_continuous_mode) {
-    num_time_samples.push_back(1);  // Second mode (1 sample point)
+    num_time_samples.push_back(1);
     min_dt.push_back(.01);
     max_dt.push_back(.3);
     dataset_list.push_back(&right_dataset);
@@ -781,7 +782,7 @@ void DoMain(double stride_length, double duration, int iter,
   // add cost
   const double R = 10;  // Cost on input effort
   trajopt->AddRunningCost(u.transpose()* R * u);
-  MatrixXd Q = 0 * MatrixXd::Identity(n_v, n_v);
+  MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v);
   trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
 
 
@@ -902,7 +903,7 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   double stride_length = 0.4;
-  double duration = .25;
+  double duration = FLAGS_duration; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
   string init_file = FLAGS_init_file;
