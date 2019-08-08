@@ -12,6 +12,7 @@ class DirconOptions {
  private:
   int n_constraints_;
   std::vector<bool> is_constraints_relative_;
+  drake::VectorX<double> phi_vals_;
   DirconKinConstraintType start_constraint_type_;
   DirconKinConstraintType end_constraint_type_;
   double force_cost_;
@@ -21,6 +22,7 @@ class DirconOptions {
 
   void setAllConstraintsRelative(bool relative);
   void setConstraintRelative(int index, bool relative);
+  void setPhiValue(int index, double val);
   void setStartType(DirconKinConstraintType type);
   void setEndType(DirconKinConstraintType type);
   void setForceCost(double force_cost);
@@ -28,6 +30,8 @@ class DirconOptions {
   int getNumConstraints();
   bool getSingleConstraintRelative(int index);
   std::vector<bool> getConstraintsRelative();
+  double getSinglePhiValue(int index);
+  drake::VectorX<double> getPhiValues();
   DirconKinConstraintType getStartType();
   DirconKinConstraintType getEndType();
   double getForceCost();

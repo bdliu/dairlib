@@ -111,6 +111,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   DirconKinematicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
     DirconKinematicDataSet<T>& constraint_data,
     std::vector<bool> is_constraint_relative,
+    drake::VectorX<double> phi_vals,
     DirconKinConstraintType type = DirconKinConstraintType::kAll);
 
   ~DirconKinematicConstraint() override = default;
@@ -122,6 +123,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   DirconKinematicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                             DirconKinematicDataSet<T>& constraint_data,
                             std::vector<bool> is_constraint_relative,
+                            drake::VectorX<double> phi_vals,
                             DirconKinConstraintType type, int num_positions,
                             int num_velocities, int num_inputs,
                             int num_kinematic_constraints);
@@ -137,6 +139,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   const int num_velocities_{0};
   const DirconKinConstraintType type_{kAll};
   const std::vector<bool> is_constraint_relative_;
+  const drake::VectorX<double> phi_vals_;
   const int n_relative_;
   Eigen::MatrixXd relative_map_;
 };

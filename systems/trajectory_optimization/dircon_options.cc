@@ -12,6 +12,7 @@ DirconOptions::DirconOptions(int n_constraints) {
   for (int i=0; i < n_constraints_; i++) {
     is_constraints_relative_[i] = false;
   }
+  phi_vals_ = Eigen::VectorXd::Zero(n_constraints_);
   start_constraint_type_ = DirconKinConstraintType::kAll;
   end_constraint_type_ = DirconKinConstraintType::kAll;
   force_cost_ = 1.0e-4;
@@ -25,6 +26,10 @@ void DirconOptions::setAllConstraintsRelative(bool relative) {
 
 void DirconOptions::setConstraintRelative(int index, bool relative) {
   is_constraints_relative_[index]  = relative;
+}
+
+void DirconOptions::setPhiValue(int index, double val) {
+  phi_vals_[index] = val;
 }
 
 void DirconOptions::setStartType(DirconKinConstraintType type) {
@@ -49,6 +54,14 @@ bool DirconOptions::getSingleConstraintRelative(int index) {
 
 std::vector<bool> DirconOptions::getConstraintsRelative() {
   return is_constraints_relative_;
+}
+
+double DirconOptions::getSinglePhiValue(int index) {
+  return phi_vals_[index];
+}
+
+drake::VectorX<double> DirconOptions::getPhiValues() {
+  return phi_vals_;
 }
 
 DirconKinConstraintType DirconOptions::getStartType() {

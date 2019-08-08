@@ -107,7 +107,7 @@ HybridDircon<T>::HybridDircon(
 
     // Adding kinematic constraints
     auto kinematic_constraint = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative());
+      options[i].getConstraintsRelative(), options[i].getPhiValues());
     for (int j = 1; j < mode_lengths_[i] - 1; j++) {
       int time_index = mode_start_[i] + j;
       AddConstraint(kinematic_constraint,
@@ -119,7 +119,7 @@ HybridDircon<T>::HybridDircon(
 
     // special case first and last timestep based on options
     auto kinematic_constraint_start = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative(), options[i].getStartType());
+      options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getStartType());
     AddConstraint(kinematic_constraint_start,
                   {state_vars_by_mode(i,0),
                    u_vars().segment(mode_start_[i], num_inputs()),
@@ -128,7 +128,7 @@ HybridDircon<T>::HybridDircon(
 
 
     auto kinematic_constraint_end = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative(), options[i].getEndType());
+      options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getEndType());
     AddConstraint(kinematic_constraint_end,
                   {state_vars_by_mode(i, mode_lengths_[i] - 1),
                    u_vars().segment((mode_start_[i] + mode_lengths_[i] - 1) * num_inputs(), num_inputs()),

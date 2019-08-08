@@ -214,15 +214,19 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
     DirconKinConstraintType type) :
     DirconKinematicConstraint(plant, constraints,
                             std::vector<bool>(constraints.countConstraints(),
-                            false), type, plant.num_positions(),
+                            false),
+                            Eigen::VectorXd::Zero(constraints.countConstraints()),
+                            type, plant.num_positions(),
                             plant.num_velocities(), plant.num_actuators(),
                             constraints.countConstraints()) {}
 
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    std::vector<bool> is_constraint_relative, DirconKinConstraintType type) :
-    DirconKinematicConstraint(plant, constraints, is_constraint_relative, type,
+    std::vector<bool> is_constraint_relative, drake::VectorX<double> phi_vals,
+    DirconKinConstraintType type) :
+    DirconKinematicConstraint(plant, constraints, is_constraint_relative,
+                              phi_vals, type,
                               plant.num_positions(),
                               plant.num_velocities(),
                               plant.num_actuators(),
@@ -231,7 +235,8 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    std::vector<bool> is_constraint_relative, DirconKinConstraintType type,
+    std::vector<bool> is_constraint_relative, drake::VectorX<double> phi_vals,
+    DirconKinConstraintType type,
     int num_positions, int num_velocities, int num_inputs,
     int num_kinematic_constraints) :
     DirconAbstractConstraint<T>(type*num_kinematic_constraints, num_positions +
@@ -246,6 +251,7 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
       num_kinematic_constraints_{num_kinematic_constraints},
       num_positions_{num_positions}, num_velocities_{num_velocities},
       type_{type}, is_constraint_relative_{is_constraint_relative},
+      phi_vals_{phi_vals},
       n_relative_{static_cast<int>(std::count(is_constraint_relative.begin(),
       is_constraint_relative.end(), true))} {
   relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
@@ -279,7 +285,7 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   switch (type_) {
     case kAll:
       *y = VectorX<T>(3*num_kinematic_constraints_);
-      *y << constraints_->getC() + relative_map_*offset,
+      *y << constraints_->getC() + relative_map_*offset - phi_vals_,
             constraints_->getCDot(), constraints_->getCDDot();
       break;
     case kAccelAndVel:
