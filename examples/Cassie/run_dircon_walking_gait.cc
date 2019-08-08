@@ -19,6 +19,7 @@
 #include "drake/solvers/snopt_solver.h"
 #include "drake/solvers/mathematical_program.h"
 #include "drake/solvers/constraint.h"
+#include "drake/solvers/choose_best_solver.h"
 
 #include "drake/multibody/inverse_kinematics/inverse_kinematics.h"
 
@@ -422,7 +423,7 @@ void DoMain(double stride_length, double duration, int iter,
   // parameters
   int n_c_per_leg = 2;
   bool one_continuous_mode = true;
-  bool double_stance = false;
+  bool double_stance = true;
   if (double_stance) one_continuous_mode = true;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
@@ -618,6 +619,17 @@ void DoMain(double stride_length, double duration, int iter,
   trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
+  // Testing (standing in place)
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[3]")) == 0);
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[4]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
+  trajopt->AddLinearConstraint(xf(n_q + velocities_map.at("velocity[3]")) == 0);
+  trajopt->AddLinearConstraint(xf(n_q + velocities_map.at("velocity[4]")) == 0);
+  trajopt->AddLinearConstraint(xf(n_q + velocities_map.at("velocity[5]")) == 0);
 
 
 
@@ -848,6 +860,9 @@ void DoMain(double stride_length, double duration, int iter,
       trajopt->SetInitialGuess(xi(3), 0);
     }
   }
+
+  cout << "Choose the best solver: " <<
+      drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
 
   cout << "Solving DIRCON\n";
   auto start = std::chrono::high_resolution_clock::now();
