@@ -624,16 +624,16 @@ void DoMain(double stride_length, double duration, int iter,
 
 
   // testing(initial z)
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
-  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == 0.05);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
 
 
 
