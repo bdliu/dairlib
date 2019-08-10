@@ -285,7 +285,7 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   switch (type_) {
     case kAll:
       *y = VectorX<T>(3*num_kinematic_constraints_);
-      *y << constraints_->getC() + relative_map_*offset - phi_vals_,
+      *y << constraints_->getC() + relative_map_*offset /*- phi_vals_*/,
             constraints_->getCDot(), constraints_->getCDDot();
       break;
     case kAccelAndVel:

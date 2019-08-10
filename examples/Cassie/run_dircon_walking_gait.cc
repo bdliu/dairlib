@@ -425,6 +425,7 @@ void DoMain(double stride_length, double duration, int iter,
   bool one_continuous_mode = true;
   bool double_stance = true;
   if (double_stance) one_continuous_mode = true;
+  bool second_contact_relative_constraint = true;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -501,25 +502,35 @@ void DoMain(double stride_length, double duration, int iter,
 
   auto left_options = DirconOptions(left_dataset.countConstraints());
   if (n_c_per_leg >= 1) {
-    left_options.setConstraintRelative(0, false);
-    left_options.setConstraintRelative(1, false);
-    left_options.setPhiValue(0, 0);
-    left_options.setPhiValue(1, 0.12);
+    left_options.setConstraintRelative(0, true);
+    left_options.setConstraintRelative(1, true);
   }
   if (n_c_per_leg == 2) {
-    left_options.setConstraintRelative(3, true);
-    left_options.setConstraintRelative(4, true);
+    if (second_contact_relative_constraint) {
+      left_options.setConstraintRelative(3, true);
+      left_options.setConstraintRelative(4, true);
+    } else {
+      left_options.setConstraintRelative(3, false);
+      left_options.setConstraintRelative(4, false);
+      left_options.setPhiValue(3, 0);
+      left_options.setPhiValue(4, 0.12);
+    }
   }
   auto right_options = DirconOptions(right_dataset.countConstraints());
   if (n_c_per_leg >= 1) {
-    right_options.setConstraintRelative(0, false);
-    right_options.setConstraintRelative(1, false);
-    right_options.setPhiValue(0, 0);
-    right_options.setPhiValue(1, -0.12);
+    right_options.setConstraintRelative(0, true);
+    right_options.setConstraintRelative(1, true);
   }
   if (n_c_per_leg == 2) {
-    right_options.setConstraintRelative(3, true);
-    right_options.setConstraintRelative(4, true);
+    if (second_contact_relative_constraint) {
+      right_options.setConstraintRelative(3, true);
+      right_options.setConstraintRelative(4, true);
+    } else {
+      right_options.setConstraintRelative(3, false);
+      right_options.setConstraintRelative(4, false);
+      right_options.setPhiValue(3, 0);
+      right_options.setPhiValue(4, -0.12);
+    }
   }
 
   vector<DirconKinematicData<double>*> double_stance_constraint;
@@ -533,18 +544,29 @@ void DoMain(double stride_length, double duration, int iter,
                         &double_stance_constraint);
 
   auto double_options = DirconOptions(double_dataset.countConstraints());
-  double_options.setConstraintRelative(0, true);
-  double_options.setConstraintRelative(1, true);
-  double_options.setConstraintRelative(3, false);
-  double_options.setConstraintRelative(4, false);
-  double_options.setPhiValue(3, 0);
-  double_options.setPhiValue(4, 0.12);
-  double_options.setConstraintRelative(6, true);
-  double_options.setConstraintRelative(7, true);
-  double_options.setConstraintRelative(9, false);
-  double_options.setConstraintRelative(10, false);
-  double_options.setPhiValue(9, 0);
-  double_options.setPhiValue(10, -0.12);
+  if (second_contact_relative_constraint) {
+    double_options.setConstraintRelative(0, true);
+    double_options.setConstraintRelative(1, true);
+    double_options.setConstraintRelative(3, true);
+    double_options.setConstraintRelative(4, true);
+    double_options.setConstraintRelative(6, true);
+    double_options.setConstraintRelative(7, true);
+    double_options.setConstraintRelative(9, true);
+    double_options.setConstraintRelative(10, true);
+  } else {
+    double_options.setConstraintRelative(0, false);
+    double_options.setConstraintRelative(1, false);
+    double_options.setPhiValue(0, 0);
+    double_options.setPhiValue(1, 0.12);
+    double_options.setConstraintRelative(3, true);
+    double_options.setConstraintRelative(4, true);
+    double_options.setConstraintRelative(6, false);
+    double_options.setConstraintRelative(7, false);
+    double_options.setPhiValue(6, 0);
+    double_options.setPhiValue(7, -0.12);
+    double_options.setConstraintRelative(9, true);
+    double_options.setConstraintRelative(10, true);
+  }
 
 
   // Stated in the MultipleShooting class:
@@ -636,7 +658,7 @@ void DoMain(double stride_length, double duration, int iter,
   trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == 0.05);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -0.05);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
