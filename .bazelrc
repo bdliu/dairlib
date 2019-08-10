@@ -49,10 +49,11 @@ build --action_env=CCACHE_DISABLE=1
 # customizations somehow.
 
 # build with snopt
-#build --define=WITH_SNOPT=ON
+#build --define=WITH_SNOPT=ON  # dairlab's setting
 #build:snopt --define=WITH_SNOPT=ON
 build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON
-build:snopt_f2c --define=WITH_SNOPT_F2C=ON
+# build:snopt_f2c --define=WITH_SNOPT_F2C=ON
+build --define=WITH_SNOPT_F2C=ON  # using f2c as default
 
 # use python3 by default
 build --python_path=python3
