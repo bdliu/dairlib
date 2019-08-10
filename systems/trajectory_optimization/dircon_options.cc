@@ -29,6 +29,7 @@ void DirconOptions::setConstraintRelative(int index, bool relative) {
 }
 
 void DirconOptions::setPhiValue(int index, double val) {
+  DRAKE_DEMAND(is_constraints_relative_[index] == false);
   phi_vals_[index] = val;
 }
 
