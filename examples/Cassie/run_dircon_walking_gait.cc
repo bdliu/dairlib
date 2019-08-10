@@ -425,7 +425,7 @@ void DoMain(double stride_length, double duration, int iter,
   bool one_continuous_mode = true;
   bool double_stance = true;
   if (double_stance) one_continuous_mode = true;
-  bool second_contact_relative_constraint = true;
+  bool second_contact_relative_constraint = false;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -570,7 +570,7 @@ void DoMain(double stride_length, double duration, int iter,
 
 
   // Stated in the MultipleShooting class:
-  // This class assumes that there are a fixed number (N) time steps/samples,
+  // This class assumes that there are a fixed number (N) time steps/samples
   // and that the trajectory is discretized into timesteps h (N-1 of these),
   // state x (N of these), and control input u (N of these).
   vector<int> num_time_samples;
@@ -579,6 +579,8 @@ void DoMain(double stride_length, double duration, int iter,
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
   num_time_samples.push_back(int(40 * duration));  // 40 nodes per second
+  // Be careful that the nodes per second cannot be too high be cause you have
+  // min_dt bound.
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (double_stance) {
@@ -610,6 +612,7 @@ void DoMain(double stride_length, double duration, int iter,
   for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1;  // because of overlaps between modes
+  cout << "N = " << N << endl;
 
   // Get the decision varaibles that will be used
   auto u = trajopt->input();
@@ -620,6 +623,7 @@ void DoMain(double stride_length, double duration, int iter,
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
   // Fix the time duration
+  cout << "duration = " << duration << endl;
   trajopt->AddDurationBounds(duration, duration);
 
   // Four bar linkage constraint (setting geometric relationship is not
