@@ -91,6 +91,7 @@ using dairlib::goldilocks_models::writeCSV;
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
 DEFINE_double(duration, 0.3, "Duration of the walking gait (s)");
+DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 
 namespace dairlib {
 
@@ -756,9 +757,9 @@ void DoMain(double stride_length, double duration, int iter,
   // trajopt->AddLinearConstraint(
   //   x0(n_q + velocities_map.at("velocity[3]")) ==
   //   xf(n_q + velocities_map.at("velocity[3]")));
-  // trajopt->AddLinearConstraint(
-  //   x0(n_q + velocities_map.at("velocity[4]")) ==
-  //   -xf(n_q + velocities_map.at("velocity[4]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[4]")) ==
+    -xf(n_q + velocities_map.at("velocity[4]")));
   // trajopt->AddLinearConstraint(
   //   x0(n_q + velocities_map.at("velocity[5]")) ==
   //   xf(n_q + velocities_map.at("velocity[5]")));
@@ -1027,7 +1028,7 @@ void DoMain(double stride_length, double duration, int iter,
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  double stride_length = 0.3;
+  double stride_length = FLAGS_stride_length;
   double duration = FLAGS_duration; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
