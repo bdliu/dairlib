@@ -426,6 +426,12 @@ void DoMain(double stride_length, double duration, int iter,
   bool double_stance = true;
   if (double_stance) one_continuous_mode = true;
   bool second_contact_relative_constraint = false;
+  bool set_both_contact_pos_manually = true;
+  if (set_both_contact_pos_manually) {
+    second_contact_relative_constraint = false;
+    double_stance = true;
+    one_continuous_mode = true;
+  }
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -544,7 +550,25 @@ void DoMain(double stride_length, double duration, int iter,
                         &double_stance_constraint);
 
   auto double_options = DirconOptions(double_dataset.countConstraints());
-  if (second_contact_relative_constraint) {
+  double dist = (pt_front_contact - pt_rear_contact).norm();
+  if (set_both_contact_pos_manually) {
+    double_options.setConstraintRelative(0, false);
+    double_options.setConstraintRelative(1, false);
+    double_options.setPhiValue(0, 0);
+    double_options.setPhiValue(1, 0.12);
+    double_options.setConstraintRelative(3, false);
+    double_options.setConstraintRelative(4, false);
+    double_options.setPhiValue(3, -dist);
+    double_options.setPhiValue(4, 0.12);
+    double_options.setConstraintRelative(6, false);
+    double_options.setConstraintRelative(7, false);
+    double_options.setPhiValue(6, 0);
+    double_options.setPhiValue(7, -0.12);
+    double_options.setConstraintRelative(9, false);
+    double_options.setConstraintRelative(10, false);
+    double_options.setPhiValue(9, -dist);
+    double_options.setPhiValue(10, -0.12);
+  } else if (second_contact_relative_constraint) {
     double_options.setConstraintRelative(0, true);
     double_options.setConstraintRelative(1, true);
     double_options.setConstraintRelative(3, true);
@@ -578,7 +602,7 @@ void DoMain(double stride_length, double duration, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  num_time_samples.push_back(int(20 * duration));  // 40 nodes per second
+  num_time_samples.push_back(int(40 * duration));  // 40 nodes per second
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
@@ -662,12 +686,12 @@ void DoMain(double stride_length, double duration, int iter,
   // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -0.05);
+  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
   trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
   trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
 
 
 
