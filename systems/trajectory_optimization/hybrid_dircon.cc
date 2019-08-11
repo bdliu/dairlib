@@ -130,14 +130,15 @@ HybridDircon<T>::HybridDircon(
                    force_vars(i).segment(0, num_kinematic_constraints(i)),
                    offset_vars(i)});
 
-
-    auto kinematic_constraint_end = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getEndType());
-    AddConstraint(kinematic_constraint_end,
-                  {state_vars_by_mode(i, mode_lengths_[i] - 1),
-                   u_vars().segment((mode_start_[i] + mode_lengths_[i] - 1) * num_inputs(), num_inputs()),
-                   force_vars(i).segment((mode_lengths_[i]-1) * num_kinematic_constraints(i), num_kinematic_constraints(i)),
-                   offset_vars(i)});
+    if (mode_lengths_[i] > 1) {
+      auto kinematic_constraint_end = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
+        options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getEndType());
+      AddConstraint(kinematic_constraint_end,
+                    {state_vars_by_mode(i, mode_lengths_[i] - 1),
+                     u_vars().segment((mode_start_[i] + mode_lengths_[i] - 1) * num_inputs(), num_inputs()),
+                     force_vars(i).segment((mode_lengths_[i]-1) * num_kinematic_constraints(i), num_kinematic_constraints(i)),
+                     offset_vars(i)});
+    }
 
 
     //Add constraints on force and impulse variables

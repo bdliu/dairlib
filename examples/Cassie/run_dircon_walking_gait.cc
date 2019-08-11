@@ -556,6 +556,10 @@ void DoMain(double stride_length, double duration, int iter,
       right_options.setConstraintRelative(4, true);
     }
   }
+  if (!one_continuous_mode) {
+    // left_options.setEndType(DirconKinConstraintType::kAccelOnly);
+    // We don't constraint position if we have peirodic constraint
+  }
 
   vector<DirconKinematicData<double>*> double_stance_constraint;
   double_stance_constraint.push_back(&left_toe_front_constraint);
@@ -678,24 +682,25 @@ void DoMain(double stride_length, double duration, int iter,
   cout << "duration = " << duration << endl;
   trajopt->AddDurationBounds(duration, duration);
 
-  // Initial quaterion norm constraint (set it to identity for now)
+  // Initial quaterion constraint
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+  // (testing) Final quaternion
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+
+  // Initial quaterion norm constraint
   auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>();
-  // trajopt->AddConstraint(quat_norm_constraint, x0.head(4));
   for (int i = 0; i < N; i++) {
     auto xi = trajopt->state(i);
     trajopt->AddConstraint(quat_norm_constraint, xi.head(4));
   }
 
 
-  // (testing) Final quaternion
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
 
 
   // x-distance constraint constraints
@@ -739,24 +744,24 @@ void DoMain(double stride_length, double duration, int iter,
                                -xf(positions_map.at("position[5]")));
   trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
                                xf(positions_map.at("position[6]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[0]")) ==
-    xf(n_q + velocities_map.at("velocity[0]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[1]")) ==
-    -xf(n_q + velocities_map.at("velocity[1]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[2]")) ==
-    xf(n_q + velocities_map.at("velocity[2]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[3]")) ==
-    xf(n_q + velocities_map.at("velocity[3]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[4]")) ==
-    -xf(n_q + velocities_map.at("velocity[4]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[5]")) ==
-    xf(n_q + velocities_map.at("velocity[5]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[0]")) ==
+  //   xf(n_q + velocities_map.at("velocity[0]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[1]")) ==
+  //   -xf(n_q + velocities_map.at("velocity[1]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[2]")) ==
+  //   xf(n_q + velocities_map.at("velocity[2]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[3]")) ==
+  //   xf(n_q + velocities_map.at("velocity[3]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[4]")) ==
+  //   -xf(n_q + velocities_map.at("velocity[4]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[5]")) ==
+  //   xf(n_q + velocities_map.at("velocity[5]")));
 
   vector<std::string> left_joint_names {
     "hip_roll_left",
