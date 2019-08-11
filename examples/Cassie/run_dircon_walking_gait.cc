@@ -88,7 +88,7 @@ using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
-DEFINE_double(duration, 0.1, "Duration of the walking gait (s)");
+DEFINE_double(duration, 0.5, "Duration of the walking gait (s)");
 
 namespace dairlib {
 
@@ -422,13 +422,13 @@ void DoMain(double stride_length, double duration, int iter,
   // Set up contact/distance constraints and construct dircon
   // parameters
   int n_c_per_leg = 2;
-  bool one_continuous_mode = true;
-  bool double_stance = true;
-  if (double_stance) one_continuous_mode = true;
-  bool second_contact_relative_constraint = false;
-  bool set_both_contact_pos_manually = true;
+  bool one_continuous_mode = false;
+  bool double_stance = false;
+  if (double_stance) one_continuous_mode = false;
+  bool set_second_contact_manually = false;
+  bool set_both_contact_pos_manually = false;
   if (set_both_contact_pos_manually) {
-    second_contact_relative_constraint = false;
+    set_second_contact_manually = true;
     double_stance = true;
     one_continuous_mode = true;
   }
@@ -512,14 +512,14 @@ void DoMain(double stride_length, double duration, int iter,
     left_options.setConstraintRelative(1, true);
   }
   if (n_c_per_leg == 2) {
-    if (second_contact_relative_constraint) {
-      left_options.setConstraintRelative(3, true);
-      left_options.setConstraintRelative(4, true);
-    } else {
+    if (set_second_contact_manually) {
       left_options.setConstraintRelative(3, false);
       left_options.setConstraintRelative(4, false);
       left_options.setPhiValue(3, 0);
       left_options.setPhiValue(4, 0.12);
+    } else {
+      left_options.setConstraintRelative(3, true);
+      left_options.setConstraintRelative(4, true);
     }
   }
   auto right_options = DirconOptions(right_dataset.countConstraints());
@@ -528,14 +528,14 @@ void DoMain(double stride_length, double duration, int iter,
     right_options.setConstraintRelative(1, true);
   }
   if (n_c_per_leg == 2) {
-    if (second_contact_relative_constraint) {
-      right_options.setConstraintRelative(3, true);
-      right_options.setConstraintRelative(4, true);
-    } else {
+    if (set_second_contact_manually) {
       right_options.setConstraintRelative(3, false);
       right_options.setConstraintRelative(4, false);
       right_options.setPhiValue(3, 0);
       right_options.setPhiValue(4, -0.12);
+    } else {
+      right_options.setConstraintRelative(3, true);
+      right_options.setConstraintRelative(4, true);
     }
   }
 
@@ -568,16 +568,7 @@ void DoMain(double stride_length, double duration, int iter,
     double_options.setConstraintRelative(10, false);
     double_options.setPhiValue(9, -dist);
     double_options.setPhiValue(10, -0.12);
-  } else if (second_contact_relative_constraint) {
-    double_options.setConstraintRelative(0, true);
-    double_options.setConstraintRelative(1, true);
-    double_options.setConstraintRelative(3, true);
-    double_options.setConstraintRelative(4, true);
-    double_options.setConstraintRelative(6, true);
-    double_options.setConstraintRelative(7, true);
-    double_options.setConstraintRelative(9, true);
-    double_options.setConstraintRelative(10, true);
-  } else {
+  } else if (set_second_contact_manually) {
     double_options.setConstraintRelative(0, false);
     double_options.setConstraintRelative(1, false);
     double_options.setPhiValue(0, 0);
@@ -588,6 +579,15 @@ void DoMain(double stride_length, double duration, int iter,
     double_options.setConstraintRelative(7, false);
     double_options.setPhiValue(6, 0);
     double_options.setPhiValue(7, -0.12);
+    double_options.setConstraintRelative(9, true);
+    double_options.setConstraintRelative(10, true);
+  } else {
+    double_options.setConstraintRelative(0, true);
+    double_options.setConstraintRelative(1, true);
+    double_options.setConstraintRelative(3, true);
+    double_options.setConstraintRelative(4, true);
+    double_options.setConstraintRelative(6, true);
+    double_options.setConstraintRelative(7, true);
     double_options.setConstraintRelative(9, true);
     double_options.setConstraintRelative(10, true);
   }
@@ -602,7 +602,7 @@ void DoMain(double stride_length, double duration, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  num_time_samples.push_back(int(40 * duration));  // 40 nodes per second
+  num_time_samples.push_back(int(40.0 / 5 * duration));  // 40 nodes per second
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
@@ -620,6 +620,15 @@ void DoMain(double stride_length, double duration, int iter,
     max_dt.push_back(.3);
     dataset_list.push_back(&right_dataset);
     options_list.push_back(right_options);
+  }
+
+  cout << "options_list.size() = " << options_list.size() << endl;
+  for (uint i = 0; i < options_list.size(); i ++) {
+    cout << "mode # " << i << endl;
+    for (auto member : options_list[i].getConstraintsRelative()) {
+      cout << member << ", ";
+    }
+    cout << endl;
   }
 
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
@@ -650,71 +659,86 @@ void DoMain(double stride_length, double duration, int iter,
   cout << "duration = " << duration << endl;
   trajopt->AddDurationBounds(duration, duration);
 
-  // Four bar linkage constraint (setting geometric relationship is not
-  // sufficient. Also need constraint force.)
-  // trajopt->AddConstraintToAllKnotPoints(
-  //   x(positions_map.at("knee_left"))
-  //   + x(positions_map.at("ankle_joint_left")) == M_PI * 13 / 180.0);
-  // trajopt->AddConstraintToAllKnotPoints(
-  //   x(positions_map.at("knee_right"))
-  //   + x(positions_map.at("ankle_joint_right")) == M_PI * 13 / 180.0);
-
   // Initial quaterion norm constraint (set it to identity for now)
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) <= 2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) >= -2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) <= 2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) >= -2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) <= 2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) >= -2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) <= 2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) >= -2);
 
   // (testing) Final quaternion
-  auto k_quat_w = trajopt->NewContinuousVariables(1, "k_dot_quat_w");
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) == k_quat_w[0]);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
 
 
   // x-distance constraint constraints
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-  //                              stride_length);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
+                               stride_length);
 
 
 
 
-  // testing(initial z)
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  // testing(initial floating base)
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
   // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
 
 
-
-
   // Periodicity constraints
-  // Floating base (z and rotation) should be the same
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
-  //                              xf(positions_map.at("position[0]")));
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
-  //                              xf(positions_map.at("position[1]")));
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
-  //                              xf(positions_map.at("position[2]")));
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
-  //                              xf(positions_map.at("position[3]")));
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
-  //                              xf(positions_map.at("position[6]")));
-  // trajopt->AddLinearConstraint(
-  //   x0(n_q + velocities_map.at("velocity[3]")) ==
-  //   xf(n_q + velocities_map.at("velocity[3]")));
-  // trajopt->AddLinearConstraint(
-  //   x0(n_q + velocities_map.at("velocity[5]")) ==
-  //   xf(n_q + velocities_map.at("velocity[5]")));
-  // TODO: Not sure how to impose period constraint in rotation for 3D walking
+  // Floating base (mirror in x-z plane)
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
+                               xf(positions_map.at("position[0]")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
+                               -xf(positions_map.at("position[1]")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
+                               xf(positions_map.at("position[2]")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
+                               -xf(positions_map.at("position[3]")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
+                               -xf(positions_map.at("position[5]")));
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
+                               xf(positions_map.at("position[6]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[0]")) ==
+    xf(n_q + velocities_map.at("velocity[0]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[1]")) ==
+    -xf(n_q + velocities_map.at("velocity[1]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[2]")) ==
+    xf(n_q + velocities_map.at("velocity[2]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[3]")) ==
+    xf(n_q + velocities_map.at("velocity[3]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[4]")) ==
+    -xf(n_q + velocities_map.at("velocity[4]")));
+  trajopt->AddLinearConstraint(
+    x0(n_q + velocities_map.at("velocity[5]")) ==
+    xf(n_q + velocities_map.at("velocity[5]")));
 
   vector<std::string> left_joint_names {
     "hip_roll_left",
@@ -746,29 +770,29 @@ void DoMain(double stride_length, double duration, int iter,
     "knee_right_motor",
     "toe_right_motor"
   };
-  // // The legs joint positions and velocities should be mirrored between legs
-  // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-  //   trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
-  //                                xf(positions_map.at(right_joint_names[i])));
-  //   trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
-  //                                xf(positions_map.at(left_joint_names[i])));
-  // }
-  // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-  //   trajopt->AddLinearConstraint(
-  //     x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
-  //     xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
-  //   trajopt->AddLinearConstraint(
-  //     x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
-  //     xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
-  // }
+  // The legs joint positions and velocities should be mirrored between legs
+  for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+    trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
+                                 xf(positions_map.at(right_joint_names[i])));
+    trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
+                                 xf(positions_map.at(left_joint_names[i])));
+  }
+  for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
+      xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
+      xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
+  }
 
-  // // u periodic constraint
-  // for (unsigned int i = 0; i < left_motor_names.size(); i++) {
-  //   trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
-  //                                uf(actuators_map.at(right_motor_names[i])));
-  //   trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
-  //                                uf(actuators_map.at(left_motor_names[i])));
-  // }
+  // u periodic constraint
+  for (unsigned int i = 0; i < left_motor_names.size(); i++) {
+    trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
+                                 uf(actuators_map.at(right_motor_names[i])));
+    trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
+                                 uf(actuators_map.at(left_motor_names[i])));
+  }
 
   // joint limits
   vector<std::string> joint_names {};
@@ -882,16 +906,16 @@ void DoMain(double stride_length, double duration, int iter,
     MatrixXd z0 = readCSV(data_directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
   } else {
-    // // Do inverse kinematics to get q initial guess
-    // vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
-    // // Do finite differencing to get v initial guess
-    // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
-    // for (int i = 0; i < N; i++) {
-    //   auto xi = trajopt->state(i);
-    //   VectorXd xi_seed(n_q + n_v);
-    //   xi_seed << q_seed.at(i), v_seed.at(i);
-    //   trajopt->SetInitialGuess(xi, xi_seed);
-    // }
+    // Do inverse kinematics to get q initial guess
+    vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
+    // Do finite differencing to get v initial guess
+    vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
+    for (int i = 0; i < N; i++) {
+      auto xi = trajopt->state(i);
+      VectorXd xi_seed(n_q + n_v);
+      xi_seed << q_seed.at(i), v_seed.at(i);
+      trajopt->SetInitialGuess(xi, xi_seed);
+    }
     /*
     // Get approximated vdot by finite difference
     vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
@@ -979,7 +1003,7 @@ void DoMain(double stride_length, double duration, int iter,
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  double stride_length = 0.4;
+  double stride_length = 0.3;
   double duration = FLAGS_duration; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
