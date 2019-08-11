@@ -51,7 +51,8 @@ class HybridDircon :
                std::vector<double> minimum_timestep,
                std::vector<double> maximum_timestep,
                std::vector<DirconKinematicDataSet<T>*> constraints,
-               std::vector<DirconOptions> options);
+               std::vector<DirconOptions> options,
+               bool is_quaterion = false);
 
   ~HybridDircon() override {}
 

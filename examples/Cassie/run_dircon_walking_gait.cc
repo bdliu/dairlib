@@ -81,6 +81,8 @@ using dairlib::systems::trajectory_optimization::DirconDynamicConstraint;
 using dairlib::systems::trajectory_optimization::DirconKinematicConstraint;
 using dairlib::systems::trajectory_optimization::DirconOptions;
 using dairlib::systems::trajectory_optimization::DirconKinConstraintType;
+using dairlib::systems::trajectory_optimization::DirconAbstractConstraint;
+
 using dairlib::systems::SubvectorPassThrough;
 
 using dairlib::goldilocks_models::readCSV;
@@ -88,7 +90,7 @@ using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
-DEFINE_double(duration, 0.5, "Duration of the walking gait (s)");
+DEFINE_double(duration, 0.3, "Duration of the walking gait (s)");
 
 namespace dairlib {
 
@@ -321,6 +323,22 @@ void GetInitGuessForUAndLambda(const MultibodyPlant<double>& plant,
     cout << "  lambda_sol = " << lambda_sol.transpose() << endl;
   }
 }
+
+
+class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
+ public:
+  QuaternionNormConstraint() : DirconAbstractConstraint<double>(1, 4,
+                                   VectorXd::Zero(1), VectorXd::Zero(1)) {
+  }
+  ~QuaternionNormConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorX<double> output(1);
+    output << x.norm() - 1;
+    *y = output;
+  };
+};
 
 
 void DoMain(double stride_length, double duration, int iter,
@@ -602,7 +620,7 @@ void DoMain(double stride_length, double duration, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  num_time_samples.push_back(int(40.0 / 5 * duration));  // 40 nodes per second
+  num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
@@ -632,7 +650,8 @@ void DoMain(double stride_length, double duration, int iter,
   }
 
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
-                 num_time_samples, min_dt, max_dt, dataset_list, options_list);
+                 num_time_samples, min_dt, max_dt, dataset_list, options_list,
+                 true /*is_quaterion*/);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
@@ -664,14 +683,13 @@ void DoMain(double stride_length, double duration, int iter,
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) <= 2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) >= -2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) <= 2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) >= -2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) <= 2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) >= -2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) <= 2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) >= -2);
+  auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>();
+  // trajopt->AddConstraint(quat_norm_constraint, x0.head(4));
+  for (int i = 0; i < N; i++) {
+    auto xi = trajopt->state(i);
+    trajopt->AddConstraint(quat_norm_constraint, xi.head(4));
+  }
+
 
   // (testing) Final quaternion
   // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
@@ -972,6 +990,7 @@ void DoMain(double stride_length, double duration, int iter,
   VectorXd time_at_knots = trajopt->GetSampleTimes(result);
   MatrixXd state_at_knots = trajopt->GetStateSamples(result);
   MatrixXd input_at_knots = trajopt->GetInputSamples(result);
+  state_at_knots.col(N-1) = result.GetSolution(xf);
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);
   writeCSV(data_directory + string("x_i.csv"), state_at_knots);
   writeCSV(data_directory + string("u_i.csv"), input_at_knots);

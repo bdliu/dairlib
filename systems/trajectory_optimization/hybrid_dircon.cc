@@ -37,7 +37,8 @@ HybridDircon<T>::HybridDircon(
     vector<double> minimum_timestep,
     vector<double> maximum_timestep,
     vector<DirconKinematicDataSet<T>*> constraints,
-    vector<DirconOptions> options) :
+    vector<DirconOptions> options,
+    bool is_quaterion) :
         MultipleShooting(plant.num_actuators(),
           plant.num_positions() + plant.num_velocities(),
           std::accumulate(num_time_samples.begin(),
@@ -81,7 +82,7 @@ HybridDircon<T>::HybridDircon(
       impulse_vars_.push_back(NewContinuousVariables(constraints_[i]->countConstraints(), "impulse[" + std::to_string(i) + "]"));
     }
 
-    auto constraint = std::make_shared<DirconDynamicConstraint<T>>(plant_, *constraints_[i]);
+    auto constraint = std::make_shared<DirconDynamicConstraint<T>>(plant_, *constraints_[i], is_quaterion);
 
     DRAKE_ASSERT(static_cast<int>(constraint->num_constraints()) == num_states());
 
@@ -94,6 +95,8 @@ HybridDircon<T>::HybridDircon(
       int time_index = mode_start_[i] + j;
       vector<VectorXDecisionVariable> x_next;
 
+      // gamma is slack variable used to scale quaternion norm to 1.
+      auto gamma = NewContinuousVariables((is_quaterion)? 1:0, "gamma_"+ std::to_string(i) + "_" + std::to_string(j));
       AddConstraint(constraint,
                     {h_vars().segment(time_index,1),
                      state_vars_by_mode(i, j),
@@ -101,7 +104,8 @@ HybridDircon<T>::HybridDircon(
                      u_vars().segment(time_index * num_inputs(), num_inputs() * 2),
                      force_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i) * 2),
                      collocation_force_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i)),
-                     collocation_slack_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i))});
+                     collocation_slack_vars(i).segment(j * num_kinematic_constraints(i), num_kinematic_constraints(i)),
+                     gamma});
 
     }
 

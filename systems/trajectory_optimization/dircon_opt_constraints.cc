@@ -108,26 +108,29 @@ void DirconAbstractConstraint<double>::DoEval(
 
 template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
-    const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints) :
+    const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
+    bool is_floating_base) :
   DirconDynamicConstraint(plant, constraints, plant.num_positions(),
                           plant.num_velocities(), plant.num_actuators(),
-                          constraints.countConstraints()) {}
+                          constraints.countConstraints(),
+                          (is_floating_base)? 1:0) {}
 
 template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     int num_positions, int num_velocities, int num_inputs,
-    int num_kinematic_constraints)
+    int num_kinematic_constraints, int num_quat_slack)
     : DirconAbstractConstraint<T>(num_positions + num_velocities,
           1 + 2 *(num_positions+ num_velocities) + (2 * num_inputs) +
-          (4 * num_kinematic_constraints),
+          (4 * num_kinematic_constraints) + num_quat_slack,
           Eigen::VectorXd::Zero(num_positions + num_velocities),
           Eigen::VectorXd::Zero(num_positions + num_velocities)),
       plant_(plant),
       constraints_(&constraints),
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
       num_kinematic_constraints_{num_kinematic_constraints},
-      num_positions_{num_positions}, num_velocities_{num_velocities} {}
+      num_positions_{num_positions}, num_velocities_{num_velocities},
+      num_quat_slack_{num_quat_slack} {}
 
 // The format of the input to the eval() function is the
 // tuple { timestep, state 0, state 1, input 0, input 1, force 0, force 1},
@@ -136,7 +139,7 @@ template <typename T>
 void DirconDynamicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
-      4*(num_kinematic_constraints_));
+      4*(num_kinematic_constraints_) + num_quat_slack_);
 
   // Extract our input variables:
   // h - current time (knot) value
@@ -155,6 +158,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
       2*num_kinematic_constraints_, num_kinematic_constraints_);
   const VectorX<T> vc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
       3*num_kinematic_constraints_, num_kinematic_constraints_);
+  const VectorX<T> gamma = x.tail(num_quat_slack_);
 
   auto context0 = multibody::createContext(plant_, x0, u0);
   constraints_->updateData(*context0, l0);
@@ -176,6 +180,10 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   plant_.MapVelocityToQDot(*contextcol,
       constraints_->getJ().transpose()*vc, &vc_in_qdot_space);
   g.head(num_positions_) += vc_in_qdot_space;
+  if (num_quat_slack_ > 0) {
+    // Assume the floating base coordinates is in the first four elements.
+    g.head(4) += xcol.head(4).normalized() * gamma;
+  }
   *y = xdotcol - g;
 }
 
@@ -287,6 +295,9 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
       *y = VectorX<T>(3*num_kinematic_constraints_);
       *y << constraints_->getC() + relative_map_*offset - phi_vals_,
             constraints_->getCDot(), constraints_->getCDDot();
+      // *y << constraints_->getC() + relative_map_*offset - phi_vals_,
+      //       VectorX<T>::Zero(num_kinematic_constraints_),
+      //       VectorX<T>::Zero(num_kinematic_constraints_);
       break;
     case kAccelAndVel:
       *y = VectorX<T>(2*num_kinematic_constraints_);
@@ -353,6 +364,7 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
 }
 
 // Explicitly instantiates on the most common scalar types.
+template class DirconAbstractConstraint<double>;
 template class DirconDynamicConstraint<double>;
 template class DirconDynamicConstraint<AutoDiffXd>;
 template class DirconKinematicConstraint<double>;
