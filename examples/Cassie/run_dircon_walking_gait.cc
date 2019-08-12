@@ -457,18 +457,12 @@ void DoMain(double stride_length, double duration_ss, int iter,
   bool isXZ = false;
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
                                    pt_front_contact, isXZ);
-  // auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
-  //                                 pt_rear_contact, isXZ);
-  std::vector<bool> row_idx_set_to_0(3,false);
-  row_idx_set_to_0[2] = true;
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
-                                  pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+                                  pt_rear_contact, isXZ);
   auto right_toe_front_constraint = DirconPositionData<double>(plant, toe_right,
                                     pt_front_contact, isXZ);
-  // auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
-  //                                  pt_rear_contact, isXZ);
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
-                                   pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+                                   pt_rear_contact, isXZ);
 
   Vector3d normal(0, 0, 1);
   double mu = 1;
@@ -495,11 +489,23 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                    rod_length);
 
   // Testing
+  std::vector<bool> row_idx_set_to_0(3,false);
+  row_idx_set_to_0[2] = true;
+  auto left_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_left,
+                                  pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+  auto right_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_right,
+                                   pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+  left_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
+  right_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
+
+  // Testing
   bool isYZ = true; if (isYZ) isXZ = true;
   auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
         pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
   auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
         pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
+  left_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
+  right_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Testing (mid contact point)
   /*Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
@@ -585,9 +591,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // Double stance all four contacts
   vector<DirconKinematicData<double>*> double_stance_all_constraint;
   double_stance_all_constraint.push_back(&left_toe_front_constraint);
-  double_stance_all_constraint.push_back(&left_toe_rear_constraint);
+  double_stance_all_constraint.push_back(&left_toe_rear_indpt_constraint);
   double_stance_all_constraint.push_back(&right_toe_front_constraint);
-  double_stance_all_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_all_constraint.push_back(&right_toe_rear_indpt_constraint);
   double_stance_all_constraint.push_back(&distance_constraint_left);
   double_stance_all_constraint.push_back(&distance_constraint_right);
   auto double_all_dataset = DirconKinematicDataSet<double>(plant,
@@ -820,6 +826,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
   trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
   trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[3]")) == 0);
 
   // Initial quaterion norm constraint
   if (is_quaterion) {
@@ -844,15 +854,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);

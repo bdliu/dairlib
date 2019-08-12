@@ -182,7 +182,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   g.head(num_positions_) += vc_in_qdot_space;
   if (num_quat_slack_ > 0) {
     // Assume the floating base coordinates is in the first four elements.
-    g.head(4) += xcol.head(4).normalized() * gamma;
+    g.head(4) += xcol.head(4) * gamma;
   }
   *y = xdotcol - g;
 }
