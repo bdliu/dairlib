@@ -90,7 +90,7 @@ using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
-DEFINE_double(duration, 0.3, "Duration of the walking gait (s)");
+DEFINE_double(duration_ss, 0.3, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 
 namespace dairlib {
@@ -342,7 +342,7 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
 };
 
 
-void DoMain(double stride_length, double duration, int iter,
+void DoMain(double stride_length, double duration_ss, int iter,
             string data_directory,
             string init_file,
             string output_prefix) {
@@ -441,16 +441,12 @@ void DoMain(double stride_length, double duration, int iter,
   // Set up contact/distance constraints and construct dircon
   // parameters
   int n_c_per_leg = 2;
-  bool one_continuous_mode = false;
-  bool double_stance = false;
-  if (double_stance) one_continuous_mode = false;
+  bool standing = false;
+  int walking_mode = 2; // 0: instant change of support
+                        // 1: single double single
+                        // 2: heel to toe
   bool set_second_contact_manually = false;
   bool set_both_contact_pos_manually = false;
-  if (set_both_contact_pos_manually) {
-    set_second_contact_manually = true;
-    double_stance = true;
-    one_continuous_mode = true;
-  }
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -498,121 +494,129 @@ void DoMain(double stride_length, double duration, int iter,
   left_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);*/
 
+  // Compose different types of stance (we call front contact toe and rear
+  // contact heel here)
+  // left stance (left heel and toe)
+  vector<DirconKinematicData<double>*> left_stance_ht_constraint;
+  left_stance_ht_constraint.push_back(&left_toe_front_constraint);
+  left_stance_ht_constraint.push_back(&left_toe_rear_constraint);
+  left_stance_ht_constraint.push_back(&distance_constraint_left);
+  left_stance_ht_constraint.push_back(&distance_constraint_right);
+  auto left_ht_dataset = DirconKinematicDataSet<double>(plant,
+                      &left_stance_ht_constraint);
+  auto left_ht_options = DirconOptions(left_ht_dataset.countConstraints());
+  left_ht_options.setConstraintRelative(0, true);
+  left_ht_options.setConstraintRelative(1, true);
+  left_ht_options.setConstraintRelative(3, true);
+  left_ht_options.setConstraintRelative(4, true);
 
-  vector<DirconKinematicData<double>*> left_stance_constraint;
-  if (n_c_per_leg >= 1) {
-    left_stance_constraint.push_back(&left_toe_front_constraint);
-  }
-  if (n_c_per_leg >= 2) {
-    left_stance_constraint.push_back(&left_toe_rear_constraint);
-  }
-  left_stance_constraint.push_back(&distance_constraint_left);
-  left_stance_constraint.push_back(&distance_constraint_right);
-  // left_stance_constraint.push_back(&left_toe_mid_constraint);
-  auto left_dataset = DirconKinematicDataSet<double>(plant,
-                      &left_stance_constraint);
+  // left stance (left toe)
+  vector<DirconKinematicData<double>*> left_stance_t_constraint;
+  left_stance_t_constraint.push_back(&left_toe_front_constraint);
+  left_stance_t_constraint.push_back(&distance_constraint_left);
+  left_stance_t_constraint.push_back(&distance_constraint_right);
+  auto left_t_dataset = DirconKinematicDataSet<double>(plant,
+                      &left_stance_t_constraint);
+  auto left_t_options = DirconOptions(left_t_dataset.countConstraints());
+  left_t_options.setConstraintRelative(0, true);
+  left_t_options.setConstraintRelative(1, true);
 
-  vector<DirconKinematicData<double>*> right_stance_constraint;
-  if (n_c_per_leg >= 1) {
-    right_stance_constraint.push_back(&right_toe_front_constraint);
-  }
-  if (n_c_per_leg >= 2) {
-    right_stance_constraint.push_back(&right_toe_rear_constraint);
-  }
-  right_stance_constraint.push_back(&distance_constraint_left);
-  right_stance_constraint.push_back(&distance_constraint_right);
-  // right_stance_constraint.push_back(&right_toe_mid_constraint);
-  auto right_dataset = DirconKinematicDataSet<double>(plant,
-                       &right_stance_constraint);
+  // Double stance (left toe, right heel)
+  vector<DirconKinematicData<double>*> double_stance_th_constraint;
+  double_stance_th_constraint.push_back(&left_toe_front_constraint);
+  double_stance_th_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_th_constraint.push_back(&distance_constraint_left);
+  double_stance_th_constraint.push_back(&distance_constraint_right);
+  auto double_th_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_th_constraint);
+  auto double_th_options = DirconOptions(double_th_dataset.countConstraints());
+  double_th_options.setConstraintRelative(0, true);
+  double_th_options.setConstraintRelative(1, true);
+  double_th_options.setConstraintRelative(3, true);
+  double_th_options.setConstraintRelative(4, true);
 
-  auto left_options = DirconOptions(left_dataset.countConstraints());
-  if (n_c_per_leg >= 1) {
-    left_options.setConstraintRelative(0, true);
-    left_options.setConstraintRelative(1, true);
-  }
-  if (n_c_per_leg == 2) {
-    if (set_second_contact_manually) {
-      left_options.setConstraintRelative(3, false);
-      left_options.setConstraintRelative(4, false);
-      left_options.setPhiValue(3, 0);
-      left_options.setPhiValue(4, 0.12);
-    } else {
-      left_options.setConstraintRelative(3, true);
-      left_options.setConstraintRelative(4, true);
-    }
-  }
-  auto right_options = DirconOptions(right_dataset.countConstraints());
-  if (n_c_per_leg >= 1) {
-    right_options.setConstraintRelative(0, true);
-    right_options.setConstraintRelative(1, true);
-  }
-  if (n_c_per_leg == 2) {
-    if (set_second_contact_manually) {
-      right_options.setConstraintRelative(3, false);
-      right_options.setConstraintRelative(4, false);
-      right_options.setPhiValue(3, 0);
-      right_options.setPhiValue(4, -0.12);
-    } else {
-      right_options.setConstraintRelative(3, true);
-      right_options.setConstraintRelative(4, true);
-    }
-  }
-  if (!one_continuous_mode) {
-    // left_options.setEndType(DirconKinConstraintType::kAccelOnly);
-    // We don't constraint position if we have peirodic constraint
-  }
+  // Double stance (left toe, right heel and toe)
+  vector<DirconKinematicData<double>*> double_stance_tht_constraint;
+  double_stance_tht_constraint.push_back(&left_toe_front_constraint);
+  double_stance_tht_constraint.push_back(&right_toe_front_constraint);
+  double_stance_tht_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_tht_constraint.push_back(&distance_constraint_left);
+  double_stance_tht_constraint.push_back(&distance_constraint_right);
+  auto double_tht_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_tht_constraint);
+  auto double_tht_options = DirconOptions(double_tht_dataset.countConstraints());
+  double_tht_options.setConstraintRelative(0, true);
+  double_tht_options.setConstraintRelative(1, true);
+  double_tht_options.setConstraintRelative(3, true);
+  double_tht_options.setConstraintRelative(4, true);
+  double_tht_options.setConstraintRelative(6, true);
+  double_tht_options.setConstraintRelative(7, true);
 
-  vector<DirconKinematicData<double>*> double_stance_constraint;
-  double_stance_constraint.push_back(&left_toe_front_constraint);
-  double_stance_constraint.push_back(&left_toe_rear_constraint);
-  double_stance_constraint.push_back(&right_toe_front_constraint);
-  double_stance_constraint.push_back(&right_toe_rear_constraint);
-  double_stance_constraint.push_back(&distance_constraint_left);
-  double_stance_constraint.push_back(&distance_constraint_right);
-  auto double_dataset = DirconKinematicDataSet<double>(plant,
-                        &double_stance_constraint);
+  // right stance ht
+  vector<DirconKinematicData<double>*> right_stance_ht_constraint;
+  right_stance_ht_constraint.push_back(&right_toe_front_constraint);
+  right_stance_ht_constraint.push_back(&right_toe_rear_constraint);
+  right_stance_ht_constraint.push_back(&distance_constraint_left);
+  right_stance_ht_constraint.push_back(&distance_constraint_right);
+  auto right_ht_dataset = DirconKinematicDataSet<double>(plant,
+                       &right_stance_ht_constraint);
+  auto right_ht_options = DirconOptions(right_ht_dataset.countConstraints());
+  right_ht_options.setConstraintRelative(0, true);
+  right_ht_options.setConstraintRelative(1, true);
+  right_ht_options.setConstraintRelative(3, true);
+  right_ht_options.setConstraintRelative(4, true);
 
-  auto double_options = DirconOptions(double_dataset.countConstraints());
+  // Double stance all four contacts
+  vector<DirconKinematicData<double>*> double_stance_all_constraint;
+  double_stance_all_constraint.push_back(&left_toe_front_constraint);
+  double_stance_all_constraint.push_back(&left_toe_rear_constraint);
+  double_stance_all_constraint.push_back(&right_toe_front_constraint);
+  double_stance_all_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_all_constraint.push_back(&distance_constraint_left);
+  double_stance_all_constraint.push_back(&distance_constraint_right);
+  auto double_all_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_all_constraint);
+  auto double_all_options = DirconOptions(double_all_dataset.countConstraints());
   double dist = (pt_front_contact - pt_rear_contact).norm();
   if (set_both_contact_pos_manually) {
-    double_options.setConstraintRelative(0, false);
-    double_options.setConstraintRelative(1, false);
-    double_options.setPhiValue(0, 0);
-    double_options.setPhiValue(1, 0.12);
-    double_options.setConstraintRelative(3, false);
-    double_options.setConstraintRelative(4, false);
-    double_options.setPhiValue(3, -dist);
-    double_options.setPhiValue(4, 0.12);
-    double_options.setConstraintRelative(6, false);
-    double_options.setConstraintRelative(7, false);
-    double_options.setPhiValue(6, 0);
-    double_options.setPhiValue(7, -0.12);
-    double_options.setConstraintRelative(9, false);
-    double_options.setConstraintRelative(10, false);
-    double_options.setPhiValue(9, -dist);
-    double_options.setPhiValue(10, -0.12);
+    double_all_options.setConstraintRelative(0, false);
+    double_all_options.setConstraintRelative(1, false);
+    double_all_options.setPhiValue(0, 0);
+    double_all_options.setPhiValue(1, 0.12);
+    double_all_options.setConstraintRelative(3, false);
+    double_all_options.setConstraintRelative(4, false);
+    double_all_options.setPhiValue(3, -dist);
+    double_all_options.setPhiValue(4, 0.12);
+    double_all_options.setConstraintRelative(6, false);
+    double_all_options.setConstraintRelative(7, false);
+    double_all_options.setPhiValue(6, 0);
+    double_all_options.setPhiValue(7, -0.12);
+    double_all_options.setConstraintRelative(9, false);
+    double_all_options.setConstraintRelative(10, false);
+    double_all_options.setPhiValue(9, -dist);
+    double_all_options.setPhiValue(10, -0.12);
   } else if (set_second_contact_manually) {
-    double_options.setConstraintRelative(0, false);
-    double_options.setConstraintRelative(1, false);
-    double_options.setPhiValue(0, 0);
-    double_options.setPhiValue(1, 0.12);
-    double_options.setConstraintRelative(3, true);
-    double_options.setConstraintRelative(4, true);
-    double_options.setConstraintRelative(6, false);
-    double_options.setConstraintRelative(7, false);
-    double_options.setPhiValue(6, 0);
-    double_options.setPhiValue(7, -0.12);
-    double_options.setConstraintRelative(9, true);
-    double_options.setConstraintRelative(10, true);
+    double_all_options.setConstraintRelative(0, false);
+    double_all_options.setConstraintRelative(1, false);
+    double_all_options.setPhiValue(0, 0);
+    double_all_options.setPhiValue(1, 0.12);
+    double_all_options.setConstraintRelative(3, true);
+    double_all_options.setConstraintRelative(4, true);
+    double_all_options.setConstraintRelative(6, false);
+    double_all_options.setConstraintRelative(7, false);
+    double_all_options.setPhiValue(6, 0);
+    double_all_options.setPhiValue(7, -0.12);
+    double_all_options.setConstraintRelative(9, true);
+    double_all_options.setConstraintRelative(10, true);
   } else {
-    double_options.setConstraintRelative(0, true);
-    double_options.setConstraintRelative(1, true);
-    double_options.setConstraintRelative(3, true);
-    double_options.setConstraintRelative(4, true);
-    double_options.setConstraintRelative(6, true);
-    double_options.setConstraintRelative(7, true);
-    double_options.setConstraintRelative(9, true);
-    double_options.setConstraintRelative(10, true);
+    double_all_options.setConstraintRelative(0, true);
+    double_all_options.setConstraintRelative(1, true);
+    double_all_options.setConstraintRelative(3, true);
+    double_all_options.setConstraintRelative(4, true);
+    double_all_options.setConstraintRelative(6, true);
+    double_all_options.setConstraintRelative(7, true);
+    double_all_options.setConstraintRelative(9, true);
+    double_all_options.setConstraintRelative(10, true);
   }
 
 
@@ -625,25 +629,77 @@ void DoMain(double stride_length, double duration, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
+  num_time_samples.push_back(10);
+  // num_time_samples.push_back(int(40.0 * duration_ss));  // 40 nodes per second
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
   max_dt.push_back(.3);
-  if (double_stance) {
-    dataset_list.push_back(&double_dataset);
-    options_list.push_back(double_options);
-  } else {
-    dataset_list.push_back(&left_dataset);
-    options_list.push_back(left_options);
+  if (standing) {  // standing
+    dataset_list.push_back(&double_all_dataset);
+    options_list.push_back(double_all_options);
+  } else {  // walking
+    if (walking_mode == 0) {
+      dataset_list.push_back(&left_ht_dataset);
+      options_list.push_back(left_ht_options);
+
+      // second phase
+      num_time_samples.push_back(1);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&right_ht_dataset);
+      options_list.push_back(right_ht_options);
+    } else if (walking_mode == 1) {  // walking with double support transition
+      dataset_list.push_back(&left_ht_dataset);
+      options_list.push_back(left_ht_options);
+
+      // second phase
+      num_time_samples.push_back(8);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&double_all_dataset);
+      options_list.push_back(double_all_options);
+
+      // third phase
+      num_time_samples.push_back(1);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&right_ht_dataset);
+      options_list.push_back(right_ht_options);
+    } else if (walking_mode == 2) {  // walking with heel to toe transition
+      dataset_list.push_back(&left_ht_dataset);
+      options_list.push_back(left_ht_options);
+
+      // second phase
+      num_time_samples.push_back(6);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&left_t_dataset);
+      options_list.push_back(left_t_options);
+
+      // third phase
+      num_time_samples.push_back(3);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&double_th_dataset);
+      options_list.push_back(double_th_options);
+
+      // fourth phase
+      num_time_samples.push_back(2);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&double_tht_dataset);
+      options_list.push_back(double_tht_options);
+
+      // fifth phase
+      num_time_samples.push_back(1);
+      min_dt.push_back(.01);
+      max_dt.push_back(.3);
+      dataset_list.push_back(&right_ht_dataset);
+      options_list.push_back(right_ht_options);
+    }
   }
-  if (!one_continuous_mode) {
-    num_time_samples.push_back(1);
-    min_dt.push_back(.01);
-    max_dt.push_back(.3);
-    dataset_list.push_back(&right_dataset);
-    options_list.push_back(right_options);
-  }
+
 
   cout << "options_list.size() = " << options_list.size() << endl;
   for (uint i = 0; i < options_list.size(); i ++) {
@@ -670,6 +726,13 @@ void DoMain(double stride_length, double duration, int iter,
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1;  // because of overlaps between modes
   cout << "N = " << N << endl;
+  int N_ss;
+  if (walking_mode == 2) {
+    N_ss = num_time_samples[0] + num_time_samples[1] - 1;
+  } else {
+    N_ss = num_time_samples[0];
+  }
+
 
   // Get the decision varaibles that will be used
   auto u = trajopt->input();
@@ -679,9 +742,9 @@ void DoMain(double stride_length, double duration, int iter,
   auto x0 = trajopt->initial_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
-  // Fix the time duration
-  cout << "duration = " << duration << endl;
-  trajopt->AddDurationBounds(duration, duration);
+  // Fix the time duration_ss
+  cout << "duration_ss = " << duration_ss << endl;
+  // trajopt->AddDurationBounds(duration_ss, duration_ss);
 
   // Initial quaterion constraint
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
@@ -757,9 +820,9 @@ void DoMain(double stride_length, double duration, int iter,
   // trajopt->AddLinearConstraint(
   //   x0(n_q + velocities_map.at("velocity[3]")) ==
   //   xf(n_q + velocities_map.at("velocity[3]")));
-  trajopt->AddLinearConstraint(
-    x0(n_q + velocities_map.at("velocity[4]")) ==
-    -xf(n_q + velocities_map.at("velocity[4]")));
+  // trajopt->AddLinearConstraint(
+  //   x0(n_q + velocities_map.at("velocity[4]")) ==
+  //   -xf(n_q + velocities_map.at("velocity[4]")));
   // trajopt->AddLinearConstraint(
   //   x0(n_q + velocities_map.at("velocity[5]")) ==
   //   xf(n_q + velocities_map.at("velocity[5]")));
@@ -885,7 +948,7 @@ void DoMain(double stride_length, double duration, int iter,
 
   // testing (add cost to help convergence postentially?)
   // vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
-  // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
+  // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration_ss / (N_ss - 1), plant);
   // MatrixXd S = 10 * MatrixXd::Identity(n_q + n_v, n_q + n_v);
   // for (int i = 0; i < N; i++) {
   //   auto xi = trajopt->state(i);
@@ -931,18 +994,22 @@ void DoMain(double stride_length, double duration, int iter,
     trajopt->SetInitialGuessForAllVariables(z0);
   } else {
     // Do inverse kinematics to get q initial guess
-    vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
+    vector<VectorXd> q_seed = GetInitGuessForQ(N_ss, stride_length, plant);
     // Do finite differencing to get v initial guess
-    vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N - 1), plant);
+    vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration_ss / (N_ss - 1), plant);
     for (int i = 0; i < N; i++) {
       auto xi = trajopt->state(i);
       VectorXd xi_seed(n_q + n_v);
-      xi_seed << q_seed.at(i), v_seed.at(i);
+      if (i < N_ss) {
+        xi_seed << q_seed.at(i), v_seed.at(i);
+      } else {
+        xi_seed << q_seed.at(N_ss - 1), v_seed.at(N_ss - 1);
+      }
       trajopt->SetInitialGuess(xi, xi_seed);
     }
     /*
     // Get approximated vdot by finite difference
-    vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
+    vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration_ss / (N - 1), plant);
     // Solve QP to get u and lambda
     vector<VectorXd> u_seed(N, VectorXd::Zero(n_u));
     vector<VectorXd> lambda_seed(N, VectorXd::Zero(
@@ -1029,13 +1096,13 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   double stride_length = FLAGS_stride_length;
-  double duration = FLAGS_duration; //0.5
+  double duration_ss = FLAGS_duration_ss; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
   string init_file = FLAGS_init_file;
   // string init_file = "testing_z.csv";
   string output_prefix = "";
 
-  dairlib::DoMain(stride_length, duration, iter,
+  dairlib::DoMain(stride_length, duration_ss, iter,
                   data_directory, init_file, output_prefix);
 }
