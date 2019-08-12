@@ -282,6 +282,8 @@ cc_binary(
     srcs = ["run_dircon_walking_gait.cc"],
     data = glob(["examples/Cassie/urdf/cassie_fixed_springs.urdf"]),
     deps = [
+        ":cassie_utils",
+        "//attic/multibody:multibody_solvers",
         "//common",
         "//systems/primitives",
         "//systems/goldilocks_models",

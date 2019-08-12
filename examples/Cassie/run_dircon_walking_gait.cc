@@ -23,6 +23,11 @@
 
 #include "drake/multibody/inverse_kinematics/inverse_kinematics.h"
 
+#include "drake/multibody/rigid_body_tree_construction.h"
+#include "drake/multibody/rigid_body_tree.h"
+#include "drake/multibody/rigid_body_plant/drake_visualizer.h"
+#include "drake/systems/primitives/trajectory_source.h"
+
 #include "common/find_resource.h"
 #include "systems/primitives/subvector_pass_through.h"
 
@@ -38,6 +43,10 @@
 
 #include "systems/goldilocks_models/symbolic_manifold.h"
 #include "systems/goldilocks_models/file_utils.h"
+
+#include "examples/Cassie/cassie_utils.h"
+
+#include "attic/multibody/multibody_solvers.h"
 
 using std::vector;
 using std::shared_ptr;
@@ -88,6 +97,10 @@ using dairlib::systems::SubvectorPassThrough;
 using dairlib::goldilocks_models::readCSV;
 using dairlib::goldilocks_models::writeCSV;
 
+using dairlib::multibody::GetBodyIndexFromName;
+using dairlib::multibody::ContactInfo;
+using dairlib::multibody::FixedPointSolver;
+
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
 DEFINE_double(duration_ss, 0.1, "Duration of the single support phase (s)");
@@ -98,6 +111,107 @@ namespace dairlib {
 /// Currently, MBP doesn't support close-loop linkage, so we add distance
 /// constraints in trajectory optimization (dircon).
 /// This file runs trajectory optimization for fixed-spring cassie
+
+// Use fixed-point solver to get configuration guess (for standing in place)
+void GetInitFixedPointGuessForQ(const Vector3d& pelvis_position,
+                            const RigidBodyTree<double>& tree,
+                            VectorXd* q_init,
+                            VectorXd* u_init,
+                            VectorXd* lambda_init) {
+  int n_q = tree.get_num_positions();
+  int n_v = tree.get_num_velocities();
+  int n_u = tree.get_num_actuators();
+
+  int toe_left_idx = GetBodyIndexFromName(tree, "toe_left");
+  int toe_right_idx = GetBodyIndexFromName(tree, "toe_right");
+  Vector3d pt_front_contact(-0.0457, 0.112, 0);
+  Vector3d pt_rear_contact(0.088, 0, 0);
+  MatrixXd xa(3,4);
+  xa.col(0) = pt_front_contact;
+  xa.col(1) = pt_rear_contact;
+  xa.col(2) = pt_front_contact;
+  xa.col(3) = pt_rear_contact;
+  std::vector<int> idxa;
+  idxa.push_back(toe_left_idx);
+  idxa.push_back(toe_left_idx);
+  idxa.push_back(toe_right_idx);
+  idxa.push_back(toe_right_idx);
+  ContactInfo contact_info(xa, idxa);
+
+  VectorXd q_desired = VectorXd::Zero(n_q);
+  q_desired << -0.0872062,
+      1.56883E-13,
+      1,
+      1,
+      1.9884E-13,
+      1.30167E-14,
+      -2.10728E-14,
+      -0.0104994,
+      0.0104994,
+      -3.42713E-07,
+      -3.30511E-07,
+      0.509601,
+      0.509602,
+      -1.2219,
+      -1.22191,
+      1.44602,
+      1.44602,
+      -1.6072,
+      -1.6072;
+
+  std::map<int, double> fixed_joints;
+  for (int i = 0; i < 3; i++) {
+    fixed_joints[i] = pelvis_position[i];
+  }
+  fixed_joints[3] = 1;
+  fixed_joints[4] = 0;
+  fixed_joints[5] = 0;
+  fixed_joints[6] = 0;
+
+  FixedPointSolver fp_solver(tree, contact_info, q_desired, VectorXd::Zero(n_u),
+                   MatrixXd::Identity(n_q, n_q), MatrixXd::Zero(n_u, n_u));
+  fp_solver.AddUnitQuaternionConstraint(3, 4, 5, 6);
+  fp_solver.AddFrictionConeConstraint(0.8);
+  fp_solver.AddJointLimitConstraint(0);
+  fp_solver.AddFixedJointsConstraint(fixed_joints);
+  fp_solver.SetInitialGuessQ(q_desired);
+  const auto result = fp_solver.Solve();
+  SolutionResult solution_result = result.get_solution_result();
+  cout << to_string(solution_result) << endl;
+
+  VectorXd q_sol = fp_solver.GetSolutionQ();
+  VectorXd u_sol = fp_solver.GetSolutionU();
+  VectorXd lambda_sol = fp_solver.GetSolutionLambda();
+
+  VectorXd q_sol_reorder(n_q);
+  q_sol_reorder << q_sol.segment(3, 4),
+                  q_sol.segment(0, 3),
+                  q_sol.tail(12);
+
+  *q_init = q_sol_reorder;
+  *u_init = u_sol;
+  *lambda_init = lambda_sol;
+
+  // Build temporary diagram for visualization
+  VectorXd x(n_q + n_v);
+  x << q_sol_reorder, VectorXd::Zero(n_v);
+  drake::lcm::DrakeLcm lcm;
+  drake::systems::DiagramBuilder<double> builder;
+  const PiecewisePolynomial<double> pp_xtraj = PiecewisePolynomial<double>(x);
+  auto state_source = builder.AddSystem<drake::systems::TrajectorySource>
+                      (pp_xtraj);
+  auto publisher = builder.AddSystem<drake::systems::DrakeVisualizer>(tree,
+                   &lcm);
+  publisher->set_publish_period(1.0 / 60.0);
+  builder.Connect(state_source->get_output_port(),
+                  publisher->get_input_port(0));
+
+  auto diagram = builder.Build();
+  drake::systems::Simulator<double> simulator(*diagram);
+  simulator.set_target_realtime_rate(1);
+  simulator.Initialize();
+  simulator.StepTo(10);
+}
 
 // Do inverse kinematics to get configuration guess
 vector<VectorXd> GetInitGuessForQ(int N,
@@ -489,8 +603,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                    rod_length);
 
   // Testing
-  std::vector<bool> row_idx_set_to_0(3,false);
-  row_idx_set_to_0[2] = true;
+  std::vector<bool> row_idx_set_to_0(3, false);
+  row_idx_set_to_0[0] = true;
   auto left_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_left,
                                   pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
   auto right_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_right,
@@ -1069,7 +1183,42 @@ void DoMain(double stride_length, double duration_ss, int iter,
     MatrixXd z0 = readCSV(data_directory + init_file);
     trajopt->SetInitialGuessForAllVariables(z0);
   } else {
-    if (!standing) {
+    if (standing) {
+      // Use RBT fixed point solver
+      /*RigidBodyTree<double> tree;
+      buildCassieTree(tree,
+                      "examples/Cassie/urdf/cassie_fixed_springs.urdf",
+                      drake::multibody::joints::kQuaternion, false);
+      const double terrain_size = 100;
+      const double terrain_depth = 0.20;
+      drake::multibody::AddFlatTerrainToWorld(&tree,
+                                              terrain_size, terrain_depth);
+
+      Vector3d pelvis_position(-dist/2, 0, 1);
+      VectorXd q_init;
+      VectorXd u_init;
+      VectorXd lambda_init;
+      GetInitFixedPointGuessForQ(pelvis_position, tree,
+                                 &q_init, &u_init, &lambda_init);
+      cout << "q_init from fixed-point solver = " << q_init << endl;
+
+      for (int i = 0; i < N; i++) {
+        auto xi = trajopt->state(i);
+        VectorXd xi_init(n_q + n_v);
+        xi_init << q_init, VectorXd::Zero(n_v);
+        trajopt->SetInitialGuess(xi, xi_init);
+
+        auto ui = trajopt->input(i);
+        trajopt->SetInitialGuess(ui, u_init);
+      }
+      for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
+        for (int index = 0; index < num_time_samples[mode]; index++) {
+          auto lambdai = trajopt->force(mode, index);
+          trajopt->SetInitialGuess(lambdai, lambda_init);
+        }
+      }*/
+
+    } else {
       // Do inverse kinematics to get q initial guess
       vector<VectorXd> q_seed = GetInitGuessForQ(N_ss, stride_length, plant);
       // Do finite differencing to get v initial guess
