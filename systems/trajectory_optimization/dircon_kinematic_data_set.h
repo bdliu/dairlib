@@ -130,5 +130,8 @@ class DirconKinematicDataSet {
   drake::VectorX<T> right_hand_side_;
 
   Cache cache_;
+
+  // Testing
+  std::vector<bool> row_idx_stack_set_to_0_;
 };
 }  // namespace dairlib

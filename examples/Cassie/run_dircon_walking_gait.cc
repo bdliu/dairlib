@@ -457,12 +457,18 @@ void DoMain(double stride_length, double duration_ss, int iter,
   bool isXZ = false;
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
                                    pt_front_contact, isXZ);
+  // auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
+  //                                 pt_rear_contact, isXZ);
+  std::vector<bool> row_idx_set_to_0(3,false);
+  row_idx_set_to_0[2] = true;
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
-                                  pt_rear_contact, isXZ);
+                                  pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
   auto right_toe_front_constraint = DirconPositionData<double>(plant, toe_right,
                                     pt_front_contact, isXZ);
+  // auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
+  //                                  pt_rear_contact, isXZ);
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
-                                   pt_rear_contact, isXZ);
+                                   pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
 
   Vector3d normal(0, 0, 1);
   double mu = 1;

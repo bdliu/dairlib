@@ -28,6 +28,9 @@ class DirconKinematicData {
     int numForceConstraints();
     std::shared_ptr<drake::solvers::Constraint> getForceConstraint(int index);
 
+    // Testing
+    std::vector<bool> row_idx_set_to_0_;
+
  protected:
     const drake::multibody::MultibodyPlant<T>& plant_;
     std::vector<std::shared_ptr<drake::solvers::Constraint>> force_constraints_;

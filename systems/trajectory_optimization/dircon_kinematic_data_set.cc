@@ -38,6 +38,14 @@ DirconKinematicDataSet<T>::DirconKinematicDataSet(
   xdot_ = VectorX<T>(num_positions_ + num_velocities_);
   M_ = MatrixX<T>(num_velocities_, num_velocities_);
   right_hand_side_ = VectorX<T>(num_velocities_);
+
+  // testing
+  row_idx_stack_set_to_0_.clear();
+  for (unsigned int i = 0; i < constraints->size(); i++) {
+    row_idx_stack_set_to_0_.insert(row_idx_stack_set_to_0_.end(),
+                       constraints->at(i)->row_idx_set_to_0_.begin(),
+                       constraints->at(i)->row_idx_set_to_0_.end() );
+  }
 }
 
 
@@ -98,6 +106,15 @@ void DirconKinematicDataSet<T>::updateData(const Context<T>& context,
     VectorX<T> q_dot(num_positions_);
     plant_.MapVelocityToQDot(context, v, &q_dot);
     xdot_ << q_dot, vdot_;
+
+    // testing
+    for (unsigned int i = 0; i < row_idx_stack_set_to_0_.size(); i++) {
+      if (row_idx_stack_set_to_0_[i]) {
+        c_[i] = 0;
+        cdot_[i] = 0;
+        cddot_[i] = 0;
+      }
+    }
 
     CacheData data{c_, cdot_, J_, Jdotv_, cddot_, vdot_, xdot_};
 

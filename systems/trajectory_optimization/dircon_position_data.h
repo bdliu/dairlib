@@ -15,7 +15,8 @@ class DirconPositionData : public DirconKinematicData<T> {
     const drake::multibody::Body<T>& body,
     Eigen::Vector3d pt, bool isXZ = false,
     Eigen::Vector2d ground_rp = Eigen::Vector2d::Zero(),
-    bool isYZ = false);
+    bool isYZ = false,
+    std::vector<bool> row_idx_set_to_0 = std::vector<bool>(0, false));
   ~DirconPositionData();
 
   // The workhorse function, updates and caches everything needed by the

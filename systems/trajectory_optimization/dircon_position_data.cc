@@ -19,7 +19,7 @@ using drake::MatrixX;
 template <typename T>
 DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
     const Body<T>& body, Vector3d pt, bool isXZ, Vector2d ground_rp,
-    bool isYZ) :
+    bool isYZ, std::vector<bool> row_idx_set_to_0) :
     DirconKinematicData<T>(plant, isXZ ? 2 : 3),
     body_(body),
     pt_(pt),
@@ -31,6 +31,10 @@ DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
   if (isYZ) {
     TXZ_ << 0, 1, 0,
             0, 0, 1;
+  }
+  // Testing
+  if (row_idx_set_to_0.size() > 0) {
+    this->row_idx_set_to_0_ = row_idx_set_to_0;
   }
 
   Eigen::AngleAxisd rollAngle(ground_rp(0), Vector3d::UnitX());

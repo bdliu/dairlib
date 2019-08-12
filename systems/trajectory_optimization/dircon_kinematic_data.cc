@@ -19,6 +19,12 @@ DirconKinematicData<T>::DirconKinematicData(const MultibodyPlant<T>& plant,
   cdot_ = VectorX<T>::Zero(length);
   J_ = MatrixX<T>::Zero(length, plant.num_velocities());
   Jdotv_ = VectorX<T>::Zero(length);
+
+  // Testing
+  row_idx_set_to_0_.clear();
+  for (int i=0; i<length; i++) {
+    row_idx_set_to_0_.push_back(false);
+  }
 }
 
 template <typename T>
