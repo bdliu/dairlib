@@ -18,13 +18,20 @@ using drake::MatrixX;
 
 template <typename T>
 DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
-    const Body<T>& body, Vector3d pt, bool isXZ, Vector2d ground_rp) :
+    const Body<T>& body, Vector3d pt, bool isXZ, Vector2d ground_rp,
+    bool isYZ) :
     DirconKinematicData<T>(plant, isXZ ? 2 : 3),
     body_(body),
     pt_(pt),
     isXZ_(isXZ) {
   TXZ_ << 1, 0, 0,
           0, 0, 1;
+
+  // testing (getting rid of linearly dependent constraint for Cassie)
+  if (isYZ) {
+    TXZ_ << 0, 1, 0,
+            0, 0, 1;
+  }
 
   Eigen::AngleAxisd rollAngle(ground_rp(0), Vector3d::UnitX());
   Eigen::AngleAxisd pitchAngle(ground_rp(1), Vector3d::UnitY());

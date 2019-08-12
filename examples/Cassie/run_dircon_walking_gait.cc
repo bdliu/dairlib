@@ -90,7 +90,7 @@ using dairlib::goldilocks_models::writeCSV;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
-DEFINE_double(duration_ss, 0.3, "Duration of the single support phase (s)");
+DEFINE_double(duration_ss, 0.1, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 
 namespace dairlib {
@@ -463,6 +463,14 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                     pt_front_contact, isXZ);
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
                                    pt_rear_contact, isXZ);
+
+  // Testing
+  isXZ = true;
+  auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
+        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), true);
+  auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
+        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), true);
+
   Vector3d normal(0, 0, 1);
   double mu = 1;
   left_toe_front_constraint.addFixedNormalFrictionConstraints(normal, mu);
@@ -621,6 +629,50 @@ void DoMain(double stride_length, double duration_ss, int iter,
     double_all_options.setConstraintRelative(10, true);
   }
 
+  // Testing
+  vector<DirconKinematicData<double>*> double_stance_all_indpt_constraint;
+  double_stance_all_indpt_constraint.push_back(&left_toe_front_constraint);
+  double_stance_all_indpt_constraint.push_back(&left_toe_rear_2d_constraint);
+  double_stance_all_indpt_constraint.push_back(&right_toe_front_constraint);
+  double_stance_all_indpt_constraint.push_back(&right_toe_rear_2d_constraint);
+  double_stance_all_indpt_constraint.push_back(&distance_constraint_left);
+  double_stance_all_indpt_constraint.push_back(&distance_constraint_right);
+  auto double_all_2d_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_all_indpt_constraint);
+  auto double_all_2d_options = DirconOptions(double_all_2d_dataset.countConstraints());
+  if (set_both_contact_pos_manually) {
+    double_all_2d_options.setConstraintRelative(0, false);
+    double_all_2d_options.setConstraintRelative(1, false);
+    double_all_2d_options.setPhiValue(0, 0);
+    double_all_2d_options.setPhiValue(1, 0.12);
+    double_all_2d_options.setConstraintRelative(3, false);
+    double_all_2d_options.setPhiValue(3, 0.12);
+    double_all_2d_options.setConstraintRelative(5, false);
+    double_all_2d_options.setConstraintRelative(6, false);
+    double_all_2d_options.setPhiValue(5, 0);
+    double_all_2d_options.setPhiValue(6, -0.12);
+    double_all_2d_options.setConstraintRelative(8, false);
+    double_all_2d_options.setPhiValue(8, -0.12);
+  } else if (set_second_contact_manually) {
+    double_all_2d_options.setConstraintRelative(0, false);
+    double_all_2d_options.setConstraintRelative(1, false);
+    double_all_2d_options.setPhiValue(0, 0);
+    double_all_2d_options.setPhiValue(1, 0.12);
+    double_all_2d_options.setConstraintRelative(3, true);
+    double_all_2d_options.setConstraintRelative(5, false);
+    double_all_2d_options.setConstraintRelative(6, false);
+    double_all_2d_options.setPhiValue(5, 0);
+    double_all_2d_options.setPhiValue(6, -0.12);
+    double_all_2d_options.setConstraintRelative(8, true);
+  } else {
+    double_all_2d_options.setConstraintRelative(0, true);
+    double_all_2d_options.setConstraintRelative(1, true);
+    double_all_2d_options.setConstraintRelative(3, true);
+    double_all_2d_options.setConstraintRelative(5, true);
+    double_all_2d_options.setConstraintRelative(6, true);
+    double_all_2d_options.setConstraintRelative(8, true);
+  }
+
 
   // Stated in the MultipleShooting class:
   // This class assumes that there are a fixed number (N) time steps/samples
@@ -638,8 +690,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (standing) {  // standing
-    dataset_list.push_back(&double_all_dataset);
-    options_list.push_back(double_all_options);
+    // dataset_list.push_back(&double_all_dataset);
+    // options_list.push_back(double_all_options);
+    dataset_list.push_back(&double_all_2d_dataset);
+    options_list.push_back(double_all_2d_options);
   } else {  // walking
     if (walking_mode == 0) {
       dataset_list.push_back(&left_ht_dataset);
