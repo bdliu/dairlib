@@ -464,13 +464,6 @@ void DoMain(double stride_length, double duration_ss, int iter,
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
                                    pt_rear_contact, isXZ);
 
-  // Testing
-  isXZ = true;
-  auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
-        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), true);
-  auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
-        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), true);
-
   Vector3d normal(0, 0, 1);
   double mu = 1;
   left_toe_front_constraint.addFixedNormalFrictionConstraints(normal, mu);
@@ -494,6 +487,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                    thigh_right, pt_on_thigh_right,
                                    heel_spring_right, pt_on_heel_spring,
                                    rod_length);
+
+  // Testing
+  bool isYZ = true; if (isYZ) isXZ = true;
+  auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
+        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
+  auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
+        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
 
   // Testing (mid contact point)
   /*Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
@@ -630,15 +630,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   }
 
   // Testing
-  vector<DirconKinematicData<double>*> double_stance_all_indpt_constraint;
-  double_stance_all_indpt_constraint.push_back(&left_toe_front_constraint);
-  double_stance_all_indpt_constraint.push_back(&left_toe_rear_2d_constraint);
-  double_stance_all_indpt_constraint.push_back(&right_toe_front_constraint);
-  double_stance_all_indpt_constraint.push_back(&right_toe_rear_2d_constraint);
-  double_stance_all_indpt_constraint.push_back(&distance_constraint_left);
-  double_stance_all_indpt_constraint.push_back(&distance_constraint_right);
+  vector<DirconKinematicData<double>*> double_stance_all_2d_constraint;
+  double_stance_all_2d_constraint.push_back(&left_toe_front_constraint);
+  double_stance_all_2d_constraint.push_back(&left_toe_rear_2d_constraint);
+  double_stance_all_2d_constraint.push_back(&right_toe_front_constraint);
+  double_stance_all_2d_constraint.push_back(&right_toe_rear_2d_constraint);
+  double_stance_all_2d_constraint.push_back(&distance_constraint_left);
+  double_stance_all_2d_constraint.push_back(&distance_constraint_right);
   auto double_all_2d_dataset = DirconKinematicDataSet<double>(plant,
-                        &double_stance_all_indpt_constraint);
+                        &double_stance_all_2d_constraint);
   auto double_all_2d_options = DirconOptions(double_all_2d_dataset.countConstraints());
   if (set_both_contact_pos_manually) {
     double_all_2d_options.setConstraintRelative(0, false);
@@ -690,10 +690,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (standing) {  // standing
-    // dataset_list.push_back(&double_all_dataset);
-    // options_list.push_back(double_all_options);
-    dataset_list.push_back(&double_all_2d_dataset);
-    options_list.push_back(double_all_2d_options);
+    dataset_list.push_back(&double_all_dataset);
+    options_list.push_back(double_all_options);
+    // dataset_list.push_back(&double_all_2d_dataset);
+    // options_list.push_back(double_all_2d_options);
   } else {  // walking
     if (walking_mode == 0) {
       dataset_list.push_back(&left_ht_dataset);
