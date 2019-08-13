@@ -556,8 +556,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // Set up contact/distance constraints and construct dircon
   // parameters
-  bool is_quaterion = true;
-  bool standing = false;
+  bool is_quaterion = false;
+  bool standing = true;
   int walking_mode = 2; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
@@ -945,7 +945,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
-      2);  // 0 // snopt doc said try 2 if seeing snopta info 44
+      2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -980,10 +980,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
   trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
   // (testing) Final quaternion
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
@@ -1002,9 +1002,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // x-distance constraint constraints
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-                               stride_length);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
+  //                              stride_length);
 
 
   // testing(initial floating base)
@@ -1021,9 +1021,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
 
 
   // Periodicity constraints
@@ -1201,8 +1201,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // add cost
   const double R = 10;  // Cost on input effort
-  trajopt->AddRunningCost(u.transpose()* R * u);
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v);
+  trajopt->AddRunningCost(u.transpose()* R * u);
   trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
 
 
@@ -1247,6 +1247,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                  &q_init, &u_init, &lambda_init);
       cout << "q_init from fixed-point solver = " << q_init << endl;
       cout << "u_init from fixed-point solver = " << u_init << endl;
+      cout << "lambda_init from fixed-point solver = " << lambda_init << endl;
 
       for (int i = 0; i < N; i++) {
         auto xi = trajopt->state(i);
