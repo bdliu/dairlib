@@ -160,21 +160,23 @@ void GetInitFixedPointGuessForQ(const Vector3d& pelvis_position,
       -1.6072;
 
   std::map<int, double> fixed_joints;
-  for (int i = 0; i < 3; i++) {
-    fixed_joints[i] = pelvis_position[i];
-  }
+  // for (int i = 0; i < 3; i++) {
+  //   fixed_joints[i] = pelvis_position[i];
+  // }
   fixed_joints[3] = 1;
   fixed_joints[4] = 0;
   fixed_joints[5] = 0;
   fixed_joints[6] = 0;
 
   FixedPointSolver fp_solver(tree, contact_info, q_desired, VectorXd::Zero(n_u),
-                   MatrixXd::Identity(n_q, n_q), MatrixXd::Zero(n_u, n_u));
-  fp_solver.AddUnitQuaternionConstraint(3, 4, 5, 6);
+                   MatrixXd::Zero(n_q, n_q), MatrixXd::Identity(n_u, n_u));
+  // fp_solver.AddUnitQuaternionConstraint(3, 4, 5, 6);
   fp_solver.AddFrictionConeConstraint(0.8);
-  fp_solver.AddJointLimitConstraint(0);
+  fp_solver.AddJointLimitConstraint(0.1);
   fp_solver.AddFixedJointsConstraint(fixed_joints);
   fp_solver.SetInitialGuessQ(q_desired);
+
+  cout << "Solving for fixed point...\n";
   const auto result = fp_solver.Solve();
   SolutionResult solution_result = result.get_solution_result();
   cout << to_string(solution_result) << endl;
@@ -194,7 +196,7 @@ void GetInitFixedPointGuessForQ(const Vector3d& pelvis_position,
 
   // Build temporary diagram for visualization
   VectorXd x(n_q + n_v);
-  x << q_sol_reorder, VectorXd::Zero(n_v);
+  x << q_sol, VectorXd::Zero(n_v);
   drake::lcm::DrakeLcm lcm;
   drake::systems::DiagramBuilder<double> builder;
   const PiecewisePolynomial<double> pp_xtraj = PiecewisePolynomial<double>(x);
@@ -210,7 +212,7 @@ void GetInitFixedPointGuessForQ(const Vector3d& pelvis_position,
   drake::systems::Simulator<double> simulator(*diagram);
   simulator.set_target_realtime_rate(1);
   simulator.Initialize();
-  simulator.StepTo(10);
+  simulator.StepTo(0.5);
 }
 
 // Do inverse kinematics to get configuration guess
@@ -562,7 +564,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
                         // 2: heel to toe
   if (standing) walking_mode = -1;
   bool set_second_contact_manually = false;
-  bool set_both_contact_pos_manually = true;
+  bool set_both_contact_pos_manually = false;
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -931,15 +933,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   }
 
   // Initial quaterion constraint
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
   // (testing) Final quaternion
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
@@ -968,12 +970,12 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
+  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
@@ -1015,6 +1017,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   };
   // Floating base (mirror in x-z plane)
   if (!standing) {
+    // Floating base periodicity
     // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
     //                              xf(positions_map.at("position[0]")));
     // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
@@ -1185,7 +1188,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   } else {
     if (standing) {
       // Use RBT fixed point solver
-      /*RigidBodyTree<double> tree;
+      RigidBodyTree<double> tree;
       buildCassieTree(tree,
                       "examples/Cassie/urdf/cassie_fixed_springs.urdf",
                       drake::multibody::joints::kQuaternion, false);
@@ -1201,6 +1204,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
       GetInitFixedPointGuessForQ(pelvis_position, tree,
                                  &q_init, &u_init, &lambda_init);
       cout << "q_init from fixed-point solver = " << q_init << endl;
+      cout << "u_init from fixed-point solver = " << u_init << endl;
 
       for (int i = 0; i < N; i++) {
         auto xi = trajopt->state(i);
@@ -1216,7 +1220,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
           auto lambdai = trajopt->force(mode, index);
           trajopt->SetInitialGuess(lambdai, lambda_init);
         }
-      }*/
+      }
 
     } else {
       // Do inverse kinematics to get q initial guess

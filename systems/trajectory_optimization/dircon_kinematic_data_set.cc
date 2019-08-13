@@ -115,7 +115,7 @@ void DirconKinematicDataSet<T>::updateData(const Context<T>& context,
         cddot_[i] = 0;
       }
     }
-    std::cout << "cddot_= " << cddot_.transpose() << std::endl;
+    // std::cout << "cddot_= " << cddot_.transpose() << std::endl;
 
     CacheData data{c_, cdot_, J_, Jdotv_, cddot_, vdot_, xdot_};
 
