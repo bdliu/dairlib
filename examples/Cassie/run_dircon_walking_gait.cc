@@ -558,11 +558,11 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // parameters
   bool is_quaterion = true;
   bool standing = false;
-  int walking_mode = 0; // 0: instant change of support
+  int walking_mode = 2; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
-  bool two_contact_pt_for_walking = false;
+  bool two_contact_pt_for_walking = true;
   if (walking_mode == 2) two_contact_pt_for_walking = false;
   bool set_second_contact_manually = false;
   bool set_both_contact_pos_manually = false;
@@ -848,8 +848,11 @@ void DoMain(double stride_length, double duration_ss, int iter,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  // num_time_samples.push_back(10);
-  num_time_samples.push_back(int(40.0 * duration_ss));  // 40 nodes per second
+  if (walking_mode == 2) {
+    num_time_samples.push_back(10);
+  } else {
+    num_time_samples.push_back(int(40.0 * duration_ss));  // 40 nodes per second
+  }
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
