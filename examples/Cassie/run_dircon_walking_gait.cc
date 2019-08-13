@@ -175,6 +175,7 @@ void GetInitFixedPointGuess(const Vector3d& pelvis_position,
   fp_solver.AddJointLimitConstraint(0.1);
   fp_solver.AddFixedJointsConstraint(fixed_joints);
   fp_solver.SetInitialGuessQ(q_desired);
+  fp_solver.AddSpreadNormalForcesCost();
 
   cout << "Solving for fixed point...\n";
   const auto result = fp_solver.Solve();
@@ -187,12 +188,25 @@ void GetInitFixedPointGuess(const Vector3d& pelvis_position,
 
   VectorXd q_sol_reorder(n_q);
   q_sol_reorder << q_sol.segment(3, 4),
-                  q_sol.segment(0, 3),
-                  q_sol.tail(12);
+                   q_sol.segment(0, 3),
+                   q_sol.tail(12);
+  // Careful that the contact ordering should be consistent with those you set
+  // up in DIRCON
+  VectorXd lambda_sol_reorder(lambda_sol.size());
+  VectorXd lambda_sol_contact = lambda_sol.tail(3 * idxa.size());
+  for (int i = 0; i < idxa.size(); i++) {
+    // We need to reorder cause contact toolkit's lambda ordering is different
+    VectorXd lambda_dummy = lambda_sol_contact.segment(3*i, 3);
+    lambda_sol_contact(0 + 3*i) = lambda_dummy(1);
+    lambda_sol_contact(1 + 3*i) = -lambda_dummy(2);
+    lambda_sol_contact(2 + 3*i) = lambda_dummy(0);
+  }
+  lambda_sol_reorder << lambda_sol_contact,
+                        lambda_sol.head(tree.getNumPositionConstraints());
 
   *q_init = q_sol_reorder;
   *u_init = u_sol;
-  *lambda_init = lambda_sol;
+  *lambda_init = lambda_sol_reorder;
 
   // Build temporary diagram for visualization
   VectorXd x(n_q + n_v);
@@ -980,10 +994,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
   trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
   // (testing) Final quaternion
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
@@ -1024,6 +1038,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
   trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
   trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[0]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[1]")) == 0);
+  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[2]")) == 0);
 
 
   // Periodicity constraints
@@ -1345,6 +1362,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   cout << "state_at_knots = \n" << state_at_knots << "\n";
   cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
   cout << "input_at_knots = \n" << input_at_knots << "\n";
+
+  // Testing
+  cout << "lambda_sol = \n";
+  for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
+    for (int index = 0; index < num_time_samples[mode]; index++) {
+      auto lambdai = trajopt->force(mode, index);
+      cout << result.GetSolution(lambdai).transpose() << endl;
+    }
+  }
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =

@@ -81,12 +81,19 @@ drake::MatrixX<T> ContactToolkit<T>::CalcContactJacobian(
     // Normal
     J_constraint.row(0) = normal.col(i).transpose() * J_diff.at(i);
     // Both the surface tangents
+    // std::cout << "surface tangents: \n";
+    // std::cout << "tangents_map_vector.at(0).col(i) = " << tangents_map_vector.at(0).col(i).transpose() << std::endl;
+    // std::cout << "tangents_map_vector.at(1).col(i) = " << tangents_map_vector.at(1).col(i).transpose() << std::endl;
     J_constraint.row(1) =
         tangents_map_vector.at(0).col(i).transpose() * J_diff.at(i);
     J_constraint.row(2) =
         tangents_map_vector.at(1).col(i).transpose() * J_diff.at(i);
 
-    J.block(i * 3, 0, 3, tree_.get_num_velocities()) = J_constraint;
+    if (in_terms_of_qdot) {
+      J.block(i * 3, 0, 3, tree_.get_num_positions()) = J_constraint;
+    } else {
+      J.block(i * 3, 0, 3, tree_.get_num_velocities()) = J_constraint;
+    }
   }
 
   return J;
