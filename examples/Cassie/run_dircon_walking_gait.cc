@@ -113,7 +113,7 @@ namespace dairlib {
 /// This file runs trajectory optimization for fixed-spring cassie
 
 // Use fixed-point solver to get configuration guess (for standing in place)
-void GetInitFixedPointGuessForQ(const Vector3d& pelvis_position,
+void GetInitFixedPointGuess(const Vector3d& pelvis_position,
                             const RigidBodyTree<double>& tree,
                             VectorXd* q_init,
                             VectorXd* u_init,
@@ -556,13 +556,14 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // Set up contact/distance constraints and construct dircon
   // parameters
-  bool is_quaterion = false;
-  int n_c_per_leg = 2;
-  bool standing = true;
-  int walking_mode = 2; // 0: instant change of support
+  bool is_quaterion = true;
+  bool standing = false;
+  int walking_mode = 0; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
+  bool two_contact_pt_for_walking = false;
+  if (walking_mode == 2) two_contact_pt_for_walking = false;
   bool set_second_contact_manually = false;
   bool set_both_contact_pos_manually = false;
 
@@ -579,7 +580,6 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                     pt_front_contact, isXZ);
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
                                    pt_rear_contact, isXZ);
-
   Vector3d normal(0, 0, 1);
   double mu = 1;
   left_toe_front_constraint.addFixedNormalFrictionConstraints(normal, mu);
@@ -608,9 +608,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   std::vector<bool> row_idx_set_to_0(3, false);
   row_idx_set_to_0[0] = true;
   auto left_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_left,
-                                  pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+      pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
   auto right_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_right,
-                                   pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+      pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
   left_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
@@ -624,13 +624,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
   right_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Testing (mid contact point)
-  /*Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
+  Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
   auto left_toe_mid_constraint = DirconPositionData<double>(plant, toe_left,
                                  pt_mid_contact, isXZ);
   auto right_toe_mid_constraint = DirconPositionData<double>(plant, toe_right,
                                   pt_mid_contact, isXZ);
   left_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
-  right_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);*/
+  right_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Compose different types of stance (we call front contact toe and rear
   // contact heel here)
@@ -690,7 +690,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   double_tht_options.setConstraintRelative(6, true);
   double_tht_options.setConstraintRelative(7, true);
 
-  // right stance ht
+  // right stance (right heel and toe)
   vector<DirconKinematicData<double>*> right_stance_ht_constraint;
   right_stance_ht_constraint.push_back(&right_toe_front_constraint);
   right_stance_ht_constraint.push_back(&right_toe_rear_constraint);
@@ -801,6 +801,43 @@ void DoMain(double stride_length, double duration_ss, int iter,
     double_all_2d_options.setConstraintRelative(8, true);
   }
 
+  // Testing - left stance (one contact point)
+  vector<DirconKinematicData<double>*> left_stance_mid_constraint;
+  left_stance_mid_constraint.push_back(&left_toe_mid_constraint);
+  left_stance_mid_constraint.push_back(&distance_constraint_left);
+  left_stance_mid_constraint.push_back(&distance_constraint_right);
+  auto left_mid_dataset = DirconKinematicDataSet<double>(plant,
+                      &left_stance_mid_constraint);
+  auto left_mid_options = DirconOptions(left_mid_dataset.countConstraints());
+  left_mid_options.setConstraintRelative(0, true);
+  left_mid_options.setConstraintRelative(1, true);
+
+  // Testing - right stance (one contact point)
+  vector<DirconKinematicData<double>*> right_stance_mid_constraint;
+  right_stance_mid_constraint.push_back(&right_toe_mid_constraint);
+  right_stance_mid_constraint.push_back(&distance_constraint_left);
+  right_stance_mid_constraint.push_back(&distance_constraint_right);
+  auto right_mid_dataset = DirconKinematicDataSet<double>(plant,
+                       &right_stance_mid_constraint);
+  auto right_mid_options = DirconOptions(right_mid_dataset.countConstraints());
+  right_mid_options.setConstraintRelative(0, true);
+  right_mid_options.setConstraintRelative(1, true);
+
+  // Testing - double stance (one contact point per leg)
+  vector<DirconKinematicData<double>*> double_stance_mid_constraint;
+  double_stance_mid_constraint.push_back(&left_toe_mid_constraint);
+  double_stance_mid_constraint.push_back(&right_toe_mid_constraint);
+  double_stance_mid_constraint.push_back(&distance_constraint_left);
+  double_stance_mid_constraint.push_back(&distance_constraint_right);
+  auto double_mid_dataset = DirconKinematicDataSet<double>(plant,
+                        &double_stance_mid_constraint);
+  auto double_mid_options = DirconOptions(double_mid_dataset.countConstraints());
+  double_mid_options.setConstraintRelative(0, true);
+  double_mid_options.setConstraintRelative(1, true);
+  double_mid_options.setConstraintRelative(3, true);
+  double_mid_options.setConstraintRelative(4, true);
+
+
 
   // Stated in the MultipleShooting class:
   // This class assumes that there are a fixed number (N) time steps/samples
@@ -824,32 +861,32 @@ void DoMain(double stride_length, double duration_ss, int iter,
     // options_list.push_back(double_all_2d_options);
   } else {  // walking
     if (walking_mode == 0) {
-      dataset_list.push_back(&left_ht_dataset);
-      options_list.push_back(left_ht_options);
+      dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);
+      options_list.push_back(two_contact_pt_for_walking? left_ht_options : left_mid_options);
 
       // second phase
       num_time_samples.push_back(1);
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(&right_ht_dataset);
-      options_list.push_back(right_ht_options);
+      dataset_list.push_back(two_contact_pt_for_walking? &right_ht_dataset : &right_mid_dataset);
+      options_list.push_back(two_contact_pt_for_walking? right_ht_options : right_mid_options);
     } else if (walking_mode == 1) {  // walking with double support transition
-      dataset_list.push_back(&left_ht_dataset);
-      options_list.push_back(left_ht_options);
+      dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);
+      options_list.push_back(two_contact_pt_for_walking? left_ht_options : left_mid_options);
 
       // second phase
-      num_time_samples.push_back(8);
+      num_time_samples.push_back(int(10.0 * duration_ss));
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(&double_all_dataset);
-      options_list.push_back(double_all_options);
+      dataset_list.push_back(two_contact_pt_for_walking? &double_all_dataset : &double_mid_dataset);
+      options_list.push_back(two_contact_pt_for_walking? double_all_options : double_mid_options);
 
       // third phase
       num_time_samples.push_back(1);
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(&right_ht_dataset);
-      options_list.push_back(right_ht_options);
+      dataset_list.push_back(two_contact_pt_for_walking? &right_ht_dataset : &right_mid_dataset);
+      options_list.push_back(two_contact_pt_for_walking? right_ht_options : right_mid_options);
     } else if (walking_mode == 2) {  // walking with heel to toe transition
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
@@ -904,6 +941,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
                            "Major iterations limit", iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
+      2);  // 0 // snopt doc said try 2 if seeing snopta info 44
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -933,10 +972,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   }
 
   // Initial quaterion constraint
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
   // (testing) Final quaternion
   // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
   // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
@@ -960,9 +999,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // x-distance constraint constraints
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-  //                              stride_length);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+  trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
+                               stride_length);
 
 
   // testing(initial floating base)
@@ -1018,36 +1057,36 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // Floating base (mirror in x-z plane)
   if (!standing) {
     // Floating base periodicity
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
-    //                              xf(positions_map.at("position[0]")));
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
-    //                              -xf(positions_map.at("position[1]")));
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
-    //                              xf(positions_map.at("position[2]")));
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
-    //                              -xf(positions_map.at("position[3]")));
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
-    //                              -xf(positions_map.at("position[5]")));
-    // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
-    //                              xf(positions_map.at("position[6]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[0]")) ==
-    //   xf(n_q + velocities_map.at("velocity[0]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[1]")) ==
-    //   -xf(n_q + velocities_map.at("velocity[1]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[2]")) ==
-    //   xf(n_q + velocities_map.at("velocity[2]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[3]")) ==
-    //   xf(n_q + velocities_map.at("velocity[3]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[4]")) ==
-    //   -xf(n_q + velocities_map.at("velocity[4]")));
-    // trajopt->AddLinearConstraint(
-    //   x0(n_q + velocities_map.at("velocity[5]")) ==
-    //   xf(n_q + velocities_map.at("velocity[5]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
+                                 xf(positions_map.at("position[0]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
+                                 -xf(positions_map.at("position[1]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
+                                 xf(positions_map.at("position[2]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
+                                 -xf(positions_map.at("position[3]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
+                                 -xf(positions_map.at("position[5]")));
+    trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
+                                 xf(positions_map.at("position[6]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[0]")) ==
+      xf(n_q + velocities_map.at("velocity[0]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[1]")) ==
+      -xf(n_q + velocities_map.at("velocity[1]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[2]")) ==
+      xf(n_q + velocities_map.at("velocity[2]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[3]")) ==
+      xf(n_q + velocities_map.at("velocity[3]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[4]")) ==
+      -xf(n_q + velocities_map.at("velocity[4]")));
+    trajopt->AddLinearConstraint(
+      x0(n_q + velocities_map.at("velocity[5]")) ==
+      xf(n_q + velocities_map.at("velocity[5]")));
 
     // The legs joint positions and velocities should be mirrored between legs
     for (unsigned int i = 0; i < left_joint_names.size(); i++) {
@@ -1201,7 +1240,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
       VectorXd q_init;
       VectorXd u_init;
       VectorXd lambda_init;
-      GetInitFixedPointGuessForQ(pelvis_position, tree,
+      GetInitFixedPointGuess(pelvis_position, tree,
                                  &q_init, &u_init, &lambda_init);
       cout << "q_init from fixed-point solver = " << q_init << endl;
       cout << "u_init from fixed-point solver = " << u_init << endl;
