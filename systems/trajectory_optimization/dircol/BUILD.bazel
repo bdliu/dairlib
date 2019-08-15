@@ -1,0 +1,57 @@
+# -*- mode: python -*-
+# vi: set ft=python :
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "dircol",
+    srcs = [
+        "dircol_opt_constraints.cc",
+        "dircol_options.cc",
+        "hybrid_dircol.cc",
+    ],
+    hdrs = [
+        "dircol_opt_constraints.h",
+        "dircol_options.h",
+        "hybrid_dircol.h",
+    ],
+    deps = [
+        "@drake//:drake_shared_library",
+        ":dircol_kinematic_data",
+        "//solvers:optimization_utils",
+    ],
+)
+
+cc_library(
+    name = "dircol_kinematic_data",
+    srcs = [
+        "dircol_kinematic_data.cc",
+        "dircol_position_data.cc",
+        "dircol_distance_data.cc",
+        "dircol_kinematic_data_set.cc",
+    ],
+    hdrs = [
+        "dircol_kinematic_data.h",
+        "dircol_position_data.h",
+        "dircol_distance_data.h",
+        "dircol_kinematic_data_set.h",
+    ],
+    deps = [
+        "@drake//:drake_shared_library",
+        "//multibody:utils",
+    ],
+)
+
+
+cc_binary(
+    name = "passive_constrained_pendulum_dircol",
+    srcs = ["passive_constrained_pendulum_dircol.cc"],
+    data = ["@drake//examples/acrobot:models"],
+    deps = [
+        "//systems/trajectory_optimization/dircol:dircol",
+        "//common",
+        "//systems/primitives",
+        "@drake//:drake_shared_library",
+        "@gflags",
+    ],
+)
