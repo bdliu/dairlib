@@ -29,6 +29,8 @@ using drake::symbolic::Expression;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using std::vector;
+using std::cout;
+using std::endl;
 
 template <typename T>
 HybridDircol<T>::HybridDircol(
@@ -86,6 +88,7 @@ HybridDircol<T>::HybridDircol(
     }
 
     //Adding cubic spline interpolation constraints
+    cout << "Adding cubic interpoluation constraint...\n";
     auto interpolation_constraint = std::make_shared<CubicInterpolationConstraint<T>>(plant_, *constraints_[i]);
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
       int time_index = mode_start_[i] + j;
@@ -104,6 +107,7 @@ HybridDircol<T>::HybridDircol(
     }
 
     //Adding dynamic constraints
+    cout << "Adding dynamics constraint...\n";
     auto dynamics_constraint = std::make_shared<DircolDynamicConstraint<T>>(plant_, *constraints_[i], is_quaterion);
     DRAKE_ASSERT(static_cast<int>(dynamics_constraint->num_constraints()) == num_states());
     // at knot points
@@ -131,9 +135,10 @@ HybridDircol<T>::HybridDircol(
     }
 
     // Adding kinematic constraints
-    // at knot points (not including start and end point)
+    cout << "Adding kinematics constraint...\n";
     auto kinematic_constraint = std::make_shared<DircolKinematicConstraint<T>>(plant_, *constraints_[i],
         options[i].getConstraintsRelative(), options[i].getPhiValues());
+    // at knot points (not including start and end point)
     for (int j = 1; j < mode_lengths_[i] - 1; j++) {
       int time_index = mode_start_[i] + j;
       AddConstraint(kinematic_constraint,
@@ -171,15 +176,16 @@ HybridDircol<T>::HybridDircol(
 
 
     //Adding constraints on force (excluding impulse variables)
+    cout << "Adding constraint force constraint...\n";
     // at knot points
     for (int l = 0; l < mode_lengths_[i]; l++) {
       int start_index = l*num_kinematic_constraints(i);
       for (int j = 0; j < constraints_[i]->getNumConstraintObjects(); j++) {
         DircolKinematicData<T>* constraint_j = constraints_[i]->getConstraint(j);
-        start_index += constraint_j->getLength();
         for (int k = 0; k < constraint_j->numForceConstraints(); k++) {
           AddConstraint(constraint_j->getForceConstraint(k), force_vars(i).segment(start_index, constraint_j->getLength()));
         }
+        start_index += constraint_j->getLength();
       }
     }
     // at collocation points
@@ -187,14 +193,15 @@ HybridDircol<T>::HybridDircol(
       int start_index = l*num_kinematic_constraints(i);
       for (int j = 0; j < constraints_[i]->getNumConstraintObjects(); j++) {
         DircolKinematicData<T>* constraint_j = constraints_[i]->getConstraint(j);
-        start_index += constraint_j->getLength();
         for (int k = 0; k < constraint_j->numForceConstraints(); k++) {
           AddConstraint(constraint_j->getForceConstraint(k), force_col_vars(i).segment(start_index, constraint_j->getLength()));
         }
+        start_index += constraint_j->getLength();
       }
     }
 
     //Force cost option (TODO: do we want to minimize constraint forces?)
+    cout << "Adding force cost...\n";
     if (options[i].getForceCost() != 0) {
       auto A = options[i].getForceCost()*MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
       auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
@@ -204,6 +211,7 @@ HybridDircol<T>::HybridDircol(
     }
 
     // Impact constraint
+    cout << "Adding impact constraint...\n";
     if (i > 0) {
       if (num_kinematic_constraints(i) > 0) {
         auto impact_constraint = std::make_shared<DircolImpactConstraint<T>>(plant_, *constraints_[i]);

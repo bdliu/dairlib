@@ -863,10 +863,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (standing) {  // standing
-    // dataset_list.push_back(&double_all_dataset);
-    // options_list.push_back(double_all_options);
-    dataset_list.push_back(&double_all_2d_dataset);
-    options_list.push_back(double_all_2d_options);
+    dataset_list.push_back(&double_all_dataset);
+    options_list.push_back(double_all_options);
+    // dataset_list.push_back(&double_all_2d_dataset);
+    // options_list.push_back(double_all_2d_options);
   } else {  // walking
     if (walking_mode == 0) {
       dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);
@@ -1319,6 +1319,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
             trajopt->SetInitialGuess(ucol_i, u_init);
             auto lambdacol_i = trajopt->force_col(mode, index);
             trajopt->SetInitialGuess(lambdacol_i, lambda_init);
+
           }
         }
         i_start += num_time_samples[mode];

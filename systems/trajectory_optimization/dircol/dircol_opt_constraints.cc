@@ -119,9 +119,9 @@ CubicInterpolationConstraint<T>::CubicInterpolationConstraint(
     int num_positions, int num_velocities, int num_inputs)
     : DircolAbstractConstraint<T>(
           2 * (num_positions + num_velocities) + num_inputs,
-          1 + 3 * (num_positions + num_velocities + num_inputs),
-          Eigen::VectorXd::Zero(num_positions + num_velocities + num_inputs),
-          Eigen::VectorXd::Zero(num_positions + num_velocities + num_inputs)),
+          1 + 3 * (num_positions + 2*num_velocities + num_inputs),
+          Eigen::VectorXd::Zero(2 * (num_positions + num_velocities) + num_inputs),
+          Eigen::VectorXd::Zero(2 * (num_positions + num_velocities) + num_inputs)),
       plant_(plant),
       constraints_(&constraints),
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
@@ -203,12 +203,13 @@ DircolDynamicConstraint<T>::DircolDynamicConstraint(
     int num_positions, int num_velocities, int num_inputs,
     int num_kinematic_constraints, int num_quat_slack)
     : DircolAbstractConstraint<T>(num_positions + num_velocities,
-          num_positions + 2 * num_velocities + num_inputs + num_quat_slack,
+              num_positions + 2 * num_velocities + num_inputs +
+                  num_kinematic_constraints + num_quat_slack,
           Eigen::VectorXd::Zero(num_positions + num_velocities),
           Eigen::VectorXd::Zero(num_positions + num_velocities)),
       plant_(plant),
       constraints_(&constraints),
-      num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
+      num_states_{num_positions + num_velocities}, num_inputs_{num_inputs},
       num_kinematic_constraints_{num_kinematic_constraints},
       num_positions_{num_positions}, num_velocities_{num_velocities},
       num_quat_slack_{num_quat_slack} {}
@@ -218,8 +219,8 @@ DircolDynamicConstraint<T>::DircolDynamicConstraint(
 template <typename T>
 void DircolDynamicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
-  DRAKE_ASSERT(x.size() == num_states_ + num_inputs_ + num_velocities_ +
-      num_quat_slack_);
+  DRAKE_ASSERT(x.size() == num_states_ + num_velocities_ + num_inputs_ +
+      num_kinematic_constraints_ + num_quat_slack_);
 
   // Extract our input variables:
   // state, state vector at time steps k

@@ -34,7 +34,7 @@ DircolKinematicDataSet<T>::DircolKinematicDataSet(
   J_ = MatrixX<T>(constraint_count_, num_velocities_);
   Jdotv_ = VectorX<T>(constraint_count_);
   // cddot_ = VectorX<T>(constraint_count_);
-  qdot_ = VectorX<T>(num_velocities_);
+  qdot_ = VectorX<T>(num_positions_);
   // vdot_ = VectorX<T>(num_velocities_);
   // xdot_ = VectorX<T>(num_positions_ + num_velocities_);
   M_ = MatrixX<T>(num_velocities_, num_velocities_);
