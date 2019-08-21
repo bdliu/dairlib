@@ -618,6 +618,14 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                    heel_spring_right, pt_on_heel_spring,
                                    rod_length);
 
+  // Testing: only four bar linkage constraint
+  vector<DircolKinematicData<double>*> no_stance_constraint;
+  // no_stance_constraint.push_back(&distance_constraint_left);
+  // no_stance_constraint.push_back(&distance_constraint_right);
+  auto no_stance_dataset = DircolKinematicDataSet<double>(plant,
+                      &no_stance_constraint);
+  auto no_stance_options = DircolOptions(no_stance_dataset.countConstraints());
+
   // Testing
   bool isYZ = true; if (isYZ) isXZ = true;
   auto left_toe_rear_2d_constraint = DircolPositionData<double>(plant, toe_left,
@@ -862,9 +870,11 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // min_dt bound.
   min_dt.push_back(.01);
   max_dt.push_back(.3);
+  dataset_list.push_back(&no_stance_dataset);
+  options_list.push_back(no_stance_options);
   if (standing) {  // standing
-    dataset_list.push_back(&double_all_dataset);
-    options_list.push_back(double_all_options);
+    // dataset_list.push_back(&double_all_dataset);
+    // options_list.push_back(double_all_options);
     // dataset_list.push_back(&double_all_2d_dataset);
     // options_list.push_back(double_all_2d_options);
   } else {  // walking
@@ -950,7 +960,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
-      2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
+      0);  // 0 // snopt doc said try 2 if seeing snopta exit 40
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -1013,8 +1023,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // testing(initial floating base)
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
-  // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
+  trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+  trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
@@ -1026,26 +1036,26 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
   // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[0]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[1]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[2]")) == 0);
-  for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
-    for (int index = 0; index < num_time_samples[mode]-1; index++) {
-      auto xcol_i = trajopt->x_col(mode, index);
-      // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[4]")) == -dist/2);
-      // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[5]")) == 0);
-      // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[6]")) == 1);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[3]")) == 0);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[4]")) == 0);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[5]")) == 0);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[0]")) == 0);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[1]")) == 0);
-      trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[2]")) == 0);
-    }
-  }
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[0]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[1]")) == 0);
+  // trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[2]")) == 0);
+  // for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
+  //   for (int index = 0; index < num_time_samples[mode]-1; index++) {
+  //     auto xcol_i = trajopt->x_col(mode, index);
+  //     // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[4]")) == -dist/2);
+  //     // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[5]")) == 0);
+  //     // trajopt->AddLinearConstraint(xcol_i(positions_map.at("position[6]")) == 1);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[3]")) == 0);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[4]")) == 0);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[5]")) == 0);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[0]")) == 0);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[1]")) == 0);
+  //     trajopt->AddLinearConstraint(xcol_i(n_q + velocities_map.at("velocity[2]")) == 0);
+  //   }
+  // }
 
   // Periodicity constraints
   vector<std::string> left_joint_names {
@@ -1080,61 +1090,61 @@ void DoMain(double stride_length, double duration_ss, int iter,
   };
   // Floating base (mirror in x-z plane)
   if (!standing) {
-    // Floating base periodicity
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
-                                 xf(positions_map.at("position[0]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
-                                 -xf(positions_map.at("position[1]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
-                                 xf(positions_map.at("position[2]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
-                                 -xf(positions_map.at("position[3]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
-                                 -xf(positions_map.at("position[5]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
-                                 xf(positions_map.at("position[6]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[0]")) ==
-      xf(n_q + velocities_map.at("velocity[0]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[1]")) ==
-      -xf(n_q + velocities_map.at("velocity[1]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[2]")) ==
-      xf(n_q + velocities_map.at("velocity[2]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[3]")) ==
-      xf(n_q + velocities_map.at("velocity[3]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[4]")) ==
-      -xf(n_q + velocities_map.at("velocity[4]")));
-    trajopt->AddLinearConstraint(
-      x0(n_q + velocities_map.at("velocity[5]")) ==
-      xf(n_q + velocities_map.at("velocity[5]")));
+    // // Floating base periodicity
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
+    //                              xf(positions_map.at("position[0]")));
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) ==
+    //                              -xf(positions_map.at("position[1]")));
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) ==
+    //                              xf(positions_map.at("position[2]")));
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) ==
+    //                              -xf(positions_map.at("position[3]")));
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
+    //                              -xf(positions_map.at("position[5]")));
+    // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
+    //                              xf(positions_map.at("position[6]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[0]")) ==
+    //   xf(n_q + velocities_map.at("velocity[0]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[1]")) ==
+    //   -xf(n_q + velocities_map.at("velocity[1]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[2]")) ==
+    //   xf(n_q + velocities_map.at("velocity[2]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[3]")) ==
+    //   xf(n_q + velocities_map.at("velocity[3]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[4]")) ==
+    //   -xf(n_q + velocities_map.at("velocity[4]")));
+    // trajopt->AddLinearConstraint(
+    //   x0(n_q + velocities_map.at("velocity[5]")) ==
+    //   xf(n_q + velocities_map.at("velocity[5]")));
 
-    // The legs joint positions and velocities should be mirrored between legs
-    for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-      trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
-                                   xf(positions_map.at(right_joint_names[i])));
-      trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
-                                   xf(positions_map.at(left_joint_names[i])));
-    }
-    for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-      trajopt->AddLinearConstraint(
-        x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
-        xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
-      trajopt->AddLinearConstraint(
-        x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
-        xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
-    }
+    // // The legs joint positions and velocities should be mirrored between legs
+    // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+    //   trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
+    //                                xf(positions_map.at(right_joint_names[i])));
+    //   trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
+    //                                xf(positions_map.at(left_joint_names[i])));
+    // }
+    // for (unsigned int i = 0; i < left_joint_names.size(); i++) {
+    //   trajopt->AddLinearConstraint(
+    //     x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
+    //     xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
+    //   trajopt->AddLinearConstraint(
+    //     x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
+    //     xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
+    // }
 
-    // u periodic constraint
-    for (unsigned int i = 0; i < left_motor_names.size(); i++) {
-      trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
-                                   uf(actuators_map.at(right_motor_names[i])));
-      trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
-                                   uf(actuators_map.at(left_motor_names[i])));
-    }
+    // // u periodic constraint
+    // for (unsigned int i = 0; i < left_motor_names.size(); i++) {
+    //   trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
+    //                                uf(actuators_map.at(right_motor_names[i])));
+    //   trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
+    //                                uf(actuators_map.at(left_motor_names[i])));
+    // }
   }
 
   // joint limits
@@ -1243,13 +1253,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // add cost
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v);
   MatrixXd R = 10 * MatrixXd::Identity(n_u, n_u);
+  // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   trajopt->AddRunningCost(u.transpose()* R * u);
-  trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
     for (int index = 0; index < num_time_samples[mode]-1; index++) {
       auto xcol_i = trajopt->x_col(mode, index);
       auto ucol_i = trajopt->u_col(mode, index);
-      trajopt->AddQuadraticCost(Q, VectorXd::Zero(n_v), xcol_i.tail(n_v));
+      // trajopt->AddQuadraticCost(Q, VectorXd::Zero(n_v), xcol_i.tail(n_v));
       trajopt->AddQuadraticCost(R, VectorXd::Zero(n_u), ucol_i);
     }
   }
@@ -1277,53 +1287,53 @@ void DoMain(double stride_length, double duration_ss, int iter,
     trajopt->SetInitialGuessForAllVariables(z0);
   } else {
     if (standing) {
-      // Use RBT fixed point solver
-      RigidBodyTree<double> tree;
-      buildCassieTree(tree,
-                      "examples/Cassie/urdf/cassie_fixed_springs.urdf",
-                      drake::multibody::joints::kQuaternion, false);
-      const double terrain_size = 100;
-      const double terrain_depth = 0.20;
-      drake::multibody::AddFlatTerrainToWorld(&tree,
-                                              terrain_size, terrain_depth);
+      // // Use RBT fixed point solver
+      // RigidBodyTree<double> tree;
+      // buildCassieTree(tree,
+      //                 "examples/Cassie/urdf/cassie_fixed_springs.urdf",
+      //                 drake::multibody::joints::kQuaternion, false);
+      // const double terrain_size = 100;
+      // const double terrain_depth = 0.20;
+      // drake::multibody::AddFlatTerrainToWorld(&tree,
+      //                                         terrain_size, terrain_depth);
 
-      Vector3d pelvis_position(-dist/2, 0, 1);
-      VectorXd q_init;
-      VectorXd u_init;
-      VectorXd lambda_init;
-      GetInitFixedPointGuess(pelvis_position, tree,
-                                 &q_init, &u_init, &lambda_init);
-      cout << "q_init from fixed-point solver = " << q_init << endl;
-      cout << "u_init from fixed-point solver = " << u_init << endl;
-      cout << "lambda_init from fixed-point solver = " << lambda_init << endl;
+      // Vector3d pelvis_position(-dist/2, 0, 1);
+      // VectorXd q_init;
+      // VectorXd u_init;
+      // VectorXd lambda_init;
+      // GetInitFixedPointGuess(pelvis_position, tree,
+      //                            &q_init, &u_init, &lambda_init);
+      // cout << "q_init from fixed-point solver = " << q_init << endl;
+      // cout << "u_init from fixed-point solver = " << u_init << endl;
+      // cout << "lambda_init from fixed-point solver = " << lambda_init << endl;
 
-      int i_start = 0;
-      for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
-        for (int index = 0; index < num_time_samples[mode]; index++) {
-          int i = i_start + index;
-          auto xi = trajopt->state(i);
-          VectorXd xi_init(n_q + n_v);
-          xi_init << q_init, VectorXd::Zero(n_v);
-          trajopt->SetInitialGuess(xi, xi_init);
+      // int i_start = 0;
+      // for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
+      //   for (int index = 0; index < num_time_samples[mode]; index++) {
+      //     int i = i_start + index;
+      //     auto xi = trajopt->state(i);
+      //     VectorXd xi_init(n_q + n_v);
+      //     xi_init << q_init, VectorXd::Zero(n_v);
+      //     trajopt->SetInitialGuess(xi, xi_init);
 
-          auto ui = trajopt->input(i);
-          trajopt->SetInitialGuess(ui, u_init);
+      //     auto ui = trajopt->input(i);
+      //     trajopt->SetInitialGuess(ui, u_init);
 
-          auto lambdai = trajopt->force(mode, index);
-          trajopt->SetInitialGuess(lambdai, lambda_init);
+      //     auto lambdai = trajopt->force(mode, index);
+      //     trajopt->SetInitialGuess(lambdai, lambda_init);
 
-          if (index != num_time_samples[mode]-1) {
-            auto xcol_i = trajopt->x_col(mode, index);
-            trajopt->SetInitialGuess(xcol_i, xi_init);
-            auto ucol_i = trajopt->u_col(mode, index);
-            trajopt->SetInitialGuess(ucol_i, u_init);
-            auto lambdacol_i = trajopt->force_col(mode, index);
-            trajopt->SetInitialGuess(lambdacol_i, lambda_init);
+      //     if (index != num_time_samples[mode]-1) {
+      //       auto xcol_i = trajopt->x_col(mode, index);
+      //       trajopt->SetInitialGuess(xcol_i, xi_init);
+      //       auto ucol_i = trajopt->u_col(mode, index);
+      //       trajopt->SetInitialGuess(ucol_i, u_init);
+      //       auto lambdacol_i = trajopt->force_col(mode, index);
+      //       trajopt->SetInitialGuess(lambdacol_i, lambda_init);
 
-          }
-        }
-        i_start += num_time_samples[mode];
-      }
+      //     }
+      //   }
+      //   i_start += num_time_samples[mode];
+      // }
 
     } else {
       // Do inverse kinematics to get q initial guess
