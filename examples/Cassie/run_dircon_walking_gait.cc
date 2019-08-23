@@ -1233,10 +1233,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // add cost
-  const double R = 1000/* * input_scale * input_scale*/;  // Cost on input effort
+  const double R = 10/* * input_scale * input_scale*/;  // Cost on input effort
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
   trajopt->AddRunningCost(u.transpose()* R * u);
-  // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
+  trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
 
 
 
