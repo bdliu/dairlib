@@ -323,32 +323,35 @@ vector<VectorXd> GetInitGuessForQ(int N,
     q_ik_guess = q_sol_normd;
     q_init_guess.push_back(q_sol_normd);
 
-    /*// Build temporary diagram for visualization
-    drake::systems::DiagramBuilder<double> builder_ik;
-    SceneGraph<double>& scene_graph_ik = *builder_ik.AddSystem<SceneGraph>();
-    scene_graph_ik.set_name("scene_graph_ik");
-    MultibodyPlant<double> plant_ik;
-    multibody::addFlatTerrain(&plant_ik, &scene_graph_ik, .8, .8);
-    Parser parser(&plant_ik, &scene_graph_ik);
-    std::string full_name =
-      FindResourceOrThrow("examples/Cassie/urdf/cassie_fixed_springs.urdf");
-    parser.AddModelFromFile(full_name);
-    plant_ik.mutable_gravity_field().set_gravity_vector(
-      -9.81 * Eigen::Vector3d::UnitZ());
-    plant_ik.Finalize();
+    bool visualize_init_traj = true;
+    if (visualize_init_traj) {
+      // Build temporary diagram for visualization
+      drake::systems::DiagramBuilder<double> builder_ik;
+      SceneGraph<double>& scene_graph_ik = *builder_ik.AddSystem<SceneGraph>();
+      scene_graph_ik.set_name("scene_graph_ik");
+      MultibodyPlant<double> plant_ik;
+      multibody::addFlatTerrain(&plant_ik, &scene_graph_ik, .8, .8);
+      Parser parser(&plant_ik, &scene_graph_ik);
+      std::string full_name =
+        FindResourceOrThrow("examples/Cassie/urdf/cassie_fixed_springs.urdf");
+      parser.AddModelFromFile(full_name);
+      plant_ik.mutable_gravity_field().set_gravity_vector(
+        -9.81 * Eigen::Vector3d::UnitZ());
+      plant_ik.Finalize();
 
-    // Visualize
-    VectorXd x_const = VectorXd::Zero(n_x);
-    x_const.head(n_q) = q_sol;
-    PiecewisePolynomial<double> pp_xtraj(x_const);
+      // Visualize
+      VectorXd x_const = VectorXd::Zero(n_x);
+      x_const.head(n_q) = q_sol;
+      PiecewisePolynomial<double> pp_xtraj(x_const);
 
-    multibody::connectTrajectoryVisualizer(&plant_ik, &builder_ik,
-                                           &scene_graph_ik, pp_xtraj);
-    auto diagram = builder_ik.Build();
-    drake::systems::Simulator<double> simulator(*diagram);
-    simulator.set_target_realtime_rate(.1);
-    simulator.Initialize();
-    simulator.StepTo(1.0 / N);*/
+      multibody::connectTrajectoryVisualizer(&plant_ik, &builder_ik,
+                                             &scene_graph_ik, pp_xtraj);
+      auto diagram = builder_ik.Build();
+      drake::systems::Simulator<double> simulator(*diagram);
+      simulator.set_target_realtime_rate(.1);
+      simulator.Initialize();
+      simulator.StepTo(1.0 / N);
+    }
   }
 
   return q_init_guess;
@@ -584,9 +587,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // Scaling paramters
   double trans_pos_scale = 1;
   double rot_pos_scale = 1;
-  double omega_scale = 10;
+  double omega_scale = 10;  // 10
   double input_scale = 100;
-  double force_scale = 400;
+  double force_scale = 1000;  // 400
   double time_scale = 0.03;
   vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale};
 
@@ -1230,7 +1233,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // add cost
-  const double R = 10/* * input_scale * input_scale*/;  // Cost on input effort
+  const double R = 1000/* * input_scale * input_scale*/;  // Cost on input effort
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
   trajopt->AddRunningCost(u.transpose()* R * u);
   trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
@@ -1355,7 +1358,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
   cout << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
-  cout << "Cost:" << result.get_optimal_cost() << std::endl;
+  cout << "Cost:" << result.get_optimal_cost() * time_scale << std::endl;
 
   // Check which solver we are using
   cout << "Solver: " << result.get_solver_id().name() << endl;

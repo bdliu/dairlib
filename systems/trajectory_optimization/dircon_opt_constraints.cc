@@ -95,9 +95,12 @@ void DirconAbstractConstraint<double>::DoEval(
           max_idx_j = j;
         }
       }
-    // std::cout << "gradient = " << max_element << std::endl;
-    // std::cout << "max_idx_i = " << max_idx_i << std::endl;
-    // std::cout << "max_idx_j = " << max_idx_j << std::endl;
+    if (max_element > 1e5) {
+      std::cout << this->get_description();
+      std::cout << ":  gradient = " << max_element;
+      std::cout << ",  max_idx_i = " << max_idx_i;
+      std::cout << ",  max_idx_j = " << max_idx_j << std::endl;
+    }
 
     // // central differencing
     // double dx = 1e-8;
@@ -145,7 +148,8 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
           1 + 2 *(num_positions+ num_velocities) + (2 * num_inputs) +
           (4 * num_kinematic_constraints) + num_quat_slack,
           Eigen::VectorXd::Zero(num_positions + num_velocities),
-          Eigen::VectorXd::Zero(num_positions + num_velocities)),
+          Eigen::VectorXd::Zero(num_positions + num_velocities),
+          "dynamics_constraint"),
       plant_(plant),
       constraints_(&constraints),
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
@@ -165,7 +169,6 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
-  // std::cout << "DirconDynamicConstraint \n";
 
   // Extract our input variables:
   // h - current time (knot) value
@@ -289,7 +292,8 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
         std::count(is_constraint_relative.begin(),
                    is_constraint_relative.end(), true),
         VectorXd::Zero(type*num_kinematic_constraints),
-        VectorXd::Zero(type*num_kinematic_constraints)),
+        VectorXd::Zero(type*num_kinematic_constraints),
+        "kinematics_constraint "+std::to_string(type)),
       plant_(plant),
       constraints_(&constraints),
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
@@ -317,7 +321,6 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == num_states_ + num_inputs_ +
                            num_kinematic_constraints_ + n_relative_);
-  // std::cout << "DirconKinematicConstraint. "<< num_kinematic_constraints_<<"# of rows\n";
 
   // Extract our input variables:
   // x0, x1 state vector at time steps k, k+1
@@ -368,7 +371,8 @@ DirconImpactConstraint<T>::DirconImpactConstraint(
     double omega_scale, double input_scale, double force_scale) :
         DirconAbstractConstraint<T>(num_velocities, num_positions +
             2*num_velocities + num_kinematic_constraints,
-            VectorXd::Zero(num_velocities), VectorXd::Zero(num_velocities)),
+            VectorXd::Zero(num_velocities), VectorXd::Zero(num_velocities),
+            "impact_constraint"),
         plant_(plant),
         constraints_(&constraints),
         num_states_{num_positions+num_velocities},
@@ -386,7 +390,6 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 2 * num_velocities_ + num_positions_ +
                            num_kinematic_constraints_);
-  // std::cout << "DirconImpactConstraint \n";
 
   // Extract our input variables:
   // x0, state vector at time k^-
