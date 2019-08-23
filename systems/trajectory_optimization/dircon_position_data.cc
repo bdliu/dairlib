@@ -9,6 +9,7 @@ namespace dairlib {
 using Eigen::Vector2d;
 using Eigen::Vector3d;
 using Eigen::Vector4d;
+using Eigen::VectorXd;
 using Eigen::Matrix2d;
 using Eigen::Matrix3d;
 using Eigen::MatrixXd;
@@ -131,12 +132,22 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
     //     std::make_shared<drake::solvers::LorentzConeConstraint>(A_fric, b_fric);
     // this->force_constraints_.push_back(force_constraint);
 
-    // Adding one more row for positive normal force constraint
-    MatrixXd A = MatrixXd::Zero(4,3);
-    A.block(0,0,3,3) = A_fric;
-    A(3,2) = 1;
-    Vector4d lb = Vector4d::Zero();
-    Vector4d ub = Vector4d::Constant(std::numeric_limits<double>::infinity());
+    // Notice that the constraint above is LorentzConeConstraint, which is not
+    // linear constraint, so you cannot just add one more row for positive normal force constraint.
+    ///     mu_*lambda_c(3*i+2) - lambda_c(3*i+0) >= 0
+    ///     mu_*lambda_c(3*i+2) + lambda_c(3*i+0) >= 0
+    ///     mu_*lambda_c(3*i+2) - lambda_c(3*i+1) >= 0
+    ///     mu_*lambda_c(3*i+2) + lambda_c(3*i+1) >= 0
+    ///                           lambda_c(3*i+2) >= 0
+    MatrixXd A = MatrixXd::Zero(5,3);
+    A.block(0,2,4,1) = mu * VectorXd::Ones(4,1);
+    A(0,0) = -1;
+    A(1,0) = 1;
+    A(2,1) = -1;
+    A(3,1) = 1;
+    A(4,2) = 1;
+    VectorXd lb = VectorXd::Zero(5);
+    VectorXd ub = VectorXd::Ones(5) * std::numeric_limits<double>::infinity();
     auto force_constraint = std::make_shared<drake::solvers::LinearConstraint>(
         A, lb, ub);
     this->force_constraints_.push_back(force_constraint);
