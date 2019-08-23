@@ -571,8 +571,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // Set up contact/distance constraints and construct dircon
   // parameters
   bool is_quaterion = false;
-  bool standing = true;
-  int walking_mode = 2; // 0: instant change of support
+  bool standing = false;
+  int walking_mode = 1; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
@@ -645,6 +645,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   right_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Testing (mid contact point)
+  isXZ = false;
   Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
   auto left_toe_mid_constraint = DirconPositionData<double>(plant, toe_left,
                                  pt_mid_contact, isXZ);
@@ -1024,9 +1025,11 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // x-distance constraint constraints
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-  //                              stride_length);
+  if (!standing) {
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
+      trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
+                                   stride_length);
+  }
 
 
   // testing(initial floating base)
@@ -1034,21 +1037,23 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // trajopt->AddLinearConstraint(x0(n_q + velocities_map.at("velocity[5]")) == 0);
 
   // Testing (standing in place)
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
-  // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[0]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[1]")) == 0);
-  trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[2]")) == 0);
+  if (standing) {
+      // trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == -dist/2);
+      // trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) == 0);
+      // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) == -dist/2);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[5]")) == 0);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[6]")) == 1);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[4]")) == -dist/2);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[5]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[6]")) == 1);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[3]")) == 0);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[4]")) == 0);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[5]")) == 0);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[0]")) == 0);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[1]")) == 0);
+      trajopt->AddConstraintToAllKnotPoints(x(n_q + velocities_map.at("velocity[2]")) == 0);
+  }
 
 
   // Periodicity constraints
@@ -1225,8 +1230,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
   // add cost
-  const double R = 10;  // Cost on input effort
-  MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v);
+  const double R = 10/* * input_scale * input_scale*/;  // Cost on input effort
+  MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
   trajopt->AddRunningCost(u.transpose()* R * u);
   trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
 
@@ -1281,12 +1286,12 @@ void DoMain(double stride_length, double duration_ss, int iter,
         trajopt->SetInitialGuess(xi, xi_init);
 
         auto ui = trajopt->input(i);
-        trajopt->SetInitialGuess(ui, u_init);
+        trajopt->SetInitialGuess(ui, u_init / input_scale);
       }
       for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
         for (int index = 0; index < num_time_samples[mode]; index++) {
           auto lambdai = trajopt->force(mode, index);
-          trajopt->SetInitialGuess(lambdai, lambda_init);
+          trajopt->SetInitialGuess(lambdai, lambda_init / force_scale);
         }
       }
 
@@ -1299,9 +1304,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
         auto xi = trajopt->state(i);
         VectorXd xi_seed(n_q + n_v);
         if (i < N_ss) {
-          xi_seed << q_seed.at(i), v_seed.at(i);
+          xi_seed << q_seed.at(i), v_seed.at(i) / omega_scale;
         } else {
-          xi_seed << q_seed.at(N_ss - 1), v_seed.at(N_ss - 1);
+          xi_seed << q_seed.at(N_ss - 1), v_seed.at(N_ss - 1)  / omega_scale;
         }
         trajopt->SetInitialGuess(xi, xi_seed);
       }
@@ -1317,9 +1322,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
                                 &u_seed, &lambda_seed);
       for (int i = 0; i < N; i++) {
         auto ui = trajopt->input(i);
-        trajopt->SetInitialGuess(ui, u_seed.at(i));
+        trajopt->SetInitialGuess(ui, u_seed.at(i) / input_scale);
 
-        // trajopt->SetInitialGuess(lambdai, lambda_seed.at(i));
+        // trajopt->SetInitialGuess(lambdai, lambda_seed.at(i) / force_scale);
       }
       */
     }
@@ -1357,6 +1362,10 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // store the solution of the decision variable
   VectorXd z = result.GetSolution(trajopt->decision_variables());
   writeCSV(data_directory + output_prefix + string("z.csv"), z);
+  // for(int i = 0; i<z.size(); i++){
+  //   cout << trajopt->decision_variables()[i] << ", " << z[i] << endl;
+  // }
+  // cout << endl;
 
   // store the time, state, and input at knot points
   VectorXd time_at_knots = trajopt->GetSampleTimes(result);
@@ -1366,17 +1375,19 @@ void DoMain(double stride_length, double duration_ss, int iter,
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);
   writeCSV(data_directory + string("x_i.csv"), state_at_knots);
   writeCSV(data_directory + string("u_i.csv"), input_at_knots);
+  state_at_knots << state_at_knots.block(0,0,n_q,state_at_knots.cols()),
+        state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
   cout << "time_at_knots = \n" << time_at_knots << "\n";
   cout << "state_at_knots = \n" << state_at_knots << "\n";
   cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
-  cout << "input_at_knots = \n" << input_at_knots << "\n";
+  cout << "input_at_knots = \n" << input_at_knots * input_scale << "\n";
 
   // Testing
   cout << "lambda_sol = \n";
   for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
     for (int index = 0; index < num_time_samples[mode]; index++) {
       auto lambdai = trajopt->force(mode, index);
-      cout << result.GetSolution(lambdai).transpose() << endl;
+      cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
     }
   }
 
