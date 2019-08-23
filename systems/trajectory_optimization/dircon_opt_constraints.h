@@ -54,7 +54,8 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
  public:
   DirconDynamicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                           DirconKinematicDataSet<T>& constraints,
-                          bool is_floating_base = false);
+                          bool is_floating_base = false,
+                          double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
   ~DirconDynamicConstraint() override = default;
 
@@ -70,7 +71,8 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   DirconDynamicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                           DirconKinematicDataSet<T>& constraints,
                           int num_positions, int num_velocities, int num_inputs,
-                          int num_kinematic_constraints, int num_quat_slack);
+                          int num_kinematic_constraints, int num_quat_slack,
+                          double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
   const drake::multibody::MultibodyPlant<T>& plant_;
   DirconKinematicDataSet<T>* constraints_;
@@ -80,6 +82,10 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   const int num_positions_{0};
   const int num_velocities_{0};
   const int num_quat_slack_{0};
+
+  double omega_scale_;
+  double input_scale_;
+  double force_scale_;
 };
 
 
@@ -104,7 +110,8 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   /// @param type the constraint type. All (default), accel and vel, accel only.
   DirconKinematicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
     DirconKinematicDataSet<T>& constraint_data,
-    DirconKinConstraintType type = DirconKinConstraintType::kAll);
+    DirconKinConstraintType type = DirconKinConstraintType::kAll,
+    double omega_scale = 10, double input_scale = 100, double force_scale = 400);
   /// Constructor
   /// @param plant the MultibodyPlant
   /// @param DirconKinematicDataSet the set of kinematic constraints
@@ -114,7 +121,8 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
     DirconKinematicDataSet<T>& constraint_data,
     std::vector<bool> is_constraint_relative,
     drake::VectorX<double> phi_vals,
-    DirconKinConstraintType type = DirconKinConstraintType::kAll);
+    DirconKinConstraintType type = DirconKinConstraintType::kAll,
+    double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
   ~DirconKinematicConstraint() override = default;
 
@@ -128,7 +136,8 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
                             drake::VectorX<double> phi_vals,
                             DirconKinConstraintType type, int num_positions,
                             int num_velocities, int num_inputs,
-                            int num_kinematic_constraints);
+                            int num_kinematic_constraints,
+                            double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
 
   const drake::multibody::MultibodyPlant<T>& plant_;
@@ -144,6 +153,10 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   const drake::VectorX<double> phi_vals_;
   const int n_relative_;
   Eigen::MatrixXd relative_map_;
+
+  double omega_scale_;
+  double input_scale_;
+  double force_scale_;
 };
 
 /// Helper method to add a DirconDynamicConstraint to the @p prog,
@@ -176,7 +189,8 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
   /// @param plant the MultibodyPlant
   /// @param DirconKinematicDataSet the set of kinematic constraints
   DirconImpactConstraint(const drake::multibody::MultibodyPlant<T>& plant,
-                         DirconKinematicDataSet<T>& constraint_data);
+                         DirconKinematicDataSet<T>& constraint_data,
+                         double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
   ~DirconImpactConstraint() override = default;
 
@@ -187,7 +201,8 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
   DirconImpactConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                          DirconKinematicDataSet<T>& constraint_data,
                          int num_positions, int num_velocities,
-                         int num_kinematic_constraints);
+                         int num_kinematic_constraints,
+                         double omega_scale = 10, double input_scale = 100, double force_scale = 400);
 
 
   const drake::multibody::MultibodyPlant<T>& plant_;
@@ -197,6 +212,10 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
   const int num_kinematic_constraints_{0};
   const int num_positions_{0};
   const int num_velocities_{0};
+
+  double omega_scale_;
+  double input_scale_;
+  double force_scale_;
 };
 
 }  // namespace trajectory_optimization

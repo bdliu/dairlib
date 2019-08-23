@@ -109,17 +109,20 @@ void DirconAbstractConstraint<double>::DoEval(
 template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    bool is_floating_base) :
+    bool is_floating_base,
+    double omega_scale, double input_scale, double force_scale) :
   DirconDynamicConstraint(plant, constraints, plant.num_positions(),
                           plant.num_velocities(), plant.num_actuators(),
                           constraints.countConstraints(),
-                          (is_floating_base)? 1:0) {}
+                          (is_floating_base)? 1:0,
+                          omega_scale, input_scale, force_scale) {}
 
 template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     int num_positions, int num_velocities, int num_inputs,
-    int num_kinematic_constraints, int num_quat_slack)
+    int num_kinematic_constraints, int num_quat_slack,
+    double omega_scale, double input_scale, double force_scale)
     : DirconAbstractConstraint<T>(num_positions + num_velocities,
           1 + 2 *(num_positions+ num_velocities) + (2 * num_inputs) +
           (4 * num_kinematic_constraints) + num_quat_slack,
@@ -130,7 +133,10 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
       num_kinematic_constraints_{num_kinematic_constraints},
       num_positions_{num_positions}, num_velocities_{num_velocities},
-      num_quat_slack_{num_quat_slack} {}
+      num_quat_slack_{num_quat_slack},
+      omega_scale_{omega_scale},
+      input_scale_{input_scale},
+      force_scale_{force_scale} {}
 
 // The format of the input to the eval() function is the
 // tuple { timestep, state 0, state 1, input 0, input 1, force 0, force 1},
@@ -146,18 +152,24 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   // x0, x1 state vector at time steps k, k+1
   // u0, u1 input vector at time steps k, k+1
   const T h = x(0);
-  const VectorX<T> x0 = x.segment(1, num_states_);
-  const VectorX<T> x1 = x.segment(1 + num_states_, num_states_);
-  const VectorX<T> u0 = x.segment(1 + (2 * num_states_), num_inputs_);
-  const VectorX<T> u1 = x.segment(1 + (2 * num_states_) + num_inputs_, num_inputs_);
+  // const VectorX<T> x0 = x.segment(1, num_states_);
+  VectorX<T> x0(num_states_);
+  x0 << x.segment(1, num_positions_),
+        x.segment(1 + num_positions_, num_velocities_)*omega_scale_;
+  // const VectorX<T> x1 = x.segment(1 + num_states_, num_states_);
+  VectorX<T> x1(num_states_);
+  x1 << x.segment(1 + num_states_, num_positions_),
+        x.segment(1 + num_states_ + num_positions_, num_velocities_)*omega_scale_;
+  const VectorX<T> u0 = x.segment(1 + (2 * num_states_), num_inputs_)*input_scale_;
+  const VectorX<T> u1 = x.segment(1 + (2 * num_states_) + num_inputs_, num_inputs_)*input_scale_;
   const VectorX<T> l0 = x.segment(1 + 2 * (num_states_ + num_inputs_),
-                            num_kinematic_constraints_);
+                            num_kinematic_constraints_)*force_scale_;
   const VectorX<T> l1 = x.segment(1 + 2 * (num_states_ + num_inputs_) +
-      num_kinematic_constraints_, num_kinematic_constraints_);
+      num_kinematic_constraints_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> lc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
-      2*num_kinematic_constraints_, num_kinematic_constraints_);
+      2*num_kinematic_constraints_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> vc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
-      3*num_kinematic_constraints_, num_kinematic_constraints_);
+      3*num_kinematic_constraints_, num_kinematic_constraints_)*omega_scale_;
   const VectorX<T> gamma = x.tail(num_quat_slack_);
 
   auto context0 = multibody::createContext(plant_, x0, u0);
@@ -219,26 +231,30 @@ Binding<Constraint> AddDirconConstraint(
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    DirconKinConstraintType type) :
+    DirconKinConstraintType type,
+    double omega_scale, double input_scale, double force_scale) :
     DirconKinematicConstraint(plant, constraints,
                             std::vector<bool>(constraints.countConstraints(),
                             false),
                             Eigen::VectorXd::Zero(constraints.countConstraints()),
                             type, plant.num_positions(),
                             plant.num_velocities(), plant.num_actuators(),
-                            constraints.countConstraints()) {}
+                            constraints.countConstraints(),
+                            omega_scale, input_scale, force_scale) {}
 
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     std::vector<bool> is_constraint_relative, drake::VectorX<double> phi_vals,
-    DirconKinConstraintType type) :
+    DirconKinConstraintType type,
+    double omega_scale, double input_scale, double force_scale) :
     DirconKinematicConstraint(plant, constraints, is_constraint_relative,
                               phi_vals, type,
                               plant.num_positions(),
                               plant.num_velocities(),
                               plant.num_actuators(),
-                              constraints.countConstraints()) {}
+                              constraints.countConstraints(),
+                              omega_scale, input_scale, force_scale) {}
 
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
@@ -246,7 +262,8 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
     std::vector<bool> is_constraint_relative, drake::VectorX<double> phi_vals,
     DirconKinConstraintType type,
     int num_positions, int num_velocities, int num_inputs,
-    int num_kinematic_constraints) :
+    int num_kinematic_constraints,
+    double omega_scale, double input_scale, double force_scale) :
     DirconAbstractConstraint<T>(type*num_kinematic_constraints, num_positions +
         num_velocities + num_inputs + num_kinematic_constraints +
         std::count(is_constraint_relative.begin(),
@@ -261,7 +278,10 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
       type_{type}, is_constraint_relative_{is_constraint_relative},
       phi_vals_{phi_vals},
       n_relative_{static_cast<int>(std::count(is_constraint_relative.begin(),
-      is_constraint_relative.end(), true))} {
+      is_constraint_relative.end(), true))},
+      omega_scale_{omega_scale},
+      input_scale_{input_scale},
+      force_scale_{force_scale} {
   relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
   int j = 0;
   for (int i=0; i < num_kinematic_constraints_; i++) {
@@ -282,10 +302,12 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   // h - current time (knot) value
   // x0, x1 state vector at time steps k, k+1
   // u0, u1 input vector at time steps k, k+1
-  const VectorX<T> state = x.segment(0, num_states_);
-  const VectorX<T> input = x.segment(num_states_, num_inputs_);
+  VectorX<T> state(num_states_);
+  state << x.segment(0, num_positions_),
+        x.segment(num_positions_, num_velocities_)*omega_scale_;
+  const VectorX<T> input = x.segment(num_states_, num_inputs_)*input_scale_;
   const VectorX<T> force = x.segment(num_states_ + num_inputs_,
-                               num_kinematic_constraints_);
+                               num_kinematic_constraints_)*force_scale_;
   const VectorX<T> offset = x.segment(num_states_ + num_inputs_ +
                                 num_kinematic_constraints_, n_relative_);
   auto context = multibody::createContext(plant_, state, input);
@@ -312,23 +334,29 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
 
 template <typename T>
 DirconImpactConstraint<T>::DirconImpactConstraint(
-    const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints) :
+    const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
+    double omega_scale, double input_scale, double force_scale) :
   DirconImpactConstraint(plant, constraints, plant.num_positions(),
                          plant.num_velocities(),
-                         constraints.countConstraints()) {}
+                         constraints.countConstraints(),
+                         omega_scale, input_scale, force_scale) {}
 
 template <typename T>
 DirconImpactConstraint<T>::DirconImpactConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    int num_positions, int num_velocities, int num_kinematic_constraints) :
-    DirconAbstractConstraint<T>(num_velocities, num_positions +
-        2*num_velocities + num_kinematic_constraints,
-        VectorXd::Zero(num_velocities), VectorXd::Zero(num_velocities)),
-    plant_(plant),
-    constraints_(&constraints),    
-    num_states_{num_positions+num_velocities},
-    num_kinematic_constraints_{num_kinematic_constraints},
-    num_positions_{num_positions}, num_velocities_{num_velocities} {}
+    int num_positions, int num_velocities, int num_kinematic_constraints,
+    double omega_scale, double input_scale, double force_scale) :
+        DirconAbstractConstraint<T>(num_velocities, num_positions +
+            2*num_velocities + num_kinematic_constraints,
+            VectorXd::Zero(num_velocities), VectorXd::Zero(num_velocities)),
+        plant_(plant),
+        constraints_(&constraints),
+        num_states_{num_positions+num_velocities},
+        num_kinematic_constraints_{num_kinematic_constraints},
+        num_positions_{num_positions}, num_velocities_{num_velocities},
+        omega_scale_{omega_scale},
+        input_scale_{input_scale},
+        force_scale_{force_scale} {}
 
 
 // The format of the input to the eval() function is the
@@ -343,12 +371,14 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   // x0, state vector at time k^-
   // impulse, impulsive force at impact
   // v1, post-impact velocity at time k^+
-  const VectorX<T> x0 = x.segment(0, num_states_);
-  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_);
+  VectorX<T> x0(num_states_);
+  x0 << x.segment(0, num_positions_),
+        x.segment(num_positions_, num_velocities_)*omega_scale_;
+  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> v1 = x.segment(num_states_ + num_kinematic_constraints_,
-                            num_velocities_);
+                            num_velocities_)*omega_scale_;
 
-  const VectorX<T> v0 = x0.tail(num_velocities_);
+  const VectorX<T> v0 = x0.tail(num_velocities_)*omega_scale_;
 
   // vp = vm + M^{-1}*J^T*Lambda
   const VectorX<T> u = VectorXd::Zero(plant_.num_actuators()).template cast<T>();

@@ -581,6 +581,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
   bool set_second_contact_manually = false;
   bool set_both_contact_pos_manually = false;
 
+  // Scaling paramters
+  double trans_pos_scale = 1;
+  double rot_pos_scale = 1;
+  double omega_scale = 10;
+  double input_scale = 100;
+  double force_scale = 400;
+
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
   Vector3d pt_front_contact(-0.0457, 0.112, 0);
@@ -950,7 +957,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list,
-                 is_quaterion);
+                 is_quaterion,
+                 omega_scale, input_scale, force_scale);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
@@ -1155,8 +1163,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
   motor_names.insert(motor_names.end(),
                      right_motor_names.begin(), right_motor_names.end() );
   for (const auto & member : motor_names) {
-    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300);
-    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300);
+    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300/input_scale);
+    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300/input_scale);
   }
 
 

@@ -38,7 +38,10 @@ HybridDircon<T>::HybridDircon(
     vector<double> maximum_timestep,
     vector<DirconKinematicDataSet<T>*> constraints,
     vector<DirconOptions> options,
-    bool is_quaterion) :
+    bool is_quaterion,
+    double omega_scale,
+    double input_scale,
+    double force_scale) :
         MultipleShooting(plant.num_actuators(),
           plant.num_positions() + plant.num_velocities(),
           std::accumulate(num_time_samples.begin(),
@@ -82,7 +85,8 @@ HybridDircon<T>::HybridDircon(
       impulse_vars_.push_back(NewContinuousVariables(constraints_[i]->countConstraints(), "impulse[" + std::to_string(i) + "]"));
     }
 
-    auto constraint = std::make_shared<DirconDynamicConstraint<T>>(plant_, *constraints_[i], is_quaterion);
+    auto constraint = std::make_shared<DirconDynamicConstraint<T>>(plant_, *constraints_[i], is_quaterion,
+        omega_scale, input_scale, force_scale);
 
     DRAKE_ASSERT(static_cast<int>(constraint->num_constraints()) == num_states());
 
@@ -111,7 +115,8 @@ HybridDircon<T>::HybridDircon(
 
     // Adding kinematic constraints
     auto kinematic_constraint = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative(), options[i].getPhiValues());
+        options[i].getConstraintsRelative(), options[i].getPhiValues(), DirconKinConstraintType::kAll,
+        omega_scale, input_scale, force_scale);
     for (int j = 1; j < mode_lengths_[i] - 1; j++) {
       int time_index = mode_start_[i] + j;
       AddConstraint(kinematic_constraint,
@@ -123,7 +128,8 @@ HybridDircon<T>::HybridDircon(
 
     // special case first and last timestep based on options
     auto kinematic_constraint_start = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-      options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getStartType());
+      options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getStartType(),
+      omega_scale, input_scale, force_scale);
     AddConstraint(kinematic_constraint_start,
                   {state_vars_by_mode(i,0),
                    u_vars().segment(mode_start_[i], num_inputs()),
@@ -132,7 +138,8 @@ HybridDircon<T>::HybridDircon(
 
     if (mode_lengths_[i] > 1) {
       auto kinematic_constraint_end = std::make_shared<DirconKinematicConstraint<T>>(plant_, *constraints_[i],
-        options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getEndType());
+        options[i].getConstraintsRelative(), options[i].getPhiValues(), options[i].getEndType(),
+        omega_scale, input_scale, force_scale);
       AddConstraint(kinematic_constraint_end,
                     {state_vars_by_mode(i, mode_lengths_[i] - 1),
                      u_vars().segment((mode_start_[i] + mode_lengths_[i] - 1) * num_inputs(), num_inputs()),
@@ -164,7 +171,8 @@ HybridDircon<T>::HybridDircon(
 
     if (i > 0) {
       if (num_kinematic_constraints(i) > 0) {
-        auto impact_constraint = std::make_shared<DirconImpactConstraint<T>>(plant_, *constraints_[i]);
+        auto impact_constraint = std::make_shared<DirconImpactConstraint<T>>(plant_, *constraints_[i],
+            omega_scale, input_scale, force_scale);
         AddConstraint(impact_constraint,
                 {state_vars_by_mode(i-1, mode_lengths_[i-1] - 1), // last state from previous mode
                  impulse_vars(i-1),
