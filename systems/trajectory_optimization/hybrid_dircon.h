@@ -56,7 +56,7 @@ class HybridDircon :
                double omega_scale = 10.0,
                double input_scale = 100.0,
                double force_scale = 400.0,
-               std::vector<double> var_scale = {10.0, 100.0, 400.0});
+               std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   ~HybridDircon() override {}
 

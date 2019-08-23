@@ -66,7 +66,8 @@ HybridDircon<T>::HybridDircon(
 
     // set timestep bounds
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
-      AddBoundingBoxConstraint(minimum_timestep[i], maximum_timestep[i],
+      AddBoundingBoxConstraint(minimum_timestep[i] / var_scale[3],
+                               maximum_timestep[i] / var_scale[3],
                                timestep(mode_start_[i] + j));
     }
     for (int j = 0; j < mode_lengths_[i] - 2; j++) {
@@ -270,7 +271,7 @@ PiecewisePolynomial<double> HybridDircon<T>::ReconstructInputTrajectory(
 template <typename T>
 PiecewisePolynomial<double> HybridDircon<T>::ReconstructStateTrajectory(
     const MathematicalProgramResult& result) const {
-  VectorXd times_all(GetSampleTimes(result));
+  VectorXd times_all(GetSampleTimes(result) * var_scale_[3]);
   VectorXd times(N() + num_modes_ - 1);
 
   MatrixXd states(num_states(), N() + num_modes_ - 1);

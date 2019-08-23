@@ -570,7 +570,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // Set up contact/distance constraints and construct dircon
   // parameters
-  bool is_quaterion = false;
+  bool is_quaterion = true;
   bool standing = false;
   int walking_mode = 1; // 0: instant change of support
                         // 1: single double single
@@ -996,7 +996,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   // Fix the time duration_ss
   cout << "duration_ss = " << duration_ss << endl;
   if (standing) {
-    trajopt->AddDurationBounds(duration_ss, duration_ss);
+    trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
   }
 
   // quaterion norm constraint
@@ -1377,6 +1377,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);
   writeCSV(data_directory + string("x_i.csv"), state_at_knots);
   writeCSV(data_directory + string("u_i.csv"), input_at_knots);
+  time_at_knots = time_at_knots * time_scale;
   state_at_knots << state_at_knots.block(0,0,n_q,state_at_knots.cols()),
         state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
   cout << "time_at_knots = \n" << time_at_knots << "\n";
