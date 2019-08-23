@@ -1346,14 +1346,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
       drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
 
   cout << "Solving DIRCON\n";
-  cout << '\a';
   auto start = std::chrono::high_resolution_clock::now();
   const auto result = Solve(*trajopt, trajopt->initial_guess());
   SolutionResult solution_result = result.get_solution_result();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
-  for (int i = 0; i < 100; i++) {cout << '\a';}
+  for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
   cout << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
   cout << "Cost:" << result.get_optimal_cost() << std::endl;
@@ -1374,16 +1373,17 @@ void DoMain(double stride_length, double duration_ss, int iter,
   MatrixXd state_at_knots = trajopt->GetStateSamples(result);
   MatrixXd input_at_knots = trajopt->GetInputSamples(result);
   state_at_knots.col(N-1) = result.GetSolution(xf);
+  time_at_knots *= time_scale;
+  state_at_knots << state_at_knots.block(0,0,n_q,state_at_knots.cols()),
+        state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
+  input_at_knots *= input_scale;
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);
   writeCSV(data_directory + string("x_i.csv"), state_at_knots);
   writeCSV(data_directory + string("u_i.csv"), input_at_knots);
-  time_at_knots = time_at_knots * time_scale;
-  state_at_knots << state_at_knots.block(0,0,n_q,state_at_knots.cols()),
-        state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
   cout << "time_at_knots = \n" << time_at_knots << "\n";
   cout << "state_at_knots = \n" << state_at_knots << "\n";
   cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
-  cout << "input_at_knots = \n" << input_at_knots * input_scale << "\n";
+  cout << "input_at_knots = \n" << input_at_knots << "\n";
 
   // Testing
   cout << "lambda_sol = \n";
