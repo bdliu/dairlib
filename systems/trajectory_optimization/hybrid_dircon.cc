@@ -41,7 +41,8 @@ HybridDircon<T>::HybridDircon(
     bool is_quaterion,
     double omega_scale,
     double input_scale,
-    double force_scale) :
+    double force_scale,
+    vector<double> var_scale) :
         MultipleShooting(plant.num_actuators(),
           plant.num_positions() + plant.num_velocities(),
           std::accumulate(num_time_samples.begin(),
@@ -51,7 +52,8 @@ HybridDircon<T>::HybridDircon(
     num_modes_(num_time_samples.size()),
     mode_lengths_(num_time_samples),
     v_post_impact_vars_(NewContinuousVariables(plant.num_velocities() *
-                        (num_time_samples.size() - 1), "v_p")) {
+                        (num_time_samples.size() - 1), "v_p")),
+    var_scale_(var_scale) {
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
   DRAKE_ASSERT(constraints.size() == num_modes_);
@@ -86,7 +88,7 @@ HybridDircon<T>::HybridDircon(
     }
 
     auto constraint = std::make_shared<DirconDynamicConstraint<T>>(plant_, *constraints_[i], is_quaterion,
-        omega_scale, input_scale, force_scale);
+        omega_scale, input_scale, force_scale, var_scale);
 
     DRAKE_ASSERT(static_cast<int>(constraint->num_constraints()) == num_states());
 
@@ -161,13 +163,13 @@ HybridDircon<T>::HybridDircon(
     }
 
     //Force cost option
-    if (options[i].getForceCost() != 0) {
-      auto A = options[i].getForceCost()*MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
-      auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
-      for (int j=0; j <  mode_lengths_[i]; j++) {
-        AddL2NormCost(A,b,force(i,j));
-      }
-    }
+    // if (options[i].getForceCost() != 0) {
+    //   auto A = options[i].getForceCost()*MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
+    //   auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
+    //   for (int j=0; j <  mode_lengths_[i]; j++) {
+    //     AddL2NormCost(A,b,force(i,j));
+    //   }
+    // }
 
     if (i > 0) {
       if (num_kinematic_constraints(i) > 0) {
@@ -286,11 +288,13 @@ PiecewisePolynomial<double> HybridDircon<T>::ReconstructStateTrajectory(
         times(k) += + 1e-6;
       }
       VectorX<T> xk = result.GetSolution(state_vars_by_mode(i, j));
-      VectorX<T> uk = result.GetSolution(input(k_data));
+      xk << xk.head(plant_.num_positions()),
+            xk.tail(plant_.num_velocities()) * var_scale_[0];
+      VectorX<T> uk = result.GetSolution(input(k_data)) * var_scale_[1];
       states.col(k) = xk;
       inputs.col(k) = uk;
       auto context = multibody::createContext(plant_, xk, uk);
-      constraints_[i]->updateData(*context, result.GetSolution(force(i, j)));
+      constraints_[i]->updateData(*context, result.GetSolution(force(i, j)) * var_scale_[2]);
       derivatives.col(k) =
           drake::math::DiscardGradient(constraints_[i]->getXDot());
   }

@@ -100,6 +100,7 @@ void DirconKinematicDataSet<T>::updateData(const Context<T>& context,
         getJ().transpose() * forces;
 
     vdot_ = M_.llt().solve(right_hand_side_);
+    // std::cout << "residual = " << (M_*vdot_ - right_hand_side_).norm() << std::endl;
 
     cddot_ = Jdotv_ + J_*vdot_;
 

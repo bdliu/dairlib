@@ -84,6 +84,21 @@ void DirconAbstractConstraint<double>::DoEval(
     }
     drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
 
+    double max_element = dy(0, 0);
+    double max_idx_i = 0;
+    double max_idx_j = 0;
+    for (int i = 0; i < dy.rows(); i++)
+      for (int j = 0; j < dy.cols(); j++) {
+        if (dy(i, j) > max_element) {
+          max_element = dy(i, j);
+          max_idx_i = i;
+          max_idx_j = j;
+        }
+      }
+    std::cout << "gradient = " << max_element << std::endl;
+    std::cout << "max_idx_i = " << max_idx_i << std::endl;
+    std::cout << "max_idx_j = " << max_idx_j << std::endl;
+
     // // central differencing
     // double dx = 1e-8;
 
@@ -110,19 +125,22 @@ template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     bool is_floating_base,
-    double omega_scale, double input_scale, double force_scale) :
+    double omega_scale, double input_scale, double force_scale,
+    std::vector<double> var_scale) :
   DirconDynamicConstraint(plant, constraints, plant.num_positions(),
                           plant.num_velocities(), plant.num_actuators(),
                           constraints.countConstraints(),
                           (is_floating_base)? 1:0,
-                          omega_scale, input_scale, force_scale) {}
+                          omega_scale, input_scale, force_scale,
+                          var_scale) {}
 
 template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     int num_positions, int num_velocities, int num_inputs,
     int num_kinematic_constraints, int num_quat_slack,
-    double omega_scale, double input_scale, double force_scale)
+    double omega_scale, double input_scale, double force_scale,
+    std::vector<double> var_scale)
     : DirconAbstractConstraint<T>(num_positions + num_velocities,
           1 + 2 *(num_positions+ num_velocities) + (2 * num_inputs) +
           (4 * num_kinematic_constraints) + num_quat_slack,
@@ -136,7 +154,8 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
       num_quat_slack_{num_quat_slack},
       omega_scale_{omega_scale},
       input_scale_{input_scale},
-      force_scale_{force_scale} {}
+      force_scale_{force_scale},
+      var_scale_{var_scale} {}
 
 // The format of the input to the eval() function is the
 // tuple { timestep, state 0, state 1, input 0, input 1, force 0, force 1},
@@ -146,12 +165,13 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
+  std::cout << "DirconDynamicConstraint \n";
 
   // Extract our input variables:
   // h - current time (knot) value
   // x0, x1 state vector at time steps k, k+1
   // u0, u1 input vector at time steps k, k+1
-  const T h = x(0);
+  const T h = x(0) * var_scale_[3];
   // const VectorX<T> x0 = x.segment(1, num_states_);
   VectorX<T> x0(num_states_);
   x0 << x.segment(1, num_positions_),
@@ -297,6 +317,7 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == num_states_ + num_inputs_ +
                            num_kinematic_constraints_ + n_relative_);
+  std::cout << "DirconKinematicConstraint \n";
 
   // Extract our input variables:
   // h - current time (knot) value
@@ -366,6 +387,7 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 2 * num_velocities_ + num_positions_ +
                            num_kinematic_constraints_);
+  std::cout << "DirconImpactConstraint \n";
 
   // Extract our input variables:
   // x0, state vector at time k^-
@@ -378,7 +400,7 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   const VectorX<T> v1 = x.segment(num_states_ + num_kinematic_constraints_,
                             num_velocities_)*omega_scale_;
 
-  const VectorX<T> v0 = x0.tail(num_velocities_)*omega_scale_;
+  const VectorX<T> v0 = x0.tail(num_velocities_);
 
   // vp = vm + M^{-1}*J^T*Lambda
   const VectorX<T> u = VectorXd::Zero(plant_.num_actuators()).template cast<T>();

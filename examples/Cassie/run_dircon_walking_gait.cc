@@ -587,6 +587,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
   double omega_scale = 10;
   double input_scale = 100;
   double force_scale = 400;
+  double time_scale = 0.03;
+  vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale};
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -959,7 +961,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list,
                  is_quaterion,
-                 omega_scale, input_scale, force_scale);
+                 omega_scale, input_scale, force_scale, var_scale);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
@@ -997,22 +999,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
     trajopt->AddDurationBounds(duration_ss, duration_ss);
   }
 
-  // Initial quaterion constraint
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
-  trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
-  // (testing) Final quaternion
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-  // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
-  // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[3]")) == 0);
-
-  // Initial quaterion norm constraint
+  // quaterion norm constraint
   if (is_quaterion) {
     auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>();
     for (int i = 0; i < N; i++) {
@@ -1021,8 +1008,22 @@ void DoMain(double stride_length, double duration_ss, int iter,
     }
   }
 
-
-
+  // Initial quaterion constraint
+  if (standing) {
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+      // (testing) Final quaternion
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
+      // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[3]")) == 0);
+  }
 
   // x-distance constraint constraints
   if (!standing) {
@@ -1030,7 +1031,6 @@ void DoMain(double stride_length, double duration_ss, int iter,
       trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
                                    stride_length);
   }
-
 
   // testing(initial floating base)
   // trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) == 1);
@@ -1346,12 +1346,14 @@ void DoMain(double stride_length, double duration_ss, int iter,
       drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
 
   cout << "Solving DIRCON\n";
+  cout << '\a';
   auto start = std::chrono::high_resolution_clock::now();
   const auto result = Solve(*trajopt, trajopt->initial_guess());
   SolutionResult solution_result = result.get_solution_result();
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
+  for (int i = 0; i < 100; i++) {cout << '\a';}
   cout << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
   cout << "Cost:" << result.get_optimal_cost() << std::endl;

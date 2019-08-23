@@ -8,6 +8,7 @@ __pycache__/
 attic/multibody/solver_log/
 
 examples/Goldilocks_models/find_models/data/
+examples/Cassie/trajopt_data/
 snopt.out
 snopt_find_model.out
 *.csv

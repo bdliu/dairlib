@@ -55,7 +55,8 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   DirconDynamicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                           DirconKinematicDataSet<T>& constraints,
                           bool is_floating_base = false,
-                          double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+                          double omega_scale = 10, double input_scale = 100, double force_scale = 400,
+                          std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   ~DirconDynamicConstraint() override = default;
 
@@ -72,7 +73,8 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
                           DirconKinematicDataSet<T>& constraints,
                           int num_positions, int num_velocities, int num_inputs,
                           int num_kinematic_constraints, int num_quat_slack,
-                          double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+                          double omega_scale = 10, double input_scale = 100, double force_scale = 400,
+                          std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   const drake::multibody::MultibodyPlant<T>& plant_;
   DirconKinematicDataSet<T>* constraints_;
@@ -86,6 +88,7 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
+  std::vector<double> var_scale_;
 };
 
 
@@ -157,6 +160,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
+  std::vector<double> var_scale_;
 };
 
 /// Helper method to add a DirconDynamicConstraint to the @p prog,
