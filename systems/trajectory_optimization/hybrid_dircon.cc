@@ -151,21 +151,22 @@ HybridDircon<T>::HybridDircon(
     }
 
 
-    //Add constraints on force and impulse variables
-    for (int l = 0; l < mode_lengths_[i] - 1; l++) {
+    //Add constraints on force
+    for (int l = 0; l < mode_lengths_[i]; l++) {
       int start_index = l*num_kinematic_constraints(i);
       for (int j = 0; j < constraints_[i]->getNumConstraintObjects(); j++) {
         DirconKinematicData<T>* constraint_j = constraints_[i]->getConstraint(j);
-        start_index += constraint_j->getLength();
         for (int k = 0; k < constraint_j->numForceConstraints(); k++) {
           AddConstraint(constraint_j->getForceConstraint(k), force_vars(i).segment(start_index, constraint_j->getLength()));
         }
+        start_index += constraint_j->getLength();
       }
     }
 
+
     //Force cost option
     // if (options[i].getForceCost() != 0) {
-    //   auto A = options[i].getForceCost()*MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
+    //   auto A = /*options[i].getForceCost()**/MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
     //   auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
     //   for (int j=0; j <  mode_lengths_[i]; j++) {
     //     AddL2NormCost(A,b,force(i,j));

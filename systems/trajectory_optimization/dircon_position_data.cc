@@ -8,8 +8,10 @@ namespace dairlib {
 
 using Eigen::Vector2d;
 using Eigen::Vector3d;
-using Eigen::Matrix3d;
+using Eigen::Vector4d;
 using Eigen::Matrix2d;
+using Eigen::Matrix3d;
+using Eigen::MatrixXd;
 using drake::multibody::MultibodyPlant;
 using drake::systems::Context;
 using drake::multibody::Body;
@@ -104,17 +106,39 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
     Vector2d ub_fric = Vector2d::Constant(
         std::numeric_limits<double>::infinity());
 
+    // auto force_constraint = std::make_shared<drake::solvers::LinearConstraint>(
+    //     A_fric, lb_fric, ub_fric);
+    // this->force_constraints_.push_back(force_constraint);
+
+    // Adding one more row for positive normal force constraint
+    MatrixXd A = MatrixXd::Zero(3,2);
+    A.block(0,0,2,2) = A_fric;
+    A(2,1) = 1;
+    Vector3d lb = Vector3d::Zero();
+    Vector3d ub = Vector3d::Constant(
+        std::numeric_limits<double>::infinity());
     auto force_constraint = std::make_shared<drake::solvers::LinearConstraint>(
-        A_fric, lb_fric, ub_fric);
+        A, lb, ub);
     this->force_constraints_.push_back(force_constraint);
+
   } else {
     // builds a basis from the normal
     const Matrix3d basis = drake::math::ComputeBasisFromAxis(2, normal);
     Matrix3d A_fric;
     A_fric << mu*normal.transpose(), basis.block(0, 1, 3, 2).transpose();
     Vector3d b_fric = Vector3d::Zero();
-    auto force_constraint =
-        std::make_shared<drake::solvers::LorentzConeConstraint>(A_fric, b_fric);
+    // auto force_constraint =
+    //     std::make_shared<drake::solvers::LorentzConeConstraint>(A_fric, b_fric);
+    // this->force_constraints_.push_back(force_constraint);
+
+    // Adding one more row for positive normal force constraint
+    MatrixXd A = MatrixXd::Zero(4,3);
+    A.block(0,0,3,3) = A_fric;
+    A(3,2) = 1;
+    Vector4d lb = Vector4d::Zero();
+    Vector4d ub = Vector4d::Constant(std::numeric_limits<double>::infinity());
+    auto force_constraint = std::make_shared<drake::solvers::LinearConstraint>(
+        A, lb, ub);
     this->force_constraints_.push_back(force_constraint);
   }
 }
