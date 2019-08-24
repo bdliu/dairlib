@@ -235,8 +235,22 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   options_list.push_back(leftOptions);
   options_list.push_back(rightOptions);
 
+  // I'm not using scaling because you also need to modify the code below so it
+  // is consistent with the scaling. (e.g. scale DurationBounds, scale back solution, etc)
+  // bool is_quaternion = false;
+  // double omega_scale = 5;  // 10
+  // double input_scale = 5;
+  // double force_scale = 200;  // 400
+  // double time_scale = 0.01;
+  // double quaternion_scale = 1;
+  // double trans_pos_scale = 1;
+  // double rot_pos_scale = 1;
+  // vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale,
+  //       quaternion_scale};
+
   auto trajopt = std::make_unique<HybridDircon<double>>(plant,
-                 num_time_samples, min_dt, max_dt, dataset_list, options_list);
+                 num_time_samples, min_dt, max_dt, dataset_list, options_list/*,
+                 is_quaternion, var_scale*/);
 
   // You can comment this out to not put any constraint on the time
   // However, we need it now, since we add the running cost by hand
@@ -526,6 +540,13 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   // cout << "\nAll decision variable:\n"
   //   << gm_traj_opt.dircon->decision_variables() << endl;
 
+  // Testing - see the solution values (to decide how big we should scale them)
+  // VectorXd z = result.GetSolution(
+  //                    gm_traj_opt.dircon->decision_variables());
+  // for(int i = 0; i<z.size(); i++){
+  //   cout << gm_traj_opt.dircon->decision_variables()[i] << ", " << z[i] << endl;
+  // }
+  // cout << endl;
 
 
 

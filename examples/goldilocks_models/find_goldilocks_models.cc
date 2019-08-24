@@ -713,14 +713,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
-  int n_s = 4; //2
+  int n_s = 2; //2
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
-  int n_tau = 2;
+  int n_tau = 0;
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
   // B_tau = MatrixXd::Identity(2, 2);
-  B_tau(2, 0) = 1;
-  B_tau(3, 1) = 1;
+  // B_tau(2, 0) = 1;
+  // B_tau(3, 1) = 1;
   cout << "B_tau = \n" << B_tau << endl;
   prefix = "";
   writeCSV(dir + prefix + string("B_tau.csv"), B_tau);

@@ -39,9 +39,6 @@ HybridDircon<T>::HybridDircon(
     vector<DirconKinematicDataSet<T>*> constraints,
     vector<DirconOptions> options,
     bool is_quaterion,
-    double omega_scale,
-    double input_scale,
-    double force_scale,
     vector<double> var_scale) :
         MultipleShooting(plant.num_actuators(),
           plant.num_positions() + plant.num_velocities(),

@@ -53,10 +53,7 @@ class HybridDircon :
                std::vector<DirconKinematicDataSet<T>*> constraints,
                std::vector<DirconOptions> options,
                bool is_quaterion = false,
-               double omega_scale = 10.0,
-               double input_scale = 100.0,
-               double force_scale = 400.0,
-               std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
+               std::vector<double> var_scale = {1.0, 1.0, 1.0, 1.0, 1.0});
 
   ~HybridDircon() override {}
 

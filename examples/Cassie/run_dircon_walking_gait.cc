@@ -986,7 +986,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list,
                  is_quaterion,
-                 omega_scale, input_scale, force_scale, var_scale);
+                 var_scale);
 
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Print file", "snopt.out");
