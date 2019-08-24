@@ -102,7 +102,7 @@ using dairlib::multibody::ContactInfo;
 using dairlib::multibody::FixedPointSolver;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
-DEFINE_int32(max_iter, 500, "Iteration limit");
+DEFINE_int32(max_iter, 10000, "Iteration limit");
 DEFINE_double(duration_ss, 0.4, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 
@@ -608,7 +608,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   double omega_scale = 10;  // 10
   double input_scale = 100;
   double force_scale = 1000;  // 400
-  double time_scale = 0.03;
+  double time_scale = 0.01;
   double quaternion_scale = 1;
   double trans_pos_scale = 1;
   double rot_pos_scale = 1;
@@ -993,9 +993,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Iterations limit", 100000);  // QP subproblems
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
       2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Major optimality tolerance", 1e-5);  // target nonlinear constraint violation
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Major feasibility tolerance", 1e-5);  // target complementarity gap
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -1035,26 +1041,31 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // Initial quaterion constraint
   if (standing) {
-      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[0]")) == 1);
-      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[1]")) == 0);
-      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[2]")) == 0);
-      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[3]")) == 0);
-      // (testing) Final quaternion
-      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[0]")) >= 0.1);
-      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[1]")) == 0);
-      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[2]")) == 0);
-      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[3]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[0]")) == 1);
-      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[1]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[2]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[3]")) == 0);
+    trajopt->AddBoundingBoxConstraint(1 / quaternion_scale, 1 / quaternion_scale,
+                                      x0(positions_map.at("position[0]")));
+    trajopt->AddBoundingBoxConstraint(0 / quaternion_scale, 0 / quaternion_scale,
+                                      x0(positions_map.at("position[1]")));
+    trajopt->AddBoundingBoxConstraint(0 / quaternion_scale, 0 / quaternion_scale,
+                                      x0(positions_map.at("position[2]")));
+    trajopt->AddBoundingBoxConstraint(0 / quaternion_scale, 0 / quaternion_scale,
+                                      x0(positions_map.at("position[3]")));
+    // (testing) Final quaternion
+    // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[0]")) >= 0.1);
+    // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[1]")) == 0);
+    // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[2]")) == 0);
+    // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[3]")) == 0);
+    // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[0]")) == 1);
+    // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[1]")) == 0);
+    // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[2]")) == 0);
+    // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[3]")) == 0);
   }
 
   // x-distance constraint constraints
   if (!standing) {
-      trajopt->AddLinearConstraint(x0(positions_map.at("position[4]")) == 0);
-      trajopt->AddLinearConstraint(xf(positions_map.at("position[4]")) ==
-                                   stride_length);
+    trajopt->AddBoundingBoxConstraint(0, 0,
+                                      x0(positions_map.at("position[4]")));
+    trajopt->AddBoundingBoxConstraint(stride_length, stride_length,
+                                      xf(positions_map.at("position[4]")));
   }
 
   // testing(initial floating base)
@@ -1193,10 +1204,16 @@ void DoMain(double stride_length, double duration_ss, int iter,
   motor_names.insert(motor_names.end(),
                      right_motor_names.begin(), right_motor_names.end() );
   for (const auto & member : motor_names) {
-    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300/input_scale);
-    trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300/input_scale);
+    // trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300/input_scale);
+    // trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300/input_scale);
+    for (int i = 0; i < N; i++) {
+      auto ui = trajopt->input(i);
+      trajopt->AddBoundingBoxConstraint(
+          VectorXd::Constant(n_u, -300/input_scale),
+          VectorXd::Constant(n_u, +300/input_scale),
+          ui);
+    }
   }
-
 
   // make sure it's left stance
   // trajopt->AddLinearConstraint(x0(positions_map.at("hip_pitch_left")) <=
