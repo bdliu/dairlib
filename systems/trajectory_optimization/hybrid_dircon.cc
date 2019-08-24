@@ -172,13 +172,13 @@ HybridDircon<T>::HybridDircon(
 
 
     //Force cost option
-    if (options[i].getForceCost() != 0) {
-      auto A = /*options[i].getForceCost()**/ 10 * MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
-      auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
-      for (int j=0; j <  mode_lengths_[i]; j++) {
-        AddL2NormCost(A,b,force(i,j));
-      }
-    }
+    // if (options[i].getForceCost() != 0) {
+    //   auto A = /*options[i].getForceCost()**/MatrixXd::Identity(num_kinematic_constraints(i),num_kinematic_constraints(i));
+    //   auto b = MatrixXd::Zero(num_kinematic_constraints(i),1);
+    //   for (int j=0; j <  mode_lengths_[i]; j++) {
+    //     AddL2NormCost(A,b,force(i,j));
+    //   }
+    // }
 
     if (i > 0) {
       if (num_kinematic_constraints(i) > 0) {
