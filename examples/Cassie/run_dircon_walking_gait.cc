@@ -475,6 +475,21 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
   };
 };
 
+class RedundantForceConstraint : public DirconAbstractConstraint<double> {
+ public:
+  RedundantForceConstraint() : DirconAbstractConstraint<double>(1, 2,
+      VectorXd::Zero(1),
+      VectorXd::Constant(1, std::numeric_limits<double>::infinity()),
+      "redundant_force_constraint") {
+  }
+  ~RedundantForceConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    *y = x.head(1) * x.tail(1);
+  };
+};
+
 
 void DoMain(double stride_length, double duration_ss, int iter,
             string data_directory,
@@ -1182,10 +1197,27 @@ void DoMain(double stride_length, double duration_ss, int iter,
   //                              x0(positions_map.at("hip_pitch_right")));
 
 
-
-
-
-
+  // Testing - Cosntraint on the redundant contact force
+  cout << "This constraint doesn't work for heel to toe walking\n";
+  auto redundant_force_constraint = std::make_shared<RedundantForceConstraint>();
+  int counter = 0;
+  for (int i = 0; i < num_time_samples.size(); i++) {
+    for (int j=0; j <  num_time_samples[i]; j++) {
+      auto f = trajopt->force(i,j);
+      if (dataset_list[i]->countConstraints() == 8) {
+        // cout << i << ", " << j << endl;
+        trajopt->AddConstraint(redundant_force_constraint,
+            {f.segment(0,1), f.segment(3,1)});
+      } else if (dataset_list[i]->countConstraints() == 14) {
+        // cout << i << ", " << j << endl;
+        trajopt->AddConstraint(redundant_force_constraint,
+            {f.segment(0,1), f.segment(3,1)});
+        trajopt->AddConstraint(redundant_force_constraint,
+            {f.segment(6,1), f.segment(9,1)});
+      }
+    }
+    counter += num_time_samples[i] - 1;
+  }
 
 
 
@@ -1233,8 +1265,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
 
 
+
   // add cost
-  const double R = 10/* * input_scale * input_scale*/;  // Cost on input effort
+  const double R = 1000/* * input_scale * input_scale*/;  // Cost on input effort
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
   trajopt->AddRunningCost(u.transpose()* R * u);
   // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
