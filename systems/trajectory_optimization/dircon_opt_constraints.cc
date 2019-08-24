@@ -85,7 +85,7 @@ void DirconAbstractConstraint<double>::DoEval(
     drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
 
     // Testing - looking at gradient values
-    double max_element = dy(0, 0);
+    /*double max_element = dy(0, 0);
     double max_idx_i = 0;
     double max_idx_j = 0;
     for (int i = 0; i < dy.rows(); i++)
@@ -101,7 +101,8 @@ void DirconAbstractConstraint<double>::DoEval(
       std::cout << ":  gradient = " << max_element;
       std::cout << ",  max_idx_i = " << max_idx_i;
       std::cout << ",  max_idx_j = " << max_idx_j << std::endl;
-    }
+    }*/
+
 
     // // central differencing
     // double dx = 1e-8;
