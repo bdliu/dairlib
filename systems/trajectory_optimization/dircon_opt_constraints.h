@@ -55,7 +55,6 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   DirconDynamicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                           DirconKinematicDataSet<T>& constraints,
                           bool is_floating_base = false,
-                          double omega_scale = 10, double input_scale = 100, double force_scale = 400,
                           std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   ~DirconDynamicConstraint() override = default;
@@ -73,7 +72,6 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
                           DirconKinematicDataSet<T>& constraints,
                           int num_positions, int num_velocities, int num_inputs,
                           int num_kinematic_constraints, int num_quat_slack,
-                          double omega_scale = 10, double input_scale = 100, double force_scale = 400,
                           std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   const drake::multibody::MultibodyPlant<T>& plant_;
@@ -88,7 +86,7 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
-  std::vector<double> var_scale_;
+  double time_scale_;
 };
 
 
@@ -114,7 +112,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   DirconKinematicConstraint(const drake::multibody::MultibodyPlant<T>& plant,
     DirconKinematicDataSet<T>& constraint_data,
     DirconKinConstraintType type = DirconKinConstraintType::kAll,
-    double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+    std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
   /// Constructor
   /// @param plant the MultibodyPlant
   /// @param DirconKinematicDataSet the set of kinematic constraints
@@ -125,7 +123,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
     std::vector<bool> is_constraint_relative,
     drake::VectorX<double> phi_vals,
     DirconKinConstraintType type = DirconKinConstraintType::kAll,
-    double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+    std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   ~DirconKinematicConstraint() override = default;
 
@@ -140,7 +138,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
                             DirconKinConstraintType type, int num_positions,
                             int num_velocities, int num_inputs,
                             int num_kinematic_constraints,
-                            double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+                            std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
 
   const drake::multibody::MultibodyPlant<T>& plant_;
@@ -160,7 +158,6 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
-  std::vector<double> var_scale_;
 };
 
 /// Helper method to add a DirconDynamicConstraint to the @p prog,
@@ -194,7 +191,7 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
   /// @param DirconKinematicDataSet the set of kinematic constraints
   DirconImpactConstraint(const drake::multibody::MultibodyPlant<T>& plant,
                          DirconKinematicDataSet<T>& constraint_data,
-                         double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+                         std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
   ~DirconImpactConstraint() override = default;
 
@@ -206,7 +203,7 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
                          DirconKinematicDataSet<T>& constraint_data,
                          int num_positions, int num_velocities,
                          int num_kinematic_constraints,
-                         double omega_scale = 10, double input_scale = 100, double force_scale = 400);
+                         std::vector<double> var_scale = {10.0, 100.0, 400.0, 0.03});
 
 
   const drake::multibody::MultibodyPlant<T>& plant_;

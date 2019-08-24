@@ -462,7 +462,8 @@ void GetInitGuessForUAndLambda(const MultibodyPlant<double>& plant,
 class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
  public:
   QuaternionNormConstraint() : DirconAbstractConstraint<double>(1, 4,
-                                   VectorXd::Zero(1), VectorXd::Zero(1)) {
+                                   VectorXd::Zero(1), VectorXd::Zero(1),
+                                   "quaternion_norm_constraint") {
   }
   ~QuaternionNormConstraint() override = default;
 
@@ -585,8 +586,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
   bool set_both_contact_pos_manually = false;
 
   // Scaling paramters
-  double trans_pos_scale = 1;
-  double rot_pos_scale = 1;
+  // double trans_pos_scale = 1;
+  // double rot_pos_scale = 1;
   double omega_scale = 10;  // 10
   double input_scale = 100;
   double force_scale = 1000;  // 400
@@ -1236,7 +1237,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
   const double R = 10/* * input_scale * input_scale*/;  // Cost on input effort
   MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
   trajopt->AddRunningCost(u.transpose()* R * u);
-  trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
+  // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
+  // trajopt->AddRunningCost(x.segment(n_q,3).transpose() * 10.0 * x.segment(n_q,3));
 
 
 

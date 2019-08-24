@@ -84,6 +84,7 @@ void DirconAbstractConstraint<double>::DoEval(
     }
     drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
 
+    // Testing - looking at gradient values
     double max_element = dy(0, 0);
     double max_idx_i = 0;
     double max_idx_j = 0;
@@ -128,13 +129,11 @@ template <typename T>
 DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     bool is_floating_base,
-    double omega_scale, double input_scale, double force_scale,
     std::vector<double> var_scale) :
   DirconDynamicConstraint(plant, constraints, plant.num_positions(),
                           plant.num_velocities(), plant.num_actuators(),
                           constraints.countConstraints(),
                           (is_floating_base)? 1:0,
-                          omega_scale, input_scale, force_scale,
                           var_scale) {}
 
 template <typename T>
@@ -142,7 +141,6 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     int num_positions, int num_velocities, int num_inputs,
     int num_kinematic_constraints, int num_quat_slack,
-    double omega_scale, double input_scale, double force_scale,
     std::vector<double> var_scale)
     : DirconAbstractConstraint<T>(num_positions + num_velocities,
           1 + 2 *(num_positions+ num_velocities) + (2 * num_inputs) +
@@ -156,10 +154,10 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
       num_kinematic_constraints_{num_kinematic_constraints},
       num_positions_{num_positions}, num_velocities_{num_velocities},
       num_quat_slack_{num_quat_slack},
-      omega_scale_{omega_scale},
-      input_scale_{input_scale},
-      force_scale_{force_scale},
-      var_scale_{var_scale} {}
+      omega_scale_{var_scale[0]},
+      input_scale_{var_scale[1]},
+      force_scale_{var_scale[2]},
+      time_scale_{var_scale[3]} {}
 
 // The format of the input to the eval() function is the
 // tuple { timestep, state 0, state 1, input 0, input 1, force 0, force 1},
@@ -174,7 +172,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   // h - current time (knot) value
   // x0, x1 state vector at time steps k, k+1
   // u0, u1 input vector at time steps k, k+1
-  const T h = x(0) * var_scale_[3];
+  const T h = x(0) * time_scale_;
   // const VectorX<T> x0 = x.segment(1, num_states_);
   VectorX<T> x0(num_states_);
   x0 << x.segment(1, num_positions_),
@@ -255,7 +253,7 @@ template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     DirconKinConstraintType type,
-    double omega_scale, double input_scale, double force_scale) :
+    std::vector<double> var_scale) :
     DirconKinematicConstraint(plant, constraints,
                             std::vector<bool>(constraints.countConstraints(),
                             false),
@@ -263,21 +261,21 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
                             type, plant.num_positions(),
                             plant.num_velocities(), plant.num_actuators(),
                             constraints.countConstraints(),
-                            omega_scale, input_scale, force_scale) {}
+                            var_scale) {}
 
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     std::vector<bool> is_constraint_relative, drake::VectorX<double> phi_vals,
     DirconKinConstraintType type,
-    double omega_scale, double input_scale, double force_scale) :
+    std::vector<double> var_scale) :
     DirconKinematicConstraint(plant, constraints, is_constraint_relative,
                               phi_vals, type,
                               plant.num_positions(),
                               plant.num_velocities(),
                               plant.num_actuators(),
                               constraints.countConstraints(),
-                              omega_scale, input_scale, force_scale) {}
+                              var_scale) {}
 
 template <typename T>
 DirconKinematicConstraint<T>::DirconKinematicConstraint(
@@ -286,7 +284,7 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
     DirconKinConstraintType type,
     int num_positions, int num_velocities, int num_inputs,
     int num_kinematic_constraints,
-    double omega_scale, double input_scale, double force_scale) :
+    std::vector<double> var_scale) :
     DirconAbstractConstraint<T>(type*num_kinematic_constraints, num_positions +
         num_velocities + num_inputs + num_kinematic_constraints +
         std::count(is_constraint_relative.begin(),
@@ -303,9 +301,9 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
       phi_vals_{phi_vals},
       n_relative_{static_cast<int>(std::count(is_constraint_relative.begin(),
       is_constraint_relative.end(), true))},
-      omega_scale_{omega_scale},
-      input_scale_{input_scale},
-      force_scale_{force_scale} {
+      omega_scale_{var_scale[0]},
+      input_scale_{var_scale[1]},
+      force_scale_{var_scale[2]} {
   relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
   int j = 0;
   for (int i=0; i < num_kinematic_constraints_; i++) {
@@ -358,17 +356,17 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
 template <typename T>
 DirconImpactConstraint<T>::DirconImpactConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
-    double omega_scale, double input_scale, double force_scale) :
+    std::vector<double> var_scale) :
   DirconImpactConstraint(plant, constraints, plant.num_positions(),
                          plant.num_velocities(),
                          constraints.countConstraints(),
-                         omega_scale, input_scale, force_scale) {}
+                         var_scale) {}
 
 template <typename T>
 DirconImpactConstraint<T>::DirconImpactConstraint(
     const MultibodyPlant<T>& plant, DirconKinematicDataSet<T>& constraints,
     int num_positions, int num_velocities, int num_kinematic_constraints,
-    double omega_scale, double input_scale, double force_scale) :
+    std::vector<double> var_scale) :
         DirconAbstractConstraint<T>(num_velocities, num_positions +
             2*num_velocities + num_kinematic_constraints,
             VectorXd::Zero(num_velocities), VectorXd::Zero(num_velocities),
@@ -378,9 +376,9 @@ DirconImpactConstraint<T>::DirconImpactConstraint(
         num_states_{num_positions+num_velocities},
         num_kinematic_constraints_{num_kinematic_constraints},
         num_positions_{num_positions}, num_velocities_{num_velocities},
-        omega_scale_{omega_scale},
-        input_scale_{input_scale},
-        force_scale_{force_scale} {}
+        omega_scale_{var_scale[0]},
+        input_scale_{var_scale[1]},
+        force_scale_{var_scale[2]} {}
 
 
 // The format of the input to the eval() function is the
