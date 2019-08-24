@@ -103,7 +103,7 @@ using dairlib::multibody::FixedPointSolver;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 500, "Iteration limit");
-DEFINE_double(duration_ss, 0.1, "Duration of the single support phase (s)");
+DEFINE_double(duration_ss, 0.4, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 
 namespace dairlib {
@@ -313,10 +313,10 @@ vector<VectorXd> GetInitGuessForQ(int N,
                                            q_ik_guess);
     const auto result = Solve(ik.prog());
     SolutionResult solution_result = result.get_solution_result();
-    cout << "\n" << to_string(solution_result) << endl;
+    // cout << "\n" << to_string(solution_result) << endl;
     // cout << "  Cost:" << result.get_optimal_cost() << std::endl;
     const auto q_sol = result.GetSolution(ik.q());
-    cout << "  q_sol = " << q_sol.transpose() << endl;
+    // cout << "  q_sol = " << q_sol.transpose() << endl;
     VectorXd q_sol_normd(n_q);
     q_sol_normd << q_sol.head(4).normalized(), q_sol.tail(n_q - 4);
     // cout << "  q_sol_normd = " << q_sol_normd << endl;
@@ -381,9 +381,9 @@ vector<VectorXd> GetInitGuessForV(const vector<VectorXd>& q_seed, double dt,
     VectorXd v(plant.num_velocities());
     plant.MapQDotToVelocity(*context, qdot_seed[i], &v);
     v_seed.push_back(v);
-    cout << i << ":\n";
-    cout << "  qdot = " << qdot_seed[i].transpose() << endl;
-    cout << "  v = " << v.transpose() << endl;
+    // cout << i << ":\n";
+    // cout << "  qdot = " << qdot_seed[i].transpose() << endl;
+    // cout << "  v = " << v.transpose() << endl;
   }
   return v_seed;
 }
@@ -461,18 +461,22 @@ void GetInitGuessForUAndLambda(const MultibodyPlant<double>& plant,
 
 class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
  public:
-  QuaternionNormConstraint() : DirconAbstractConstraint<double>(1, 4,
-                                   VectorXd::Zero(1), VectorXd::Zero(1),
-                                   "quaternion_norm_constraint") {
+  QuaternionNormConstraint(vector<double> var_scale) :
+    DirconAbstractConstraint<double>(1, 4,
+               VectorXd::Zero(1), VectorXd::Zero(1),
+               "quaternion_norm_constraint"),
+        quaternion_scale_(var_scale[4]) {
   }
   ~QuaternionNormConstraint() override = default;
 
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
                           drake::VectorX<double>* y) const override {
     VectorX<double> output(1);
-    output << x.norm() - 1;
+    output << quaternion_scale_ * x.norm() - 1;
     *y = output;
   };
+ private:
+   double quaternion_scale_;
 };
 
 // class RedundantForceConstraint : public DirconAbstractConstraint<double> {
@@ -601,13 +605,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   bool set_both_contact_pos_manually = false;
 
   // Scaling paramters
-  // double trans_pos_scale = 1;
-  // double rot_pos_scale = 1;
   double omega_scale = 10;  // 10
   double input_scale = 100;
   double force_scale = 1000;  // 400
   double time_scale = 0.03;
-  vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale};
+  double quaternion_scale = 1;
+  double trans_pos_scale = 1;
+  double rot_pos_scale = 1;
+  vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale,
+        quaternion_scale};
 
   const Body<double>& toe_left = plant.GetBodyByName("toe_left");
   const Body<double>& toe_right = plant.GetBodyByName("toe_right");
@@ -1020,7 +1026,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // quaterion norm constraint
   if (is_quaterion) {
-    auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>();
+    auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>(var_scale);
     for (int i = 0; i < N; i++) {
       auto xi = trajopt->state(i);
       trajopt->AddConstraint(quat_norm_constraint, xi.head(4));
@@ -1029,19 +1035,19 @@ void DoMain(double stride_length, double duration_ss, int iter,
 
   // Initial quaterion constraint
   if (standing) {
-      trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) == 1);
-      trajopt->AddLinearConstraint(x0(positions_map.at("position[1]")) == 0);
-      trajopt->AddLinearConstraint(x0(positions_map.at("position[2]")) == 0);
-      trajopt->AddLinearConstraint(x0(positions_map.at("position[3]")) == 0);
+      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[0]")) == 1);
+      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[1]")) == 0);
+      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[2]")) == 0);
+      trajopt->AddLinearConstraint(quaternion_scale * x0(positions_map.at("position[3]")) == 0);
       // (testing) Final quaternion
-      // trajopt->AddLinearConstraint(xf(positions_map.at("position[0]")) >= 0.1);
-      // trajopt->AddLinearConstraint(xf(positions_map.at("position[1]")) == 0);
-      // trajopt->AddLinearConstraint(xf(positions_map.at("position[2]")) == 0);
-      // trajopt->AddLinearConstraint(xf(positions_map.at("position[3]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[0]")) == 1);
-      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[1]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[2]")) == 0);
-      // trajopt->AddConstraintToAllKnotPoints(x(positions_map.at("position[3]")) == 0);
+      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[0]")) >= 0.1);
+      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[1]")) == 0);
+      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[2]")) == 0);
+      // trajopt->AddLinearConstraint(quaternion_scale * xf(positions_map.at("position[3]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[0]")) == 1);
+      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[1]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[2]")) == 0);
+      // trajopt->AddConstraintToAllKnotPoints(quaternion_scale * x(positions_map.at("position[3]")) == 0);
   }
 
   // x-distance constraint constraints
@@ -1320,7 +1326,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
       for (int i = 0; i < N; i++) {
         auto xi = trajopt->state(i);
         VectorXd xi_init(n_q + n_v);
-        xi_init << q_init, VectorXd::Zero(n_v);
+        xi_init << q_init.head(4)/quaternion_scale,
+            q_init.tail(n_q - 4),
+            VectorXd::Zero(n_v);
         trajopt->SetInitialGuess(xi, xi_init);
 
         auto ui = trajopt->input(i);
@@ -1342,9 +1350,13 @@ void DoMain(double stride_length, double duration_ss, int iter,
         auto xi = trajopt->state(i);
         VectorXd xi_seed(n_q + n_v);
         if (i < N_ss) {
-          xi_seed << q_seed.at(i), v_seed.at(i) / omega_scale;
+          xi_seed << q_seed.at(i).head(4) / quaternion_scale,
+              q_seed.at(i).tail(n_q - 4),
+              v_seed.at(i) / omega_scale;
         } else {
-          xi_seed << q_seed.at(N_ss - 1), v_seed.at(N_ss - 1)  / omega_scale;
+          xi_seed << q_seed.at(N_ss - 1).head(4) / quaternion_scale,
+              q_seed.at(N_ss - 1).tail(n_q - 4),
+              v_seed.at(N_ss - 1)  / omega_scale;
         }
         trajopt->SetInitialGuess(xi, xi_seed);
       }
@@ -1373,7 +1385,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
     auto xi = trajopt->state(i);
     if ((trajopt->GetInitialGuess(xi.head(4)).norm() == 0) ||
         std::isnan(trajopt->GetInitialGuess(xi.head(4)).norm())) {
-      trajopt->SetInitialGuess(xi(0), 1);
+      trajopt->SetInitialGuess(xi(0), 1 / quaternion_scale);
       trajopt->SetInitialGuess(xi(1), 0);
       trajopt->SetInitialGuess(xi(2), 0);
       trajopt->SetInitialGuess(xi(3), 0);
@@ -1383,7 +1395,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   cout << "Choose the best solver: " <<
       drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
 
-  cout << "Solving DIRCON\n";
+  cout << "Solving DIRCON\n\n";
   auto start = std::chrono::high_resolution_clock::now();
   const auto result = Solve(*trajopt, trajopt->initial_guess());
   SolutionResult solution_result = result.get_solution_result();
@@ -1391,7 +1403,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   std::chrono::duration<double> elapsed = finish - start;
   // trajopt->PrintSolution();
   for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
-  cout << to_string(solution_result) << endl;
+  cout << "\n" << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
   cout << "Cost:" << result.get_optimal_cost() * time_scale << std::endl;
 
@@ -1412,7 +1424,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   MatrixXd input_at_knots = trajopt->GetInputSamples(result);
   state_at_knots.col(N-1) = result.GetSolution(xf);
   time_at_knots *= time_scale;
-  state_at_knots << state_at_knots.block(0,0,n_q,state_at_knots.cols()),
+  state_at_knots <<
+        state_at_knots.block(0,0,4,state_at_knots.cols()) * quaternion_scale,
+        state_at_knots.block(4,0,n_q-4,state_at_knots.cols()),
         state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
   input_at_knots *= input_scale;
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);

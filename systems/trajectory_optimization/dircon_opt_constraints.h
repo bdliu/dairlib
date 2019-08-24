@@ -87,6 +87,7 @@ class DirconDynamicConstraint : public DirconAbstractConstraint<T> {
   double input_scale_;
   double force_scale_;
   double time_scale_;
+  double quaternion_scale_;
 };
 
 
@@ -158,6 +159,7 @@ class DirconKinematicConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
+  double quaternion_scale_;
 };
 
 /// Helper method to add a DirconDynamicConstraint to the @p prog,
@@ -217,6 +219,7 @@ class DirconImpactConstraint : public DirconAbstractConstraint<T> {
   double omega_scale_;
   double input_scale_;
   double force_scale_;
+  double quaternion_scale_;
 };
 
 }  // namespace trajectory_optimization

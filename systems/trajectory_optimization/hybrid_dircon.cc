@@ -296,7 +296,8 @@ PiecewisePolynomial<double> HybridDircon<T>::ReconstructStateTrajectory(
         times(k) += + 1e-6;
       }
       VectorX<T> xk = result.GetSolution(state_vars_by_mode(i, j));
-      xk << xk.head(plant_.num_positions()),
+      xk << xk.head(4) * var_scale_[4],
+            xk.segment(4,plant_.num_positions()-4),
             xk.tail(plant_.num_velocities()) * var_scale_[0];
       VectorX<T> uk = result.GetSolution(input(k_data)) * var_scale_[1];
       states.col(k) = xk;

@@ -96,7 +96,7 @@ void DirconAbstractConstraint<double>::DoEval(
           max_idx_j = j;
         }
       }
-    if (max_element > 1e5) {
+    if (max_element > 1e4) {
       std::cout << this->get_description();
       std::cout << ":  gradient = " << max_element;
       std::cout << ",  max_idx_i = " << max_idx_i;
@@ -157,7 +157,8 @@ DirconDynamicConstraint<T>::DirconDynamicConstraint(
       omega_scale_{var_scale[0]},
       input_scale_{var_scale[1]},
       force_scale_{var_scale[2]},
-      time_scale_{var_scale[3]} {}
+      time_scale_{var_scale[3]},
+      quaternion_scale_{var_scale[4]} {}
 
 // The format of the input to the eval() function is the
 // tuple { timestep, state 0, state 1, input 0, input 1, force 0, force 1},
@@ -175,11 +176,13 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   const T h = x(0) * time_scale_;
   // const VectorX<T> x0 = x.segment(1, num_states_);
   VectorX<T> x0(num_states_);
-  x0 << x.segment(1, num_positions_),
+  x0 << x.segment(1, 4) * quaternion_scale_,
+        x.segment(1 + 4, num_positions_ - 4),
         x.segment(1 + num_positions_, num_velocities_)*omega_scale_;
   // const VectorX<T> x1 = x.segment(1 + num_states_, num_states_);
   VectorX<T> x1(num_states_);
-  x1 << x.segment(1 + num_states_, num_positions_),
+  x1 << x.segment(1 + num_states_, 4) * quaternion_scale_,
+        x.segment(1 + num_states_ + 4, num_positions_ - 4),
         x.segment(1 + num_states_ + num_positions_, num_velocities_)*omega_scale_;
   const VectorX<T> u0 = x.segment(1 + (2 * num_states_), num_inputs_)*input_scale_;
   const VectorX<T> u1 = x.segment(1 + (2 * num_states_) + num_inputs_, num_inputs_)*input_scale_;
@@ -303,7 +306,8 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
       is_constraint_relative.end(), true))},
       omega_scale_{var_scale[0]},
       input_scale_{var_scale[1]},
-      force_scale_{var_scale[2]} {
+      force_scale_{var_scale[2]},
+      quaternion_scale_{var_scale[4]} {
   relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
   int j = 0;
   for (int i=0; i < num_kinematic_constraints_; i++) {
@@ -324,7 +328,8 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   // x0, x1 state vector at time steps k, k+1
   // u0, u1 input vector at time steps k, k+1
   VectorX<T> state(num_states_);
-  state << x.segment(0, num_positions_),
+  state << x.segment(0, 4) * quaternion_scale_,
+        x.segment(4, num_positions_ - 4),
         x.segment(num_positions_, num_velocities_)*omega_scale_;
   const VectorX<T> input = x.segment(num_states_, num_inputs_)*input_scale_;
   const VectorX<T> force = x.segment(num_states_ + num_inputs_,
@@ -378,7 +383,8 @@ DirconImpactConstraint<T>::DirconImpactConstraint(
         num_positions_{num_positions}, num_velocities_{num_velocities},
         omega_scale_{var_scale[0]},
         input_scale_{var_scale[1]},
-        force_scale_{var_scale[2]} {}
+        force_scale_{var_scale[2]},
+        quaternion_scale_{var_scale[4]} {}
 
 
 // The format of the input to the eval() function is the
@@ -394,7 +400,8 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   // impulse, impulsive force at impact
   // v1, post-impact velocity at time k^+
   VectorX<T> x0(num_states_);
-  x0 << x.segment(0, num_positions_),
+  x0 << x.segment(0, 4) * quaternion_scale_,
+        x.segment(4, num_positions_ - 4),
         x.segment(num_positions_, num_velocities_)*omega_scale_;
   const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> v1 = x.segment(num_states_ + num_kinematic_constraints_,
