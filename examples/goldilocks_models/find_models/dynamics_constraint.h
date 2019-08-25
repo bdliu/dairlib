@@ -12,6 +12,8 @@
 #include "examples/goldilocks_models/kinematics_expression.h"
 #include "examples/goldilocks_models/dynamics_expression.h"
 
+#include "systems/trajectory_optimization/dircon_opt_constraints.h"
+
 using std::map;
 using std::string;
 using std::vector;
@@ -52,8 +54,9 @@ namespace dairlib {
 namespace goldilocks_models {
 namespace find_models {
 
+using dairlib::systems::trajectory_optimization::DirconAbstractConstraint;
 
-class DynamicsConstraint : public Constraint {
+class DynamicsConstraint : public DirconAbstractConstraint<double> {
  public:
   DynamicsConstraint(int n_s, int n_feature_s,
                      const VectorXd & theta_s,
@@ -62,16 +65,9 @@ class DynamicsConstraint : public Constraint {
                      int n_tau,
                      MatrixXd B_tau,
                      const MultibodyPlant<AutoDiffXd> * plant,
+                     const MultibodyPlant<double> * plant_double,
                      bool is_head,
-                     const std::string& description = "");
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
-              Eigen::VectorXd* y) const override;
-
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& qvtqvth,
-              drake::AutoDiffVecXd* y) const override;
-
-  void DoEval(const Eigen::Ref<const VectorX<Variable>>& q,
-              VectorX<Expression>*y) const override;
+                     const std::string& description = "rom_dyn_constraint");
 
   void getSAndSDot(const VectorXd & x,
                    VectorXd & s, VectorXd & ds) const;
@@ -98,28 +94,18 @@ class DynamicsConstraint : public Constraint {
     const VectorXd & h_i, const VectorXd & theta_s_append);
 
  private:
-  AutoDiffVecXd getConstraintValueInAutoDiff(
-    const AutoDiffVecXd & x_i, const AutoDiffVecXd & tau_i,
-    const AutoDiffVecXd & x_iplus1, const AutoDiffVecXd & tau_iplus1,
-    const AutoDiffVecXd & h_i,
-    const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
-  void getSAndSDotInAutoDiff(AutoDiffVecXd x_i,
-                             AutoDiffVecXd & s_i,
-                             AutoDiffVecXd & ds_i,
-                             const int & i_start,
-                             const VectorXd & theta_s) const;
-
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override;
   VectorXd getConstraintValueInDouble(
     const AutoDiffVecXd & x_i, const VectorXd & tau_i,
     const AutoDiffVecXd & x_iplus1, const VectorXd & tau_iplus1,
     const VectorXd & h_i,
     const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
-  void getSAndSDotInDouble(AutoDiffVecXd x,
+  void getSAndSDotInDouble(VectorXd x,
                            VectorXd & s, VectorXd & ds,
                            const int & i_start,
                            const VectorXd & theta_s) const;
 
-  const MultibodyPlant<AutoDiffXd> * plant_;
   int n_q_;
   int n_v_;
   int n_s_;
@@ -131,9 +117,15 @@ class DynamicsConstraint : public Constraint {
   int n_theta_sDDot_;
   VectorXd theta_sDDot_;
   int n_tau_;
-  KinematicsExpression<AutoDiffXd> kin_expression_;
+  KinematicsExpression<AutoDiffXd> kin_expression_;  // used to debug. (to compare gradient of features)
+  KinematicsExpression<double> kin_expression_double_;
   DynamicsExpression dyn_expression_;
   bool is_head_;
+
+  // Finite differencing to get gradient of feature wrt q
+  double eps_fd_feature_ = 1e-8;  // this number is tuned
+
+  // Finite differencing for gradient wrt theta
   double eps_fd_ = 1e-6;
   double eps_cd_ = 1e-4;
   double eps_ho_ = 1e-3;

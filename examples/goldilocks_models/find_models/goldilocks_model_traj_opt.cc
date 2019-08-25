@@ -10,6 +10,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   MatrixXd B_tau, const VectorXd & theta_s, const VectorXd & theta_sDDot,
   std::unique_ptr<HybridDircon<double>> dircon_in,
   const MultibodyPlant<AutoDiffXd> * plant,
+  const MultibodyPlant<double> * plant_double,
   const std::vector<int> & num_time_samples,
   bool is_get_nominal,
   bool is_add_tau_in_cost):
@@ -51,7 +52,7 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     dynamics_constraint_at_head = make_shared<find_models::DynamicsConstraint>(
                                     n_s, n_feature_s, theta_s,
                                     n_sDDot, n_feature_sDDot, theta_sDDot,
-                                    n_tau, B_tau, plant, true);
+                                    n_tau, B_tau, plant, plant_double, true);
     // dynamics_constraint_at_tail = make_shared<find_models::DynamicsConstraint>(
     //                                n_s, n_feature_s, theta_s,
     //                                n_sDDot, n_feature_sDDot, theta_sDDot,

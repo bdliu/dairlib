@@ -387,7 +387,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   GoldilcocksModelTrajOpt gm_traj_opt(
     n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
     B_tau, theta_s, theta_sDDot,
-    std::move(trajopt), &plant_autoDiff, num_time_samples,
+    std::move(trajopt), &plant_autoDiff, &plant, num_time_samples,
     is_get_nominal, is_add_tau_in_cost);
 
   // Add regularization term here so that hessian is pd (for outer loop), so

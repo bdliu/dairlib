@@ -79,6 +79,7 @@ class GoldilcocksModelTrajOpt {
       const VectorXd & theta_s, const VectorXd & theta_sDDot,
       std::unique_ptr<HybridDircon<double>> dircon_in,
       const MultibodyPlant<AutoDiffXd> * plant,
+      const MultibodyPlant<double> * plant_double,
       const std::vector<int>& num_time_samples,
       bool is_get_nominal,
       bool is_add_tau_in_cost);
