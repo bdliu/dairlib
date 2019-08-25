@@ -97,13 +97,12 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
                           drake::VectorX<double>* y) const override;
   VectorXd getConstraintValueInDouble(
-    const AutoDiffVecXd & x_i, const VectorXd & tau_i,
-    const AutoDiffVecXd & x_iplus1, const VectorXd & tau_iplus1,
+    const VectorXd & x_i, const VectorXd & tau_i,
+    const VectorXd & x_iplus1, const VectorXd & tau_iplus1,
     const VectorXd & h_i,
     const VectorXd & theta_s, const VectorXd & theta_sDDot) const;
   void getSAndSDotInDouble(VectorXd x,
                            VectorXd & s, VectorXd & ds,
-                           const int & i_start,
                            const VectorXd & theta_s) const;
 
   int n_q_;
