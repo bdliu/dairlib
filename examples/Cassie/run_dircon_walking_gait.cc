@@ -105,6 +105,7 @@ DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 10000, "Iteration limit");
 DEFINE_double(duration_ss, 0.4, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
+DEFINE_double(ground_incline, 0.0, "Duration of the walking gait (s)");
 
 namespace dairlib {
 
@@ -495,7 +496,9 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
 // };
 
 
-void DoMain(double stride_length, double duration_ss, int iter,
+void DoMain(double stride_length,
+            double ground_incline,
+            double duration_ss, int iter,
             string data_directory,
             string init_file,
             string output_prefix) {
@@ -620,7 +623,7 @@ void DoMain(double stride_length, double duration_ss, int iter,
   Vector3d pt_front_contact(-0.0457, 0.112, 0);
   Vector3d pt_rear_contact(0.088, 0, 0);
   bool isXZ = false;
-  Eigen::Vector2d ground_rp(0, 0.1);  // gournd incline in roll pitch
+  Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
                                    pt_front_contact, isXZ, ground_rp);
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
@@ -993,8 +996,8 @@ void DoMain(double stride_length, double duration_ss, int iter,
                            "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", iter);
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Iterations limit", 100000);  // QP subproblems
+  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  //                          "Iterations limit", 100000);  // QP subproblems
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);  // 0
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
@@ -1487,7 +1490,6 @@ void DoMain(double stride_length, double duration_ss, int iter,
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  double stride_length = FLAGS_stride_length;
   double duration_ss = FLAGS_duration_ss; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
@@ -1495,6 +1497,7 @@ int main(int argc, char* argv[]) {
   // string init_file = "testing_z.csv";
   string output_prefix = "";
 
-  dairlib::DoMain(stride_length, duration_ss, iter,
+  dairlib::DoMain(FLAGS_stride_length, FLAGS_ground_incline,
+                  duration_ss, iter,
                   data_directory, init_file, output_prefix);
 }
