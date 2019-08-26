@@ -260,8 +260,16 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
   //                          "Print file", "snopt_find_model.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", max_iter);
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Iterations limit", 100000);  // QP subproblems
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Verify level",
                            0);
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
+                           0);  // 0 // snopt doc said try 2 if seeing snopta exit 40
+  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  //                          "Major optimality tolerance", 1e-5);  // target nonlinear constraint violation
+  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  //                          "Major feasibility tolerance", 1e-5);  // target complementarity gap
 
 
   // Periodicity constraints
@@ -761,8 +769,8 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
         VectorXd x_i_sol = result.GetSolution(x_i);
         VectorXd tau_i_sol = result.GetSolution(tau_i);
 
-        VectorXd s;
-        VectorXd ds;
+        VectorXd s(n_s);
+        VectorXd ds(n_s);
         gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(x_i_sol, s, ds);
         VectorXd dds =
           gm_traj_opt.dynamics_constraint_at_head->getSDDot(s, ds, tau_i_sol);
@@ -875,10 +883,10 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
           VectorXd x_i_sol = result.GetSolution(x_i);
           VectorXd x_iplus1_sol = result.GetSolution(x_iplus1);
 
-          VectorXd s_i;
-          VectorXd ds_i;
-          VectorXd s_iplus1;
-          VectorXd ds_iplus1;
+          VectorXd s_i(n_s);
+          VectorXd ds_i(n_s);
+          VectorXd s_iplus1(n_s);
+          VectorXd ds_iplus1(n_s);
           gm_traj_opt.dynamics_constraint_at_head->getSAndSDot(
             x_i_sol, s_i, ds_i);
           // cout << "ds_i_byhand - ds_i = " <<

@@ -87,7 +87,7 @@ VectorXd DynamicsConstraint::getConstraintValueInDouble(
   getSAndSDotInDouble(x_i, s_i, ds_i, theta_s);
   getSAndSDotInDouble(x_iplus1, s_iplus1, ds_iplus1, theta_s);
 
-  // Get constraint value in autoDiff
+  // Get constraint value
   if (is_head_) {
     return 2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
            (h_i(0) * h_i(0)) -
@@ -98,6 +98,8 @@ VectorXd DynamicsConstraint::getConstraintValueInDouble(
            dyn_expression_.getExpression(theta_sDDot, s_iplus1, ds_iplus1, tau_iplus1);
   }
 }
+
+// Careful: need to initialize the size of s and ds before calling getSAndSDotInDouble
 void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
     VectorXd & s, VectorXd & ds,
     const VectorXd & theta_s) const {
@@ -109,20 +111,51 @@ void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
 
   // 2. ds
   // get gradient of feature wrt q =============================================
-  /// finite differencing ourselves (forward differencing)
-  VectorXd phi_0(n_feature_s_);
-  VectorXd phi_i(n_feature_s_);
-  phi_0 = kin_expression_double_.getFeature(q);
+  /// Forward differencing
+  // MatrixXd d_phi_d_q = MatrixXd(n_feature_s_, q.size());
+  // VectorXd phi_0(n_feature_s_);
+  // VectorXd phi_1(n_feature_s_);
+  // phi_0 = kin_expression_double_.getFeature(q);
+  // for (int i = 0; i < q.size(); i++) {
+  //   q(i) += eps_fd_feature_;
+  //   phi_1 = kin_expression_double_.getFeature(q);
+  //   q(i) -= eps_fd_feature_;
+  //   d_phi_d_q.col(i) = (phi_1 - phi_0) / eps_fd_feature_;
+  // }
 
-  MatrixXd d_phi_d_q = MatrixXd(phi_0.size(), q.size());
+  /// Central differencing
+  // MatrixXd d_phi_d_q = MatrixXd(n_feature_s_, q.size());
+  // VectorXd phi_0(n_feature_s_);
+  // VectorXd phi_1(n_feature_s_);
+  // for (int i = 0; i < q.size(); i++) {
+  //   q(i) -= eps_cd_feature_/2;
+  //   phi_0 = kin_expression_double_.getFeature(q);
+  //   q(i) += eps_cd_feature_;
+  //   phi_1 = kin_expression_double_.getFeature(q);
+  //   q(i) -= eps_cd_feature_/2;
+  //   d_phi_d_q.col(i) = (phi_1 - phi_0) / eps_cd_feature_;
+  // }
+
+  /// high order of finite differencing
+  MatrixXd d_phi_d_q = MatrixXd(n_feature_s_, q.size());
+  VectorXd phi_0(n_feature_s_);
+  VectorXd phi_1(n_feature_s_);
+  VectorXd phi_2(n_feature_s_);
+  VectorXd phi_3(n_feature_s_);
   for (int i = 0; i < q.size(); i++) {
-    q(i) += eps_fd_feature_;
-    phi_i = kin_expression_double_.getFeature(q);
-    q(i) -= eps_fd_feature_;
-    d_phi_d_q.col(i) = (phi_i - phi_0) / eps_fd_feature_;
+    q(i) -= eps_ho_feature_/2;
+    phi_0 = kin_expression_double_.getFeature(q);
+    q(i) += eps_ho_feature_/4;
+    phi_1 = kin_expression_double_.getFeature(q);
+    q(i) += eps_ho_feature_/2;
+    phi_2 = kin_expression_double_.getFeature(q);
+    q(i) += eps_ho_feature_/4;
+    phi_3 = kin_expression_double_.getFeature(q);
+    q(i) -= eps_ho_feature_/2;
+    d_phi_d_q.col(i) = (-phi_3 + 8 * phi_2 - 8 * phi_1 + phi_0) / (3 * eps_ho_feature_);
   }
 
-  // /// ground truth (testing the accuracy of gradients)
+  /// ground truth (testing the accuracy of gradients)
   // AutoDiffVecXd x_autodiff = initializeAutoDiff(x);
   // AutoDiffVecXd q_autodiff = x_autodiff.head(n_q_);
   // MatrixXd d_phi_d_q_GROUNDTRUTH =
@@ -134,7 +167,6 @@ void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
 
   // TODO: turn v into qdot /////////////////////////////////////////////////////////////////////////////////////
   VectorXd dphi0_dt = d_phi_d_q * v;
-
   for (int i = 0; i < n_s_ ; i++) {
     ds(i) = theta_s.segment(i * n_feature_s_, n_feature_s_).dot(dphi0_dt);
   }
