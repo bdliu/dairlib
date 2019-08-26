@@ -620,14 +620,15 @@ void DoMain(double stride_length, double duration_ss, int iter,
   Vector3d pt_front_contact(-0.0457, 0.112, 0);
   Vector3d pt_rear_contact(0.088, 0, 0);
   bool isXZ = false;
+  Eigen::Vector2d ground_rp(0, 0.1);  // gournd incline in roll pitch
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
-                                   pt_front_contact, isXZ);
+                                   pt_front_contact, isXZ, ground_rp);
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
-                                  pt_rear_contact, isXZ);
+                                  pt_rear_contact, isXZ, ground_rp);
   auto right_toe_front_constraint = DirconPositionData<double>(plant, toe_right,
-                                    pt_front_contact, isXZ);
+                                    pt_front_contact, isXZ, ground_rp);
   auto right_toe_rear_constraint = DirconPositionData<double>(plant, toe_right,
-                                   pt_rear_contact, isXZ);
+                                   pt_rear_contact, isXZ, ground_rp);
   Vector3d normal(0, 0, 1);
   double mu = 1;
   left_toe_front_constraint.addFixedNormalFrictionConstraints(normal, mu);
@@ -656,18 +657,18 @@ void DoMain(double stride_length, double duration_ss, int iter,
   std::vector<bool> row_idx_set_to_0(3, false);
   row_idx_set_to_0[0] = true;
   auto left_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_left,
-      pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+      pt_rear_contact, isXZ, ground_rp, false, row_idx_set_to_0);
   auto right_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_right,
-      pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), false, row_idx_set_to_0);
+      pt_rear_contact, isXZ, ground_rp, false, row_idx_set_to_0);
   left_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Testing
   bool isYZ = true; if (isYZ) isXZ = true;
   auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
-        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
+        pt_rear_contact, isXZ, ground_rp, isYZ);
   auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
-        pt_rear_contact, isXZ, Eigen::Vector2d::Zero(), isYZ);
+        pt_rear_contact, isXZ, ground_rp, isYZ);
   left_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
@@ -675,9 +676,9 @@ void DoMain(double stride_length, double duration_ss, int iter,
   isXZ = false;
   Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
   auto left_toe_mid_constraint = DirconPositionData<double>(plant, toe_left,
-                                 pt_mid_contact, isXZ);
+                                 pt_mid_contact, isXZ, ground_rp);
   auto right_toe_mid_constraint = DirconPositionData<double>(plant, toe_right,
-                                  pt_mid_contact, isXZ);
+                                  pt_mid_contact, isXZ, ground_rp);
   left_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
 

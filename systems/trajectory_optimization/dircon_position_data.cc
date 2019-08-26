@@ -44,9 +44,10 @@ DirconPositionData<T>::DirconPositionData(const MultibodyPlant<T>& plant,
   Eigen::AngleAxisd pitchAngle(ground_rp(1), Vector3d::UnitY());
   Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
   Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
-  inv_rot_mat_ground_ = q.matrix().transpose();
+  Eigen::Matrix3d inv_rot_mat_ground = q.matrix().transpose();
 
-  TXZ_and_ground_incline_ = TXZ_ * inv_rot_mat_ground_;
+  T_ground_incline_ = inv_rot_mat_ground;
+  TXZ_and_ground_incline_ = TXZ_ * inv_rot_mat_ground;
 }
 
 template <typename T>
@@ -82,9 +83,9 @@ void DirconPositionData<T>::updateConstraint(const Context<T>& context) {
     this->J_ = TXZ_and_ground_incline_ * J3d;
     this->Jdotv_ = TXZ_and_ground_incline_ * J3d_times_v;
   } else {
-    this->c_ = inv_rot_mat_ground_ * pt_transform;
-    this->J_ = J3d;
-    this->Jdotv_ = J3d_times_v;
+    this->c_ = T_ground_incline_ * pt_transform;
+    this->J_ = T_ground_incline_ * J3d;
+    this->Jdotv_ = T_ground_incline_ * J3d_times_v;
   }
   this->cdot_ = this->J_*v;
 }

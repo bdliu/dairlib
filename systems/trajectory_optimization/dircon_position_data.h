@@ -30,7 +30,7 @@ class DirconPositionData : public DirconKinematicData<T> {
     Eigen::Vector3d pt_;
     bool isXZ_;
     Eigen::Matrix<double, 2, 3> TXZ_;
-    Eigen::Matrix3d inv_rot_mat_ground_;
+    Eigen::Matrix3d T_ground_incline_;
     Eigen::Matrix<double, 2, 3> TXZ_and_ground_incline_;
 };
 }  // namespace dairlib
