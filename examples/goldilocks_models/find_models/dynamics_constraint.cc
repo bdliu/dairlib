@@ -1,5 +1,6 @@
 #include "examples/goldilocks_models/find_models/dynamics_constraint.h"
 
+#include "multibody/multibody_utils.h"
 
 namespace dairlib {
 namespace goldilocks_models {
@@ -21,8 +22,10 @@ DynamicsConstraint::DynamicsConstraint(
         VectorXd::Zero(n_sDDot),
         VectorXd::Zero(n_sDDot),
         description),
+  plant_double_(plant_double),
   n_q_(plant->num_positions()),
   n_v_(plant->num_velocities()),
+  n_u_(plant->num_actuators()),
   n_s_(n_s),
   n_feature_s_(n_feature_s),
   n_theta_s_(theta_s.size()),
@@ -106,6 +109,11 @@ void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
   VectorXd q = x.head(n_q_);
   VectorXd v = x.tail(n_v_);
 
+  VectorXd qdot(n_q_);
+  VectorXd u = VectorXd::Zero(n_u_);
+  auto context = multibody::createContext(*plant_double_, x, u);
+  plant_double_->MapVelocityToQDot(*context, v, &qdot);
+
   // 1. s
   s = kin_expression_double_.getExpression(theta_s, q);
 
@@ -165,8 +173,7 @@ void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
   //      << endl;
   // End of getting gradient ===================================================
 
-  // TODO: turn v into qdot /////////////////////////////////////////////////////////////////////////////////////
-  VectorXd dphi0_dt = d_phi_d_q * v;
+  VectorXd dphi0_dt = d_phi_d_q * qdot;
   for (int i = 0; i < n_s_ ; i++) {
     ds(i) = theta_s.segment(i * n_feature_s_, n_feature_s_).dot(dphi0_dt);
   }

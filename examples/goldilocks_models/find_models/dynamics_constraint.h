@@ -105,8 +105,10 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
                            VectorXd & s, VectorXd & ds,
                            const VectorXd & theta_s) const;
 
+  const MultibodyPlant<double> * plant_double_;
   int n_q_;
   int n_v_;
+  int n_u_;
   int n_s_;
   int n_feature_s_;
   int n_theta_s_;
