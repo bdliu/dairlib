@@ -611,8 +611,8 @@ void DoMain(double stride_length,
   double omega_scale = 10;  // 10
   double input_scale = 100;
   double force_scale = 1000;  // 400
-  double time_scale = 0.03;  // 0.01
-  double quaternion_scale = 1;
+  double time_scale = 0.008;  // 0.01
+  double quaternion_scale = 0.5;  // 1
   double trans_pos_scale = 1;
   double rot_pos_scale = 1;
   vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale,
@@ -1002,10 +1002,10 @@ void DoMain(double stride_length,
                            "Verify level", 0);  // 0
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
       2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
-  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-  //                          "Major optimality tolerance", 1e-5);  // target nonlinear constraint violation
-  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-  //                          "Major feasibility tolerance", 1e-5);  // target complementarity gap
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Major optimality tolerance", 1e-4);  // target nonlinear constraint violation
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Major feasibility tolerance", 1e-4);  // target complementarity gap
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -1164,14 +1164,13 @@ void DoMain(double stride_length,
   }
 
   //testing - print out names
-  for (auto member : joint_names) {
-    cout << member << endl;
-  }
-  for (auto member : motor_names) {
-    cout << member << endl;
-  }
+  // for (auto member : joint_names) {
+  //   cout << member << endl;
+  // }
+  // for (auto member : motor_names) {
+  //   cout << member << endl;
+  // }
 
-  // Floating base (mirror in x-z plane)
   if (!standing) {
     // Floating base periodicity
     trajopt->AddLinearConstraint(x0(positions_map.at("position[0]")) ==
