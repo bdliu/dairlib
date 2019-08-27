@@ -82,7 +82,8 @@ class GoldilcocksModelTrajOpt {
       const MultibodyPlant<double> * plant_double,
       const std::vector<int>& num_time_samples,
       bool is_get_nominal,
-      bool is_add_tau_in_cost);
+      bool is_add_tau_in_cost,
+      int robot_option);
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_input(
       int index, int n_tau) const;
@@ -96,7 +97,7 @@ class GoldilcocksModelTrajOpt {
   std::vector<Binding<Constraint>> dynamics_constraint_at_head_bindings;
   // std::shared_ptr<find_models::DynamicsConstraint>  dynamics_constraint_at_tail;
   // std::vector<Binding<Constraint>> dynamics_constraint_at_tail_bindings;
-  
+
   std::vector<Binding<Cost>> tau_cost_bindings;
 
  private:

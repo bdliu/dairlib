@@ -34,9 +34,11 @@ namespace goldilocks_models {
 template <typename T>
 class KinematicsExpression {
  public:
-  explicit KinematicsExpression(int n_s, int n_feature);
   explicit KinematicsExpression(int n_s, int n_feature,
-                                const MultibodyPlant<T> * plant);
+                                int robot_option);
+  explicit KinematicsExpression(int n_s, int n_feature,
+                                const MultibodyPlant<T> * plant,
+                                int robot_option);
   KinematicsExpression() {}  // Default constructor
 
   int getDimFeature();
@@ -59,11 +61,16 @@ class KinematicsExpression {
   int n_feature_;
   int n_q_;
   int n_s_;
-  const std::vector<std::string> leg_link_names_{
-    "left_upper_leg_mass", "left_lower_leg_mass",
-    "right_upper_leg_mass", "right_lower_leg_mass"};
-  Vector3d mass_disp_;
-  Vector3d foot_disp_;
+  int robot_option_;
+
+  // robot0
+  // const std::vector<std::string> leg_link_names_{
+  //   "left_upper_leg_mass", "left_lower_leg_mass",
+  //   "right_upper_leg_mass", "right_lower_leg_mass"};
+  // Vector3d mass_disp_ = Vector3d(0, 0, -0.25);
+  // Vector3d foot_disp_ = Vector3d(0, 0, -0.5);
+
+  // robot1
 };
 
 }  // namespace goldilocks_models

@@ -7,14 +7,15 @@ namespace goldilocks_models {
 KinematicsConstraint::KinematicsConstraint(
                                  int n_s, int n_feature, VectorXd & theta_s,
                                  const MultibodyPlant<AutoDiffXd> * plant,
+                                 int robot_option,
                                  const std::string& description):
   Constraint(n_s,
              n_s + plant->num_positions(),
              VectorXd::Zero(n_s),
              VectorXd::Zero(n_s),
              description),
-  expression_double(KinematicsExpression<double>(n_s, n_feature)),
-  expression_autoDiff(KinematicsExpression<AutoDiffXd>(n_s, n_feature)),
+  expression_double(KinematicsExpression<double>(n_s, n_feature, robot_option)),
+  expression_autoDiff(KinematicsExpression<AutoDiffXd>(n_s, n_feature, robot_option)),
   plant_(plant),
   n_constraint_(n_s),
   n_feature_(n_feature),

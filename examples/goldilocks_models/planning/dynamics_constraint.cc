@@ -10,6 +10,7 @@ DynamicsConstraint::DynamicsConstraint(
   const VectorXd & theta_dyn,
   int n_tau,
   MatrixXd B_tau,
+  int robot_option,
   const std::string& description):
   Constraint(2 * n_r,
              2 * (2 * n_r + n_tau) + 1,
@@ -23,7 +24,7 @@ DynamicsConstraint::DynamicsConstraint(
   theta_dyn_(theta_dyn),
   n_y_(n_r + n_ddr),
   n_tau_(n_tau),
-  dyn_expression_(DynamicsExpression(n_ddr, n_feature_dyn, B_tau)) {
+  dyn_expression_(DynamicsExpression(n_ddr, n_feature_dyn, B_tau, robot_option)) {
   // Check the theta size
   DRAKE_DEMAND(n_ddr * n_feature_dyn == theta_dyn.size());
 

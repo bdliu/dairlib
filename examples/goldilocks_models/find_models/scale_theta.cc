@@ -33,6 +33,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+DEFINE_int32(robot_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 0, "Which iteration");
 DEFINE_int32(iter_end, 0, "Which iteration");
 DEFINE_int32(n_s, 4, "dimension of the RoM");
@@ -127,8 +128,8 @@ int doMain(int argc, char* argv[]) {
   plant.Finalize();
 
   // Setup
-  KinematicsExpression<double> kin_expression(FLAGS_n_s, 0, &plant);
-  DynamicsExpression dyn_expression(FLAGS_n_s, 0);
+  KinematicsExpression<double> kin_expression(FLAGS_n_s, 0, &plant, FLAGS_robot_option);
+  DynamicsExpression dyn_expression(FLAGS_n_s, 0, FLAGS_robot_option);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Ones(FLAGS_n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();

@@ -142,7 +142,8 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                          bool is_zero_touchdown_impact,
                          bool extend_model,
                          bool is_add_tau_in_cost,
-                         int batch) {
+                         int batch,
+                         int robot_option) {
 
   map<string, int> positions_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> velocities_map = multibody::makeNameToVelocitiesMap(
@@ -396,7 +397,7 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
     B_tau, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, &plant, num_time_samples,
-    is_get_nominal, is_add_tau_in_cost);
+    is_get_nominal, is_add_tau_in_cost, robot_option);
 
   // Add regularization term here so that hessian is pd (for outer loop), so
   // that we can use schur complement method
@@ -632,8 +633,8 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
     // Assume that the new features include all the old features (in dynamics)
     VectorXd prime_numbers = createPrimeNumbers(2 * (n_s + n_extend));
 
-    DynamicsExpression dyn_expr_old(n_sDDot, 0);
-    DynamicsExpression dyn_expr_new(n_sDDot + n_extend, 0);
+    DynamicsExpression dyn_expr_old(n_sDDot, 0, robot_option);
+    DynamicsExpression dyn_expr_new(n_sDDot + n_extend, 0, robot_option);
     VectorXd dummy_s_new = prime_numbers.head(n_s + n_extend);
     VectorXd dummy_sDDot_new = prime_numbers.tail(n_s + n_extend);
     VectorXd dummy_s_old = dummy_s_new.head(n_s);

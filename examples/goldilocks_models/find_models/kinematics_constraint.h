@@ -54,6 +54,7 @@ class KinematicsConstraint : public Constraint {
  public:
   KinematicsConstraint(int n_s, int n_feature, VectorXd & theta_s,
                        const MultibodyPlant<AutoDiffXd> * plant,
+                       int robot_option,
                        const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& s_q,
               Eigen::VectorXd* y) const override;

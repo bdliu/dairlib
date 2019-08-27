@@ -67,7 +67,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(model_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
+DEFINE_int32(robot_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 0, "The starting iteration #");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
@@ -89,7 +89,7 @@ DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
-DEFINE_int32(N_sample_gi, 3, "Sampling # for ground incline");
+DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
 
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
@@ -114,6 +114,49 @@ DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
     return false;
   }
 }*/
+
+void createMBP(MultibodyPlant<double>* plant, int robot_option) {
+  if (robot_option == 0) {
+    Parser parser(plant);
+    std::string full_name = FindResourceOrThrow(
+                              "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
+    parser.AddModelFromFile(full_name);
+    plant->mutable_gravity_field().set_gravity_vector(
+      -9.81 * Eigen::Vector3d::UnitZ());
+    plant->WeldFrames(
+      plant->world_frame(), plant->GetFrameByName("base"),
+      drake::math::RigidTransform<double>());
+    plant->Finalize();
+  } else if (robot_option == 1) {
+  }
+}
+void setCostWeight(double* Q, double* R, int robot_option) {
+  if (robot_option == 0) {
+    *Q = 10;
+    *R = 10;
+  } else if (robot_option == 1) {
+  }
+}
+void setRomDim(int* n_s, int* n_tau, int robot_option) {
+  if (robot_option == 0) {
+    *n_s = 2;
+    *n_tau = 0;
+  } else if (robot_option == 1) {
+  }
+}
+void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
+  if (robot_option == 0) {
+    // *B_tau = MatrixXd::Identity(2, 2);
+    // (*B_tau)(2, 0) = 1;
+    // (*B_tau)(3, 1) = 1;
+  } else if (robot_option == 1) {
+  }
+}
+
+  // if (robot_option == 0) {
+  // } else if (robot_option == 1) {
+  // }
+
 
 void getInitFileName(string * init_file, const string & nominal_traj_init_file,
                      int iter, int sample, bool is_get_nominal,
@@ -222,7 +265,8 @@ void extendModel(string dir, int iter, int n_feature_s,
                  int & n_theta_s, int & n_theta_sDDot, int & n_theta,
                  MatrixXd & B_tau, VectorXd & theta_s, VectorXd & theta_sDDot,
                  VectorXd & theta, VectorXd & prev_theta,
-                 VectorXd & step_direction, double & min_so_far) {
+                 VectorXd & step_direction, double & min_so_far,
+                 int robot_option) {
 
   VectorXd theta_s_append = readCSV(dir +
                                     string("theta_s_append.csv")).col(0);
@@ -235,7 +279,7 @@ void extendModel(string dir, int iter, int n_feature_s,
   n_tau += n_extend;
   // update n_feature_sDDot
   int old_n_feature_sDDot = n_feature_sDDot;
-  DynamicsExpression dyn_expression(n_sDDot, 0);
+  DynamicsExpression dyn_expression(n_sDDot, 0, robot_option);
   VectorXd dummy_s = VectorXd::Zero(n_s);
   n_feature_sDDot = dyn_expression.getFeature(dummy_s, dummy_s).size();
   // update n_theta_s and n_theta_sDDot
@@ -644,16 +688,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Create MBP
   MultibodyPlant<double> plant;
-  Parser parser(&plant);
-  std::string full_name = FindResourceOrThrow(
-                            "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
-  parser.AddModelFromFile(full_name);
-  plant.mutable_gravity_field().set_gravity_vector(
-    -9.81 * Eigen::Vector3d::UnitZ());
-  plant.WeldFrames(
-    plant.world_frame(), plant.GetFrameByName("base"),
-    drake::math::RigidTransform<double>());
-  plant.Finalize();
+  createMBP(&plant, FLAGS_robot_option);
 
   // Create autoDiff version of the plant
   MultibodyPlant<AutoDiffXd> plant_autoDiff(plant);
@@ -665,8 +700,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   std::default_random_engine e2(randgen2());
 
   // Files parameters
-  const string dir = "examples/goldilocks_models/find_models/data/model_" +
-                     to_string(FLAGS_model_option);
+  const string dir = "examples/goldilocks_models/find_models/data/robot_" +
+                     to_string(FLAGS_robot_option) + "/";
   string init_file = FLAGS_init_file;
   // init_file = "w0_with_z.csv";
   string prefix = "";
@@ -708,28 +743,28 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
-  double R = 10;  // Cost on input effort
-  double Q_double = 10; // Cost on velocity
+  double Q = 0; // Cost on velocity
+  double R = 0;  // Cost on input effort
+  setCostWeight(&Q, &R, FLAGS_robot_option);
 
   // Reduced order model parameters
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
   int n_s = 2; //2
-  int n_sDDot = n_s; // Assume that are the same (no quaternion)
   int n_tau = 0;
-  cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
+  setRomDim(&n_s, &n_tau, FLAGS_robot_option);
+  int n_sDDot = n_s; // Assume that are the same (no quaternion)
   MatrixXd B_tau = MatrixXd::Zero(n_sDDot, n_tau);
-  // B_tau = MatrixXd::Identity(2, 2);
-  // B_tau(2, 0) = 1;
-  // B_tau(3, 1) = 1;
+  setRomBMatrix(&B_tau, FLAGS_robot_option);
+  cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   cout << "B_tau = \n" << B_tau << endl;
   prefix = "";
   writeCSV(dir + prefix + string("B_tau.csv"), B_tau);
 
   // Reduced order model setup
-  KinematicsExpression<double> kin_expression(n_s, 0, &plant);
-  DynamicsExpression dyn_expression(n_sDDot, 0);
+  KinematicsExpression<double> kin_expression(n_s, 0, &plant, FLAGS_robot_option);
+  DynamicsExpression dyn_expression(n_sDDot, 0, FLAGS_robot_option);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
@@ -991,13 +1026,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
               stride_length, ground_incline,
               duration, max_inner_iter_pass_in,
               dir, init_file_pass_in, prefix,
-              Q_double, R,
+              Q, R,
               eps_regularization,
               is_get_nominal,
               FLAGS_is_zero_touchdown_impact,
               extend_model_this_iter,
               FLAGS_is_add_tau_in_cost,
-              sample);
+              sample,
+              FLAGS_robot_option);
           // string_to_be_print = "Finished adding sample #" + to_string(sample) +
           //                      " to thread # " + to_string(availible_thread_idx.front()) + ".\n";
           // cout << string_to_be_print;
@@ -1067,7 +1103,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
                   n_feature_sDDot,
                   n_theta_s, n_theta_sDDot, n_theta,
                   B_tau, theta_s, theta_sDDot, theta,
-                  prev_theta, step_direction, min_so_far);
+                  prev_theta, step_direction, min_so_far,
+                  FLAGS_robot_option);
 
       // So that we can re-run the current iter
       cout << "Reset \"has_been_all_success\" to false, in case the next iter "

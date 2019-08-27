@@ -67,6 +67,7 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
                      const MultibodyPlant<AutoDiffXd> * plant,
                      const MultibodyPlant<double> * plant_double,
                      bool is_head,
+                     int robot_option,
                      const std::string& description = "rom_dyn_constraint");
 
   void getSAndSDot(const VectorXd & x,
@@ -162,6 +163,7 @@ class DynamicsConstraintAutodiffVersion : public Constraint {
                      MatrixXd B_tau,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      bool is_head,
+                     int robot_option,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;

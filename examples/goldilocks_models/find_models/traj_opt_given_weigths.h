@@ -46,7 +46,8 @@ void trajOptGivenWeights(
     bool is_zero_touchdown_impact,
     bool extend_model,
     bool is_add_tau_in_cost,
-    int sample);
+    int batch,
+    int robot_option);
 
 }  // namespace goldilocks_models
 }  // namespace dairlib

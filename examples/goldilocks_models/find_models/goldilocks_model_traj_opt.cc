@@ -13,7 +13,8 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
   const MultibodyPlant<double> * plant_double,
   const std::vector<int> & num_time_samples,
   bool is_get_nominal,
-  bool is_add_tau_in_cost):
+  bool is_add_tau_in_cost,
+  int robot_option):
   n_s_(n_s),
   n_sDDot_(n_sDDot),
   n_tau_(n_tau),
@@ -52,11 +53,13 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
     dynamics_constraint_at_head = make_shared<find_models::DynamicsConstraint>(
                                     n_s, n_feature_s, theta_s,
                                     n_sDDot, n_feature_sDDot, theta_sDDot,
-                                    n_tau, B_tau, plant, plant_double, true);
+                                    n_tau, B_tau, plant, plant_double, true,
+                                    robot_option);
     // dynamics_constraint_at_tail = make_shared<find_models::DynamicsConstraint>(
     //                                n_s, n_feature_s, theta_s,
     //                                n_sDDot, n_feature_sDDot, theta_sDDot,
-    //                                n_tau, B_tau, plant, false);
+    //                                n_tau, B_tau, plant, false,
+    //                                robot_option);
 
     // Add dynamics constraint for all segments (between knots)
     int N_accum = 0;

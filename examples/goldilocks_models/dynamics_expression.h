@@ -27,14 +27,17 @@ namespace goldilocks_models {
 
 class DynamicsExpression {
  public:
-  explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot);
-  explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot, MatrixXd B_tau);
+  explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot,
+                              int robot_option);
+  explicit DynamicsExpression(int n_sDDot, int n_feature_sDDot, MatrixXd B_tau,
+                              int robot_option);
   DynamicsExpression() {}  // Default constructor
 
   int getDimFeature();
 
   template <typename U, typename V>
-  V getExpression(const U & theta, const V & s, const V & ds, const V & tau) const;
+  V getExpression(const U & theta, const V & s, const V & ds,
+                  const V & tau) const;
 
   template <typename T>
   T getFeature(const T & s, const T & ds) const;
@@ -43,6 +46,7 @@ class DynamicsExpression {
   int n_feature_sDDot_;
   int n_sDDot_;
   MatrixXd B_tau_;
+  int robot_option_;
 };
 
 }  // namespace goldilocks_models

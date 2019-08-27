@@ -47,6 +47,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+DEFINE_int32(robot_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter, 20, "The iteration # of the theta that you use");
 DEFINE_int32(sample, 4, "The sample # of the initial condition that you use");
 DEFINE_string(init_file, "", "Initial Guess for Planning Optimization");
@@ -95,8 +96,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   cout << "B_tau = \n" << B_tau << endl << endl;
 
   // Reduced order model setup
-  KinematicsExpression<double> kin_expression(n_s, 0, &plant);
-  DynamicsExpression dyn_expression(n_sDDot, 0);
+  KinematicsExpression<double> kin_expression(n_s, 0, &plant, FLAGS_robot_option);
+  DynamicsExpression dyn_expression(n_sDDot, 0, FLAGS_robot_option);
   VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();

@@ -59,6 +59,7 @@ class DynamicsConstraint : public Constraint {
                      const VectorXd & theta_dyn,
                      int n_tau,
                      MatrixXd B_tau,
+                     int robot_option,
                      const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;

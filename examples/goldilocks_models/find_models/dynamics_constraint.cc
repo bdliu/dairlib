@@ -17,6 +17,7 @@ DynamicsConstraint::DynamicsConstraint(
   const MultibodyPlant<AutoDiffXd> * plant,
   const MultibodyPlant<double> * plant_double,
   bool is_head,
+  int robot_option,
   const std::string& description) : DirconAbstractConstraint<double>(n_sDDot,
         2 * (plant->num_positions() + plant->num_velocities() + n_tau) + 1,
         VectorXd::Zero(n_sDDot),
@@ -35,10 +36,10 @@ DynamicsConstraint::DynamicsConstraint(
   n_theta_sDDot_(theta_sDDot.size()),
   theta_sDDot_(theta_sDDot),
   n_tau_(n_tau),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant)),
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant, robot_option)),
   kin_expression_double_(KinematicsExpression<double>(n_s, n_feature_s,
-                         plant_double)),
-  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau)),
+                         plant_double, robot_option)),
+  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau, robot_option)),
   is_head_(is_head) {
 
   // Check the theta size
@@ -366,6 +367,7 @@ DynamicsConstraintAutodiffVersion::DynamicsConstraintAutodiffVersion(
   MatrixXd B_tau,
   const MultibodyPlant<AutoDiffXd> * plant,
   bool is_head,
+  int robot_option,
   const std::string& description):
   Constraint(n_sDDot,
              2 * (plant->num_positions() + plant->num_velocities() + n_tau) + 1,
@@ -384,8 +386,8 @@ DynamicsConstraintAutodiffVersion::DynamicsConstraintAutodiffVersion(
   n_theta_sDDot_(theta_sDDot.size()),
   theta_sDDot_(theta_sDDot),
   n_tau_(n_tau),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant)),
-  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau)),
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant, robot_option)),
+  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau, robot_option)),
   is_head_(is_head) {
 
   // Check the theta size

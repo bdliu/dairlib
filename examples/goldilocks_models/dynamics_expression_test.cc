@@ -21,7 +21,7 @@ int main() {
   int n_sDDot = 3;
   int n_s = n_sDDot;
   int n_feature = 5;
-  dairlib::goldilocks_models::DynamicsExpression expr(n_sDDot, n_feature);
+  dairlib::goldilocks_models::DynamicsExpression expr(n_sDDot, n_feature, 0);
 
   VectorXd s(n_s);
   // Matrix<double, Dynamic, 1> s(2);
