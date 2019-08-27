@@ -67,6 +67,7 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+DEFINE_int32(model_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 0, "The starting iteration #");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
