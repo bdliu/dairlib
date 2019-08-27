@@ -106,6 +106,11 @@ DEFINE_int32(max_iter, 10000, "Iteration limit");
 DEFINE_double(duration_ss, 0.4, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 DEFINE_double(ground_incline, 0.0, "Duration of the walking gait (s)");
+DEFINE_double(omega_scale, 10, "Variable scaling");
+DEFINE_double(input_scale, 100, "Variable scaling");
+DEFINE_double(force_scale, 1000, "Variable scaling");
+DEFINE_double(time_scale, 0.008, "Variable scaling");
+DEFINE_double(quaternion_scale, 0.5, "Variable scaling");
 
 namespace dairlib {
 
@@ -501,7 +506,12 @@ void DoMain(double stride_length,
             double duration_ss, int iter,
             string data_directory,
             string init_file,
-            string output_prefix) {
+            string output_prefix,
+            double omega_scale,
+            double input_scale,
+            double force_scale,
+            double time_scale,
+            double quaternion_scale) {
   drake::systems::DiagramBuilder<double> builder;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
   scene_graph.set_name("scene_graph");
@@ -608,11 +618,11 @@ void DoMain(double stride_length,
   bool set_both_contact_pos_manually = false;
 
   // Scaling paramters
-  double omega_scale = 10;  // 10
-  double input_scale = 100;
-  double force_scale = 1000;  // 400
-  double time_scale = 0.008;  // 0.01
-  double quaternion_scale = 0.5;  // 1
+  // double omega_scale = 10;  // 10
+  // double input_scale = 100;
+  // double force_scale = 1000;  // 400
+  // double time_scale = 0.008;  // 0.01
+  // double quaternion_scale = 0.5;  // 1
   double trans_pos_scale = 1;
   double rot_pos_scale = 1;
   vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale,
@@ -1540,5 +1550,10 @@ int main(int argc, char* argv[]) {
 
   dairlib::DoMain(FLAGS_stride_length, FLAGS_ground_incline,
                   duration_ss, iter,
-                  data_directory, init_file, output_prefix);
+                  data_directory, init_file, output_prefix,
+                  FLAGS_omega_scale,
+                  FLAGS_input_scale,
+                  FLAGS_force_scale,
+                  FLAGS_time_scale,
+                  FLAGS_quaternion_scale);
 }

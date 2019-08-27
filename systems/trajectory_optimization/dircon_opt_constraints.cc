@@ -96,7 +96,7 @@ void DirconAbstractConstraint<double>::DoEval(
           max_idx_j = j;
         }
       }
-    if (max_element > 1e4) {
+    if (max_element > 1e3) {
       std::cout << this->get_description();
       std::cout << ":  gradient = " << max_element;
       std::cout << ",  max_idx_i = " << max_idx_i;
