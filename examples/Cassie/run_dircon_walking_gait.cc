@@ -333,7 +333,7 @@ vector<VectorXd> GetInitGuessForQ(int N,
       MultibodyPlant<double> plant_ik;
       multibody::addFlatTerrain(&plant_ik, &scene_graph_ik, .8, .8);
       Parser parser(&plant_ik, &scene_graph_ik);
-      std::string full_name =
+      string full_name =
         FindResourceOrThrow("examples/Cassie/urdf/cassie_fixed_springs.urdf");
       parser.AddModelFromFile(full_name);
       plant_ik.mutable_gravity_field().set_gravity_vector(
@@ -510,7 +510,7 @@ void DoMain(double stride_length,
   multibody::addFlatTerrain(&plant, &scene_graph, .8, .8);
   Parser parser(&plant, &scene_graph);
 
-  std::string full_name =
+  string full_name =
     FindResourceOrThrow("examples/Cassie/urdf/cassie_fixed_springs.urdf");
   parser.AddModelFromFile(full_name);
   plant.mutable_gravity_field().set_gravity_vector(
@@ -1104,36 +1104,73 @@ void DoMain(double stride_length,
 
 
   // Periodicity constraints
-  vector<std::string> left_joint_names {
-    "hip_roll_left",
-    "hip_yaw_left",
-    "hip_pitch_left",
-    "knee_left",
-    "ankle_joint_left",
-    "toe_left"
+  // vector<string> left_joint_names {
+  //   "hip_roll_left",
+  //   "hip_yaw_left",
+  //   "hip_pitch_left",
+  //   "knee_left",
+  //   "ankle_joint_left",
+  //   "toe_left"
+  // };
+  // vector<string> right_joint_names {
+  //   "hip_roll_right",
+  //   "hip_yaw_right",
+  //   "hip_pitch_right",
+  //   "knee_right",
+  //   "ankle_joint_right",
+  //   "toe_right"
+  // };
+  // vector<string> left_motor_names {
+  //   "hip_pitch_left_motor",
+  //   "hip_roll_left_motor",
+  //   "hip_yaw_left_motor",
+  //   "knee_left_motor",
+  //   "toe_left_motor"
+  // };
+  // vector<string> right_motor_names {
+  //   "hip_pitch_right_motor",
+  //   "hip_roll_right_motor",
+  //   "hip_yaw_right_motor",
+  //   "knee_right_motor",
+  //   "toe_right_motor"
+  // };
+  vector<std::pair<string, string>> l_r_pairs {
+     std::pair<string, string>("_left", "_right"),
+     std::pair<string, string>("_right", "_left"),
   };
-  vector<std::string> right_joint_names {
-    "hip_roll_right",
-    "hip_yaw_right",
-    "hip_pitch_right",
-    "knee_right",
-    "ankle_joint_right",
-    "toe_right"
+  vector<string> asy_joint_names {
+    "hip_roll",
+    "hip_yaw",
   };
-  vector<std::string> left_motor_names {
-    "hip_pitch_left_motor",
-    "hip_roll_left_motor",
-    "hip_yaw_left_motor",
-    "knee_left_motor",
-    "toe_left_motor"
+  vector<string> sym_joint_names {
+    "hip_pitch",
+    "knee",
+    "ankle_joint",
+    "toe"
   };
-  vector<std::string> right_motor_names {
-    "hip_pitch_right_motor",
-    "hip_roll_right_motor",
-    "hip_yaw_right_motor",
-    "knee_right_motor",
-    "toe_right_motor"
-  };
+  vector<string> joint_names {};
+  vector<string> motor_names {};
+  for (auto l_r_pair : l_r_pairs) {
+    for (unsigned int i = 0; i < asy_joint_names.size(); i++) {
+      joint_names.push_back(asy_joint_names[i] + l_r_pair.first);
+      motor_names.push_back(asy_joint_names[i] + l_r_pair.first + "_motor");
+    }
+    for (unsigned int i = 0; i < sym_joint_names.size(); i++) {
+      joint_names.push_back(sym_joint_names[i] + l_r_pair.first);
+      if (sym_joint_names[i].compare("ankle_joint") != 0) {
+        motor_names.push_back(sym_joint_names[i] + l_r_pair.first + "_motor");
+      }
+    }
+  }
+
+  //testing - print out names
+  for (auto member : joint_names) {
+    cout << member << endl;
+  }
+  for (auto member : motor_names) {
+    cout << member << endl;
+  }
+
   // Floating base (mirror in x-z plane)
   if (!standing) {
     // Floating base periodicity
@@ -1168,37 +1205,39 @@ void DoMain(double stride_length,
       x0(n_q + velocities_map.at("velocity[5]")) ==
       xf(n_q + velocities_map.at("velocity[5]")));
 
-    // The legs joint positions and velocities should be mirrored between legs
-    for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-      trajopt->AddLinearConstraint(x0(positions_map.at(left_joint_names[i])) ==
-                                   xf(positions_map.at(right_joint_names[i])));
-      trajopt->AddLinearConstraint(x0(positions_map.at(right_joint_names[i])) ==
-                                   xf(positions_map.at(left_joint_names[i])));
-    }
-    for (unsigned int i = 0; i < left_joint_names.size(); i++) {
-      trajopt->AddLinearConstraint(
-        x0(n_q + velocities_map.at(left_joint_names[i] + "dot")) ==
-        xf(n_q + velocities_map.at(right_joint_names[i] + "dot")));
-      trajopt->AddLinearConstraint(
-        x0(n_q + velocities_map.at(right_joint_names[i] + "dot")) ==
-        xf(n_q + velocities_map.at(left_joint_names[i] + "dot")));
-    }
-
-    // u periodic constraint
-    for (unsigned int i = 0; i < left_motor_names.size(); i++) {
-      trajopt->AddLinearConstraint(u0(actuators_map.at(left_motor_names[i])) ==
-                                   uf(actuators_map.at(right_motor_names[i])));
-      trajopt->AddLinearConstraint(u0(actuators_map.at(right_motor_names[i])) ==
-                                   uf(actuators_map.at(left_motor_names[i])));
-    }
-  }
+    // The legs joint positions/velocities/torque should be mirrored between legs
+    // (notice that hip yaw and roll should be asymmetric instead of symmetric.)
+    for (auto l_r_pair : l_r_pairs) {
+      for (unsigned int i = 0; i < asy_joint_names.size(); i++) {
+        // positions
+        trajopt->AddLinearConstraint( x0(positions_map.at(asy_joint_names[i] + l_r_pair.first)) ==
+                                     -xf(positions_map.at(asy_joint_names[i] + l_r_pair.second)));
+        // velocities
+        trajopt->AddLinearConstraint(
+           x0(n_q + velocities_map.at(asy_joint_names[i] + l_r_pair.first + "dot")) ==
+          -xf(n_q + velocities_map.at(asy_joint_names[i] + l_r_pair.second + "dot")));
+        // inputs
+        trajopt->AddLinearConstraint( u0(actuators_map.at(asy_joint_names[i] + l_r_pair.first + "_motor")) ==
+                                     -uf(actuators_map.at(asy_joint_names[i] + l_r_pair.second + "_motor")));
+      }
+      for (unsigned int i = 0; i < sym_joint_names.size(); i++) {
+        // positions
+        trajopt->AddLinearConstraint(x0(positions_map.at(sym_joint_names[i] + l_r_pair.first)) ==
+                                     xf(positions_map.at(sym_joint_names[i] + l_r_pair.second)));
+        // velocities
+        trajopt->AddLinearConstraint(
+          x0(n_q + velocities_map.at(sym_joint_names[i] + l_r_pair.first + "dot")) ==
+          xf(n_q + velocities_map.at(sym_joint_names[i] + l_r_pair.second + "dot")));
+        // inputs
+        if (sym_joint_names[i].compare("ankle_joint") != 0) {
+          trajopt->AddLinearConstraint(u0(actuators_map.at(sym_joint_names[i] + l_r_pair.first + "_motor")) ==
+                                       uf(actuators_map.at(sym_joint_names[i] + l_r_pair.second + "_motor")));
+        }
+      }
+    }  // end for (l_r_pairs)
+  }  // end if (!standing)
 
   // joint limits
-  vector<std::string> joint_names {};
-  joint_names.insert(joint_names.end(),
-                     left_joint_names.begin(), left_joint_names.end() );
-  joint_names.insert(joint_names.end(),
-                     right_joint_names.begin(), right_joint_names.end() );
   for (const auto & member : joint_names) {
     trajopt->AddConstraintToAllKnotPoints(
       x(positions_map.at(member)) <=
@@ -1209,21 +1248,17 @@ void DoMain(double stride_length,
   }
 
   // u limit
-  vector<std::string> motor_names {};
-  motor_names.insert(motor_names.end(),
-                     left_motor_names.begin(), left_motor_names.end() );
-  motor_names.insert(motor_names.end(),
-                     right_motor_names.begin(), right_motor_names.end() );
-  for (const auto & member : motor_names) {
+  // for (const auto & member : motor_names) {
     // trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) <= 300/input_scale);
     // trajopt->AddConstraintToAllKnotPoints(u(actuators_map.at(member)) >= -300/input_scale);
-    for (int i = 0; i < N; i++) {
-      auto ui = trajopt->input(i);
-      trajopt->AddBoundingBoxConstraint(
-          VectorXd::Constant(n_u, -300/input_scale),
-          VectorXd::Constant(n_u, +300/input_scale),
-          ui);
-    }
+  // }
+  // Since the limit are the same, we don't need to loop over motor_names
+  for (int i = 0; i < N; i++) {
+    auto ui = trajopt->input(i);
+    trajopt->AddBoundingBoxConstraint(
+        VectorXd::Constant(n_u, -300/input_scale),
+        VectorXd::Constant(n_u, +300/input_scale),
+        ui);
   }
 
   // make sure it's left stance
