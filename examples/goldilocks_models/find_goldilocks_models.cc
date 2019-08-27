@@ -665,7 +665,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   std::default_random_engine e2(randgen2());
 
   // Files parameters
-  const string dir = "examples/goldilocks_models/find_models/data/";
+  const string dir = "examples/goldilocks_models/find_models/data/model_" +
+                     to_string(FLAGS_model_option);
   string init_file = FLAGS_init_file;
   // init_file = "w0_with_z.csv";
   string prefix = "";
