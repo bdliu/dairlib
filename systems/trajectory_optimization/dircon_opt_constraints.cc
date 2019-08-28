@@ -8,6 +8,8 @@
 #include "drake/math/autodiff_gradient.h"
 #include "multibody/multibody_utils.h"
 
+#include "systems/goldilocks_models/file_utils.h"  // writeCSV
+
 namespace dairlib {
 namespace systems {
 namespace trajectory_optimization {
@@ -85,7 +87,7 @@ void DirconAbstractConstraint<double>::DoEval(
     drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
 
     // Testing - looking at gradient values
-    /*double max_element = dy(0, 0);
+    double max_element = dy(0, 0);
     double max_idx_i = 0;
     double max_idx_j = 0;
     for (int i = 0; i < dy.rows(); i++)
@@ -101,7 +103,16 @@ void DirconAbstractConstraint<double>::DoEval(
       std::cout << ":  gradient = " << max_element;
       std::cout << ",  max_idx_i = " << max_idx_i;
       std::cout << ",  max_idx_j = " << max_idx_j << std::endl;
-    }*/
+    }
+    if (this->get_description().compare("dynamics_constraint") == 0) {
+      goldilocks_models::writeCSV("dyn_constraint_grad.csv", dy);
+    }
+    else if (this->get_description().compare("kinematics_constraint 24") == 0) {
+      goldilocks_models::writeCSV("kin_constraint_grad.csv", dy);
+    }
+    else if (this->get_description().compare("impact_constraint") == 0) {
+      goldilocks_models::writeCSV("impact_constraint_grad.csv", dy);
+    }
 
 
     // // central differencing
@@ -170,6 +181,9 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
 
+  double v_c_scale = 30;
+  double gamma_scale = 0.002;
+
   // Extract our input variables:
   // h - current time (knot) value
   // x0, x1 state vector at time steps k, k+1
@@ -194,8 +208,8 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   const VectorX<T> lc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
       2*num_kinematic_constraints_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> vc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
-      3*num_kinematic_constraints_, num_kinematic_constraints_)*omega_scale_;
-  const VectorX<T> gamma = x.tail(num_quat_slack_);
+      3*num_kinematic_constraints_, num_kinematic_constraints_) /**omega_scale_ * v_c_scale*/;
+  const VectorX<T> gamma = x.tail(num_quat_slack_) /** gamma_scale*/;
 
   auto context0 = multibody::createContext(plant_, x0, u0);
   constraints_->updateData(*context0, l0);
@@ -221,7 +235,16 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
     // Assume the floating base coordinates is in the first four elements.
     g.head(4) += xcol.head(4) * gamma;
   }
-  *y = xdotcol - g;
+
+  double vel_scale = 60;
+  double accel_scale = 20 * vel_scale;
+  double toe_scale = 50;
+  VectorX<T> output = xdotcol - g;
+  output.head(num_positions_) /= vel_scale;
+  output.tail(num_velocities_) /= accel_scale;
+  output.tail(2) /= toe_scale;
+  *y = output;
+  // std::cout << "dynamics_constraint = " << (*y).transpose() << std::endl;
 }
 
 template <typename T>
@@ -295,7 +318,7 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
                    is_constraint_relative.end(), true),
         VectorXd::Zero(type*num_kinematic_constraints),
         VectorXd::Zero(type*num_kinematic_constraints),
-        "kinematics_constraint "+std::to_string(type)),
+        "kinematics_constraint "+std::to_string(type*num_kinematic_constraints)),
       plant_(plant),
       constraints_(&constraints),
       num_states_{num_positions+num_velocities}, num_inputs_{num_inputs},
@@ -339,24 +362,31 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
                                 num_kinematic_constraints_, n_relative_);
   auto context = multibody::createContext(plant_, state, input);
   constraints_->updateData(*context, force);
+
+  double vel_scale = 10;
+  double accel_scale = 300 * 20;
+
   switch (type_) {
     case kAll:
       *y = VectorX<T>(3*num_kinematic_constraints_);
       *y << constraints_->getC() + relative_map_*offset - phi_vals_,
-            constraints_->getCDot(), constraints_->getCDDot();
+            constraints_->getCDot() / vel_scale,
+            constraints_->getCDDot() / accel_scale;
       // *y << constraints_->getC() + relative_map_*offset - phi_vals_,
       //       VectorX<T>::Zero(num_kinematic_constraints_),
       //       VectorX<T>::Zero(num_kinematic_constraints_);
       break;
     case kAccelAndVel:
       *y = VectorX<T>(2*num_kinematic_constraints_);
-      *y << constraints_->getCDot(), constraints_->getCDDot();
+      *y << constraints_->getCDot() / vel_scale,
+            constraints_->getCDDot() / accel_scale;
       break;
     case kAccelOnly:
       *y = VectorX<T>(1*num_kinematic_constraints_);
-      *y << constraints_->getCDDot();
+      *y << constraints_->getCDDot() / accel_scale;
       break;
   }
+  // std::cout << "kinematics_constraint = " << (*y).transpose() << std::endl;
 }
 
 template <typename T>
@@ -420,7 +450,9 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   MatrixX<T> M(num_velocities_, num_velocities_);
   plant_.CalcMassMatrixViaInverseDynamics(*context, &M);
 
-  *y = M*(v1 - v0) - constraints_->getJ().transpose()*impulse;
+  double accel_scale = 20 * 30;
+  *y = (M*(v1 - v0) - constraints_->getJ().transpose()*impulse) / accel_scale;
+  // std::cout << "impluse_constraint = " << (*y).transpose() << std::endl;
 }
 
 // Explicitly instantiates on the most common scalar types.

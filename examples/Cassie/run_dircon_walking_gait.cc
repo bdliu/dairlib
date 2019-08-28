@@ -200,7 +200,7 @@ void GetInitFixedPointGuess(const Vector3d& pelvis_position,
   // up in DIRCON
   VectorXd lambda_sol_reorder(lambda_sol.size());
   VectorXd lambda_sol_contact = lambda_sol.tail(3 * idxa.size());
-  for (int i = 0; i < idxa.size(); i++) {
+  for (unsigned int i = 0; i < idxa.size(); i++) {
     // We need to reorder cause contact toolkit's lambda ordering is different
     VectorXd lambda_dummy = lambda_sol_contact.segment(3*i, 3);
     lambda_sol_contact(0 + 3*i) = lambda_dummy(1);
@@ -623,8 +623,8 @@ void DoMain(double stride_length,
   // double force_scale = 1000;  // 400
   // double time_scale = 0.008;  // 0.01
   // double quaternion_scale = 0.5;  // 1
-  double trans_pos_scale = 1;
-  double rot_pos_scale = 1;
+  // double trans_pos_scale = 1;
+  // double rot_pos_scale = 1;
   vector<double> var_scale = {omega_scale, input_scale, force_scale, time_scale,
         quaternion_scale};
 
@@ -1044,6 +1044,9 @@ void DoMain(double stride_length,
     trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
   }
 
+  // Fix time duration
+  // trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
+
   // quaterion norm constraint
   if (is_quaterion) {
     auto quat_norm_constraint = std::make_shared<QuaternionNormConstraint>(var_scale);
@@ -1279,7 +1282,7 @@ void DoMain(double stride_length,
   // cout << "This constraint doesn't work for heel to toe walking\n";
   // auto redundant_force_constraint = std::make_shared<RedundantForceConstraint>();
   // int counter = 0;
-  // for (int i = 0; i < num_time_samples.size(); i++) {
+  // for (unsigned int i = 0; i < num_time_samples.size(); i++) {
   //   for (int j=0; j <  num_time_samples[i]; j++) {
   //     auto f = trajopt->force(i,j);
   //     if (dataset_list[i]->countConstraints() == 8) {
@@ -1341,15 +1344,67 @@ void DoMain(double stride_length,
 
 
 
+  // Create timesteps manually
+  vector<double> timestep_vector{0.0119019, 0.028669, 0};  // we don't use the third element, so set it to be any number
+  for (unsigned int i = 0; i < timestep_vector.size(); i++) {
+    timestep_vector[i] /= time_scale;
+  }
+  DRAKE_DEMAND(timestep_vector.size() == num_time_samples.size());
+  VectorXd timesteps(N-1);
+  int counter = 0;
+  for (unsigned int i = 0; i < num_time_samples.size(); i++) {
+    for (int j=0; j <  num_time_samples[i] - 1; j++) {
+      int index = counter + j;
+      timesteps(index) = timestep_vector[i];
+    }
+    counter += num_time_samples[i] - 1;
+  }
+  // Fix the timestep sizes
+  // counter = 0;
+  // for (unsigned int i = 0; i < num_time_samples.size(); i++) {
+  //   // for (int j=0; j <  num_time_samples[i]; j++) {
+  //   //   int index = counter + j;
+  //   //   trajopt->AddLinearConstraint(trajopt->timestep(index) == timesteps(index));
+  //   // }
 
+  //   if (counter >= N-1) break;
+  //   trajopt->AddBoundingBoxConstraint(timestep_vector[counter], timestep_vector[counter],
+  //                                     trajopt->timestep(counter));
+  //   counter += num_time_samples[i] - 1;
+  // }
 
 
   // add cost
-  const double R = 1000/* * input_scale * input_scale*/;  // Cost on input effort
-  MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
-  trajopt->AddRunningCost(u.transpose()* R * u);
+  const MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
+  const MatrixXd R = 1000 * MatrixXd::Identity(n_u, n_u)/* * input_scale * input_scale*/;  // Cost on input effort
   // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   // trajopt->AddRunningCost(x.segment(n_q,3).transpose() * 10.0 * x.segment(n_q,3));
+  trajopt->AddRunningCost(u.transpose()* R * u);
+
+  // state cost
+  // trajopt->AddQuadraticCost(Q * timesteps(0) / 2, VectorXd::Zero(n_x), x0.tail(n_v));
+  // for (int i = 1; i <= N - 2; i++) {
+  //   auto xi = trajopt->state(i);
+  //   trajopt->AddQuadraticCost(Q * (timesteps(i-1)+timesteps(i))/2, VectorXd::Zero(n_x), xi.tail(n_v));
+  // }
+  // trajopt->AddQuadraticCost(Q * timesteps(N-2) / 2, VectorXd::Zero(n_x), xf.tail(n_v));
+  // input cost
+  // trajopt->AddQuadraticCost(R * timesteps(0) / 2, VectorXd::Zero(n_u), u0);
+  // for (int i = 1; i <= N - 2; i++) {
+  //   auto ui = trajopt->input(i);
+  //   trajopt->AddQuadraticCost(R * (timesteps(i-1)+timesteps(i))/2, VectorXd::Zero(n_u), ui);
+  // }
+  // trajopt->AddQuadraticCost(R * timesteps(N-2) / 2, VectorXd::Zero(n_u), uf);
+
+  // if all timesteps are the same
+  // double timestep = duration_ss / (N - 1) / time_scale;
+  // trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
+  // for (int i = 1; i <= N - 2; i++) {
+  //   auto ui = trajopt->input(i);
+  //   trajopt->AddQuadraticCost(R * timestep, VectorXd::Zero(n_u), ui);
+  // }
+  // trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
+
 
 
 
@@ -1485,10 +1540,10 @@ void DoMain(double stride_length,
   // store the solution of the decision variable
   VectorXd z = result.GetSolution(trajopt->decision_variables());
   writeCSV(data_directory + output_prefix + string("z.csv"), z);
-  // for(int i = 0; i<z.size(); i++){
-  //   cout << trajopt->decision_variables()[i] << ", " << z[i] << endl;
-  // }
-  // cout << endl;
+  for(int i = 0; i<z.size(); i++){
+    cout << trajopt->decision_variables()[i] << ", " << z[i] << endl;
+  }
+  cout << endl;
 
   // store the time, state, and input at knot points
   VectorXd time_at_knots = trajopt->GetSampleTimes(result);

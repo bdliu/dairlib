@@ -104,6 +104,52 @@ void setInitialGuessFromFile(string directory,
   gm_traj_opt.dircon->SetInitialGuessForAllVariables(w0);
 }
 
+void augmentConstraintToFixThetaScaling(MatrixXd & B, MatrixXd & A,
+                                        VectorXd & y, VectorXd & lb, VectorXd & ub,
+                                        int n_s, int n_feature_s,
+                                        const VectorXd & theta_s, int batch) {
+  // sum theta over a row = const
+
+  int n_c = B.rows();
+  int n_t = B.cols();
+  int n_w = A.cols();
+
+  MatrixXd B_old = B;
+  B.resize(n_c + n_s, n_t);
+  B = MatrixXd::Zero(n_c + n_s, n_t);
+  B.block(0, 0, n_c, n_t) = B_old;
+  for (int i = 0; i < n_s; i++) {
+    B.block(n_c + i, i * n_feature_s, 1, n_feature_s) =
+      VectorXd::Ones(n_feature_s).transpose();
+  }
+
+  MatrixXd A_old = A;
+  A.resize(n_c + n_s, n_w);
+  A = MatrixXd::Zero(n_c + n_s, n_w);
+  A.block(0, 0, n_c, n_w) = A_old;
+
+  MatrixXd y_old = y;
+  y.resize(n_c + n_s);
+  VectorXd y_append = VectorXd::Zero(n_s);
+  for (int i = 0; i < n_s; i++) {
+    for (int j = 0; j < n_feature_s; j++) {
+      y_append(i) += theta_s(j + i * n_feature_s);
+    }
+  }
+  y << y_old, y_append;
+
+  MatrixXd lb_old = lb;
+  lb.resize(n_c + n_s);
+  lb << lb_old, y_append;
+
+  MatrixXd ub_old = ub;
+  ub.resize(n_c + n_s);
+  ub << ub_old, y_append;
+
+  if (batch == 0)
+    cout << "parameters sum per position = " << y_append.transpose() << endl;
+}
+
 void extractResult(VectorXd& w_sol,
                    GoldilocksModelTrajOpt& gm_traj_opt,
                    const MathematicalProgramResult& result,
@@ -953,52 +999,6 @@ void postProcessing(const VectorXd& w_sol,
       }
     }*/
   }  // end of if(!is_get_nominal)
-}
-
-void augmentConstraintToFixThetaScaling(MatrixXd & B, MatrixXd & A,
-                                        VectorXd & y, VectorXd & lb, VectorXd & ub,
-                                        int n_s, int n_feature_s,
-                                        const VectorXd & theta_s, int batch) {
-  // sum theta over a row = const
-
-  int n_c = B.rows();
-  int n_t = B.cols();
-  int n_w = A.cols();
-
-  MatrixXd B_old = B;
-  B.resize(n_c + n_s, n_t);
-  B = MatrixXd::Zero(n_c + n_s, n_t);
-  B.block(0, 0, n_c, n_t) = B_old;
-  for (int i = 0; i < n_s; i++) {
-    B.block(n_c + i, i * n_feature_s, 1, n_feature_s) =
-      VectorXd::Ones(n_feature_s).transpose();
-  }
-
-  MatrixXd A_old = A;
-  A.resize(n_c + n_s, n_w);
-  A = MatrixXd::Zero(n_c + n_s, n_w);
-  A.block(0, 0, n_c, n_w) = A_old;
-
-  MatrixXd y_old = y;
-  y.resize(n_c + n_s);
-  VectorXd y_append = VectorXd::Zero(n_s);
-  for (int i = 0; i < n_s; i++) {
-    for (int j = 0; j < n_feature_s; j++) {
-      y_append(i) += theta_s(j + i * n_feature_s);
-    }
-  }
-  y << y_old, y_append;
-
-  MatrixXd lb_old = lb;
-  lb.resize(n_c + n_s);
-  lb << lb_old, y_append;
-
-  MatrixXd ub_old = ub;
-  ub.resize(n_c + n_s);
-  ub << ub_old, y_append;
-
-  if (batch == 0)
-    cout << "parameters sum per position = " << y_append.transpose() << endl;
 }
 
 void fiveLinkRobotTrajOpt(const MultibodyPlant<double> & plant,

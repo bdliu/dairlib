@@ -501,12 +501,12 @@
         rpy="0 0 0" />
       <mass value="0.1498" />
       <inertia
-        ixx=".287"
+        ixx=".000287"
         ixy="-.00009863"
         ixz="-.000001456"
-        iyy=".1713"
+        iyy=".0001713"
         iyz=".0000001716"
-        izz=".4491" />
+        izz=".0004491" />
     </inertial>
     <visual>
       <origin
@@ -554,12 +554,12 @@
         rpy="0 0 0" />
       <mass value="0.1498" />
       <inertia
-        ixx=".287"
+        ixx=".000287"
         ixy="-.00009863"
         ixz=".000001456"
-        iyy=".1713"
+        iyy=".0001713"
         iyz="-.0000001716"
-        izz=".4491" />
+        izz=".0004491" />
     </inertial>
     <visual>
       <origin
