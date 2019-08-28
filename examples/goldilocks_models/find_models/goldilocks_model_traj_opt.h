@@ -71,9 +71,9 @@ using systems::trajectory_optimization::DirconOptions;
 using systems::trajectory_optimization::DirconKinConstraintType;
 using systems::SubvectorPassThrough;
 
-class GoldilcocksModelTrajOpt {
+class GoldilocksModelTrajOpt {
  public:
-  GoldilcocksModelTrajOpt(
+  GoldilocksModelTrajOpt(
       int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
       MatrixXd B_tau,
       const VectorXd & theta_s, const VectorXd & theta_sDDot,
@@ -84,7 +84,7 @@ class GoldilcocksModelTrajOpt {
       bool is_get_nominal,
       bool is_add_tau_in_cost,
       int robot_option);
-  GoldilcocksModelTrajOpt() {};
+  GoldilocksModelTrajOpt() {};
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_input(
       int index, int n_tau) const;

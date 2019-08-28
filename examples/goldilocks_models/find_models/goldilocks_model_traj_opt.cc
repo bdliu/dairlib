@@ -5,7 +5,7 @@ namespace dairlib {
 namespace goldilocks_models {
 
 // Constructor
-GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
+GoldilocksModelTrajOpt::GoldilocksModelTrajOpt(
   int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
   MatrixXd B_tau, const VectorXd & theta_s, const VectorXd & theta_sDDot,
   std::unique_ptr<HybridDircon<double>> dircon_in,
@@ -90,13 +90,13 @@ GoldilcocksModelTrajOpt::GoldilcocksModelTrajOpt(
 
 
 Eigen::VectorBlock<const VectorXDecisionVariable>
-GoldilcocksModelTrajOpt::reduced_model_input(int index, int n_tau) const {
+GoldilocksModelTrajOpt::reduced_model_input(int index, int n_tau) const {
   DRAKE_DEMAND(index >= 0 && index < num_knots_);
   return tau_vars_.segment(index * n_tau, n_tau);
 }
 
 // Eigen::VectorBlock<const VectorXDecisionVariable>
-// GoldilcocksModelTrajOpt::reduced_model_position(int index, int n_s) const {
+// GoldilocksModelTrajOpt::reduced_model_position(int index, int n_s) const {
 //   DRAKE_DEMAND(index >= 0 && index < num_knots_);
 //   return s_vars_.segment(index * n_s, n_s);
 // }
