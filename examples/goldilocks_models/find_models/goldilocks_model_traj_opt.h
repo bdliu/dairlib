@@ -84,6 +84,7 @@ class GoldilcocksModelTrajOpt {
       bool is_get_nominal,
       bool is_add_tau_in_cost,
       int robot_option);
+  GoldilcocksModelTrajOpt() {};
 
   Eigen::VectorBlock<const VectorXDecisionVariable> reduced_model_input(
       int index, int n_tau) const;

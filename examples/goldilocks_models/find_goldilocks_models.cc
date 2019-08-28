@@ -152,10 +152,32 @@ void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
   } else if (robot_option == 1) {
   }
 }
-
-  // if (robot_option == 0) {
-  // } else if (robot_option == 1) {
-  // }
+void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
+                     int n_feature_s, int robot_option) {
+  if (robot_option == 0) {
+    // theta_s(1) = 1;
+    // theta_s(2 + n_feature_s) = 1;
+    // theta_s(3 + 2 * n_feature_s) = 1;
+    // theta_s(2) = 1; // LIPM
+    // theta_sDDot(0) = 1;
+    // // 2D LIPM
+    // theta_s(0) = 1;
+    // theta_s(1 + n_feature_s) = 1;
+    // theta_sDDot(0) = 1;
+    // // 2D LIPM with 2D swing foot
+    theta_s(0) = 1;
+    theta_s(1 + n_feature_s) = 1;
+    // theta_s(2 + 2 *n_feature_s) = 1;
+    // theta_s(3 + 3 * n_feature_s) = 1;
+    theta_sDDot(0) = 1;
+    // // Testing intial theta
+    // theta_s = 0.25*VectorXd::Ones(n_theta_s);
+    // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
+    // theta_s = VectorXd::Random(n_theta_s);
+    // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+  } else if (robot_option == 1) {
+  }
+}
 
 
 void getInitFileName(string * init_file, const string & nominal_traj_init_file,
@@ -781,26 +803,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   theta_s = VectorXd::Zero(n_theta_s);
   theta_sDDot = VectorXd::Zero(n_theta_sDDot);
   if (iter_start == 0) {
-    // theta_s(1) = 1;
-    // theta_s(2 + n_feature_s) = 1;
-    // theta_s(3 + 2 * n_feature_s) = 1;
-    // theta_s(2) = 1; // LIPM
-    // theta_sDDot(0) = 1;
-    // // 2D LIPM
-    // theta_s(0) = 1;
-    // theta_s(1 + n_feature_s) = 1;
-    // theta_sDDot(0) = 1;
-    // // 2D LIPM with 2D swing foot
-    theta_s(0) = 1;
-    theta_s(1 + n_feature_s) = 1;
-    // theta_s(2 + 2 *n_feature_s) = 1;
-    // theta_s(3 + 3 * n_feature_s) = 1;
-    theta_sDDot(0) = 1;
-    // // Testing intial theta
-    // theta_s = 0.25*VectorXd::Ones(n_theta_s);
-    // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
-    // theta_s = VectorXd::Random(n_theta_s);
-    // theta_sDDot = VectorXd::Random(n_theta_sDDot);
+    setInitialTheta(theta_s, theta_sDDot, n_feature_s, FLAGS_robot_option);
     cout << "Make sure that you use the right initial theta.\nProceed? (Y/N)\n";
     char answer[1];
     cin >> answer;
