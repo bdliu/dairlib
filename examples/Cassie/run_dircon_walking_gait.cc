@@ -608,7 +608,7 @@ void DoMain(double stride_length,
   // parameters
   bool is_quaterion = true;
   bool standing = false;
-  int walking_mode = 1; // 0: instant change of support
+  int walking_mode = 2; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
@@ -1345,20 +1345,20 @@ void DoMain(double stride_length,
 
 
   // Create timesteps manually
-  vector<double> timestep_vector{0.0119019, 0.028669, 0};  // we don't use the third element, so set it to be any number
-  for (unsigned int i = 0; i < timestep_vector.size(); i++) {
-    timestep_vector[i] /= time_scale;
-  }
-  DRAKE_DEMAND(timestep_vector.size() == num_time_samples.size());
-  VectorXd timesteps(N-1);
-  int counter = 0;
-  for (unsigned int i = 0; i < num_time_samples.size(); i++) {
-    for (int j=0; j <  num_time_samples[i] - 1; j++) {
-      int index = counter + j;
-      timesteps(index) = timestep_vector[i];
-    }
-    counter += num_time_samples[i] - 1;
-  }
+  // vector<double> timestep_vector{0.0119019, 0.028669, 0};  // we don't use the third element, so set it to be any number
+  // for (unsigned int i = 0; i < timestep_vector.size(); i++) {
+  //   timestep_vector[i] /= time_scale;
+  // }
+  // DRAKE_DEMAND(timestep_vector.size() == num_time_samples.size());
+  // VectorXd timesteps(N-1);
+  // int counter = 0;
+  // for (unsigned int i = 0; i < num_time_samples.size(); i++) {
+  //   for (int j=0; j <  num_time_samples[i] - 1; j++) {
+  //     int index = counter + j;
+  //     timesteps(index) = timestep_vector[i];
+  //   }
+  //   counter += num_time_samples[i] - 1;
+  // }
   // Fix the timestep sizes
   // counter = 0;
   // for (unsigned int i = 0; i < num_time_samples.size(); i++) {
