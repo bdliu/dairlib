@@ -608,7 +608,7 @@ void DoMain(double stride_length,
   // parameters
   bool is_quaterion = true;
   bool standing = false;
-  int walking_mode = 2; // 0: instant change of support
+  int walking_mode = 1; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
@@ -676,15 +676,6 @@ void DoMain(double stride_length,
   left_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
-  // Testing
-  bool isYZ = true; if (isYZ) isXZ = true;
-  auto left_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_left,
-        pt_rear_contact, isXZ, ground_rp, isYZ);
-  auto right_toe_rear_2d_constraint = DirconPositionData<double>(plant, toe_right,
-        pt_rear_contact, isXZ, ground_rp, isYZ);
-  left_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
-  right_toe_rear_2d_constraint.addFixedNormalFrictionConstraints(normal, mu);
-
   // Testing (mid contact point)
   isXZ = false;
   Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
@@ -710,6 +701,9 @@ void DoMain(double stride_length,
   left_ht_options.setConstraintRelative(1, true);
   left_ht_options.setConstraintRelative(3, true);
   left_ht_options.setConstraintRelative(4, true);
+  if (walking_mode == 1) {
+    // left_ht_options.setEndType(DirconKinConstraintType::kAccelAndVel);
+  }
 
   // left stance (left toe)
   vector<DirconKinematicData<double>*> left_stance_t_constraint;
@@ -820,50 +814,6 @@ void DoMain(double stride_length,
     double_all_options.setConstraintRelative(10, true);
   }
 
-  // Testing
-  vector<DirconKinematicData<double>*> double_stance_all_2d_constraint;
-  double_stance_all_2d_constraint.push_back(&left_toe_front_constraint);
-  double_stance_all_2d_constraint.push_back(&left_toe_rear_2d_constraint);
-  double_stance_all_2d_constraint.push_back(&right_toe_front_constraint);
-  double_stance_all_2d_constraint.push_back(&right_toe_rear_2d_constraint);
-  double_stance_all_2d_constraint.push_back(&distance_constraint_left);
-  double_stance_all_2d_constraint.push_back(&distance_constraint_right);
-  auto double_all_2d_dataset = DirconKinematicDataSet<double>(plant,
-                        &double_stance_all_2d_constraint);
-  auto double_all_2d_options = DirconOptions(double_all_2d_dataset.countConstraints());
-  if (set_both_contact_pos_manually) {
-    double_all_2d_options.setConstraintRelative(0, false);
-    double_all_2d_options.setConstraintRelative(1, false);
-    double_all_2d_options.setPhiValue(0, 0);
-    double_all_2d_options.setPhiValue(1, 0.12);
-    double_all_2d_options.setConstraintRelative(3, false);
-    double_all_2d_options.setPhiValue(3, 0.12);
-    double_all_2d_options.setConstraintRelative(5, false);
-    double_all_2d_options.setConstraintRelative(6, false);
-    double_all_2d_options.setPhiValue(5, 0);
-    double_all_2d_options.setPhiValue(6, -0.12);
-    double_all_2d_options.setConstraintRelative(8, false);
-    double_all_2d_options.setPhiValue(8, -0.12);
-  } else if (set_second_contact_manually) {
-    double_all_2d_options.setConstraintRelative(0, false);
-    double_all_2d_options.setConstraintRelative(1, false);
-    double_all_2d_options.setPhiValue(0, 0);
-    double_all_2d_options.setPhiValue(1, 0.12);
-    double_all_2d_options.setConstraintRelative(3, true);
-    double_all_2d_options.setConstraintRelative(5, false);
-    double_all_2d_options.setConstraintRelative(6, false);
-    double_all_2d_options.setPhiValue(5, 0);
-    double_all_2d_options.setPhiValue(6, -0.12);
-    double_all_2d_options.setConstraintRelative(8, true);
-  } else {
-    double_all_2d_options.setConstraintRelative(0, true);
-    double_all_2d_options.setConstraintRelative(1, true);
-    double_all_2d_options.setConstraintRelative(3, true);
-    double_all_2d_options.setConstraintRelative(5, true);
-    double_all_2d_options.setConstraintRelative(6, true);
-    double_all_2d_options.setConstraintRelative(8, true);
-  }
-
   // Testing - left stance (one contact point)
   vector<DirconKinematicData<double>*> left_stance_mid_constraint;
   left_stance_mid_constraint.push_back(&left_toe_mid_constraint);
@@ -923,8 +873,6 @@ void DoMain(double stride_length,
   if (standing) {  // standing
     dataset_list.push_back(&double_all_dataset);
     options_list.push_back(double_all_options);
-    // dataset_list.push_back(&double_all_2d_dataset);
-    // options_list.push_back(double_all_2d_options);
   } else {  // walking
     if (walking_mode == 0) {
       dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);

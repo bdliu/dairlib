@@ -450,8 +450,12 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   MatrixX<T> M(num_velocities_, num_velocities_);
   plant_.CalcMassMatrixViaInverseDynamics(*context, &M);
 
-  double accel_scale = 20 * 30;
-  *y = (M*(v1 - v0) - constraints_->getJ().transpose()*impulse) / accel_scale;
+  double accel_scale = 12;
+  double xyz_scale = 50;
+  VectorX<T> output = M*(v1 - v0) - constraints_->getJ().transpose()*impulse;
+  output /= accel_scale;
+  output.segment(3,3) /= xyz_scale;
+  *y = output;
   // std::cout << "impluse_constraint = " << (*y).transpose() << std::endl;
 }
 
