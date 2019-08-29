@@ -244,7 +244,6 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   output.tail(num_velocities_) /= accel_scale;
   // output.tail(2) /= toe_scale;
   *y = output;
-  // std::cout << "dynamics_constraint = " << (*y).transpose() << std::endl;
 }
 
 template <typename T>
@@ -364,17 +363,15 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   constraints_->updateData(*context, force);
 
   double vel_scale = 10;
-  double accel_scale = 300 * 20;
+  double accel_scale = 300 * 20;  //300 * 4
+  // An even better scaling is to scale the distance constraint (four-bar linkage).
 
   switch (type_) {
     case kAll:
       *y = VectorX<T>(3*num_kinematic_constraints_);
-      *y << (constraints_->getC() + relative_map_*offset - phi_vals_),
+      *y << constraints_->getC() + relative_map_*offset - phi_vals_,
             constraints_->getCDot() / vel_scale,
             constraints_->getCDDot() / accel_scale;
-      // *y << constraints_->getC() + relative_map_*offset - phi_vals_,
-      //       VectorX<T>::Zero(num_kinematic_constraints_),
-      //       VectorX<T>::Zero(num_kinematic_constraints_);
       break;
     case kAccelAndVel:
       *y = VectorX<T>(2*num_kinematic_constraints_);
@@ -386,7 +383,6 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
       *y << constraints_->getCDDot() / accel_scale;
       break;
   }
-  // std::cout << "kinematics_constraint = " << (*y).transpose() << std::endl;
 }
 
 template <typename T>
@@ -456,7 +452,6 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   output /= accel_scale;
   output.segment(3,3) /= xyz_scale;
   *y = output;
-  // std::cout << "impluse_constraint = " << (*y).transpose() << std::endl;
 }
 
 // Explicitly instantiates on the most common scalar types.
