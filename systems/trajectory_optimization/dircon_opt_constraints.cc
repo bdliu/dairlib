@@ -181,7 +181,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
 
-  double v_c_scale = 30;
+  double v_c_scale = 10;
   double gamma_scale = 0.002;
 
   // Extract our input variables:
@@ -208,7 +208,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   const VectorX<T> lc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
       2*num_kinematic_constraints_, num_kinematic_constraints_)*force_scale_;
   const VectorX<T> vc = x.segment(1 + 2 * (num_states_ + num_inputs_) +
-      3*num_kinematic_constraints_, num_kinematic_constraints_) /**omega_scale_ * v_c_scale*/;
+      3*num_kinematic_constraints_, num_kinematic_constraints_) /**omega_scale_*/ * v_c_scale;
   const VectorX<T> gamma = x.tail(num_quat_slack_) /** gamma_scale*/;
 
   auto context0 = multibody::createContext(plant_, x0, u0);
@@ -242,7 +242,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   VectorX<T> output = xdotcol - g;
   output.head(num_positions_) /= vel_scale;
   output.tail(num_velocities_) /= accel_scale;
-  output.tail(2) /= toe_scale;
+  // output.tail(2) /= toe_scale;
   *y = output;
   // std::cout << "dynamics_constraint = " << (*y).transpose() << std::endl;
 }
@@ -369,7 +369,7 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   switch (type_) {
     case kAll:
       *y = VectorX<T>(3*num_kinematic_constraints_);
-      *y << constraints_->getC() + relative_map_*offset - phi_vals_,
+      *y << (constraints_->getC() + relative_map_*offset - phi_vals_),
             constraints_->getCDot() / vel_scale,
             constraints_->getCDDot() / accel_scale;
       // *y << constraints_->getC() + relative_map_*offset - phi_vals_,
@@ -434,7 +434,7 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   x0 << x.segment(0, 4) * quaternion_scale_,
         x.segment(4, num_positions_ - 4),
         x.segment(num_positions_, num_velocities_)*omega_scale_;
-  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)*force_scale_;
+  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)/**force_scale_*/;
   const VectorX<T> v1 = x.segment(num_states_ + num_kinematic_constraints_,
                             num_velocities_)*omega_scale_;
 
