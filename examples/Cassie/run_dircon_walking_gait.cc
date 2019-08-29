@@ -700,7 +700,7 @@ void DoMain(double stride_length,
   // left stance (left heel and toe)
   vector<DirconKinematicData<double>*> left_stance_ht_constraint;
   left_stance_ht_constraint.push_back(&left_toe_front_constraint);
-  left_stance_ht_constraint.push_back(&left_toe_rear_constraint);
+  left_stance_ht_constraint.push_back(&left_toe_rear_indpt_constraint);
   left_stance_ht_constraint.push_back(&distance_constraint_left);
   left_stance_ht_constraint.push_back(&distance_constraint_right);
   auto left_ht_dataset = DirconKinematicDataSet<double>(plant,
@@ -740,7 +740,7 @@ void DoMain(double stride_length,
   vector<DirconKinematicData<double>*> double_stance_tht_constraint;
   double_stance_tht_constraint.push_back(&left_toe_front_constraint);
   double_stance_tht_constraint.push_back(&right_toe_front_constraint);
-  double_stance_tht_constraint.push_back(&right_toe_rear_constraint);
+  double_stance_tht_constraint.push_back(&right_toe_rear_indpt_constraint);
   double_stance_tht_constraint.push_back(&distance_constraint_left);
   double_stance_tht_constraint.push_back(&distance_constraint_right);
   auto double_tht_dataset = DirconKinematicDataSet<double>(plant,
@@ -756,7 +756,7 @@ void DoMain(double stride_length,
   // right stance (right heel and toe)
   vector<DirconKinematicData<double>*> right_stance_ht_constraint;
   right_stance_ht_constraint.push_back(&right_toe_front_constraint);
-  right_stance_ht_constraint.push_back(&right_toe_rear_constraint);
+  right_stance_ht_constraint.push_back(&right_toe_rear_indpt_constraint);
   right_stance_ht_constraint.push_back(&distance_constraint_left);
   right_stance_ht_constraint.push_back(&distance_constraint_right);
   auto right_ht_dataset = DirconKinematicDataSet<double>(plant,
@@ -1536,6 +1536,10 @@ void DoMain(double stride_length,
 
   // Check which solver we are using
   cout << "Solver: " << result.get_solver_id().name() << endl;
+
+  // Testing - check if the nonilnear constraints are all satisfied
+  bool constraint_satisfied = solvers::CheckGenericConstraints(*trajopt, result, 1e-5);
+  cout << "constraint_satisfied = " << constraint_satisfied << endl;
 
   // store the solution of the decision variable
   VectorXd z = result.GetSolution(trajopt->decision_variables());
