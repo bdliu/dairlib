@@ -3,6 +3,7 @@
 #include <memory>
 #include <chrono>
 #include <string>
+#include <fstream>
 
 #include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/diagram.h"
@@ -1516,14 +1517,20 @@ void DoMain(double stride_length,
   cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
   cout << "input_at_knots = \n" << input_at_knots << "\n";
 
-  // Testing
+  // Also store lambda. We might need to look at it in the future!
+  // (save it so we don't need to rerun)
+  std::ofstream ofile;
+  ofile.open("examples/Cassie/trajopt_data/lambda.txt",
+             std::ofstream::out);
   cout << "lambda_sol = \n";
   for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
     for (int index = 0; index < num_time_samples[mode]; index++) {
       auto lambdai = trajopt->force(mode, index);
       cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
+      ofile << result.GetSolution(lambdai).transpose() * force_scale << endl;
     }
   }
+  ofile.close();
 
   // visualizer
   const PiecewisePolynomial<double> pp_xtraj =
