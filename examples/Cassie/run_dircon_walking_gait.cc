@@ -609,7 +609,7 @@ void DoMain(double stride_length,
   // parameters
   bool is_quaterion = true;
   bool standing = false;
-  int walking_mode = 1; // 0: instant change of support
+  int walking_mode = 2; // 0: instant change of support
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
