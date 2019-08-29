@@ -994,7 +994,7 @@ void DoMain(double stride_length,
   }
 
   // Fix time duration
-  // trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
+  trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
 
   // quaterion norm constraint
   if (is_quaterion) {
@@ -1321,6 +1321,14 @@ void DoMain(double stride_length,
   //                                     trajopt->timestep(counter));
   //   counter += num_time_samples[i] - 1;
   // }
+  // make all timestep sizes the same
+  int counter = 0;
+  for (unsigned int i = 0; i < num_time_samples.size(); i++) {
+    if (i>0 && num_time_samples[i]>1) {
+      trajopt->AddLinearConstraint(trajopt->timestep(counter-1) == trajopt->timestep(counter));
+    }
+    counter += num_time_samples[i] - 1;
+  }
 
 
   // add cost
@@ -1328,7 +1336,7 @@ void DoMain(double stride_length,
   const MatrixXd R = 1000 * MatrixXd::Identity(n_u, n_u)/* * input_scale * input_scale*/;  // Cost on input effort
   // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   // trajopt->AddRunningCost(x.segment(n_q,3).transpose() * 10.0 * x.segment(n_q,3));
-  trajopt->AddRunningCost(u.transpose()* R * u);
+  // trajopt->AddRunningCost(u.transpose()* R * u);
 
   // state cost
   // trajopt->AddQuadraticCost(Q * timesteps(0) / 2, VectorXd::Zero(n_x), x0.tail(n_v));
@@ -1346,13 +1354,13 @@ void DoMain(double stride_length,
   // trajopt->AddQuadraticCost(R * timesteps(N-2) / 2, VectorXd::Zero(n_u), uf);
 
   // if all timesteps are the same
-  // double timestep = duration_ss / (N - 1) / time_scale;
-  // trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
-  // for (int i = 1; i <= N - 2; i++) {
-  //   auto ui = trajopt->input(i);
-  //   trajopt->AddQuadraticCost(R * timestep, VectorXd::Zero(n_u), ui);
-  // }
-  // trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
+  double timestep = duration_ss / (N - 1) / time_scale;
+  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
+  for (int i = 1; i <= N - 2; i++) {
+    auto ui = trajopt->input(i);
+    trajopt->AddQuadraticCost(R * timestep, VectorXd::Zero(n_u), ui);
+  }
+  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
 
 
 
