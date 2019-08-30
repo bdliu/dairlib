@@ -98,7 +98,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant, FLAGS_robot_option);
   DynamicsExpression dyn_expression(n_sDDot, 0, FLAGS_robot_option);
-  VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
+  VectorXd dummy_q = VectorXd::Ones(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot =

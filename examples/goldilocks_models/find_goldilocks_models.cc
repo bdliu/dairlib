@@ -88,10 +88,10 @@ DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
 DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 
-DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
+DEFINE_int32(N_sample_sl, 1, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
 
-DEFINE_double(major_feasibility_tol, 1e-5,
+DEFINE_double(major_feasibility_tol, 1e-4,
               "nonlinear constraint violation tol");
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
@@ -854,7 +854,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant, FLAGS_robot_option);
   DynamicsExpression dyn_expression(n_sDDot, 0, FLAGS_robot_option);
-  VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
+  VectorXd dummy_q = VectorXd::Ones(plant.num_positions());
   VectorXd dummy_s = VectorXd::Zero(n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot =

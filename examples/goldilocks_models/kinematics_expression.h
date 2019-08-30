@@ -71,6 +71,9 @@ class KinematicsExpression {
   Vector3d foot_disp_ = Vector3d(0, 0, -0.5);
 
   // robot1
+  VectorX<T> pt_front_contact_ = VectorX<T>::Zero(3);
+  VectorX<T> pt_rear_contact_ = VectorX<T>::Zero(3);
+  VectorX<T> mid_disp_ = VectorX<T>::Zero(3);
 };
 
 }  // namespace goldilocks_models

@@ -20,6 +20,11 @@ KinematicsExpression<T>::KinematicsExpression(int n_s, int n_feature,
   plant_ = plant;
   context_ = plant->CreateDefaultContext();
   robot_option_ = robot_option;
+
+  // robot 1 param
+  pt_front_contact_ << -0.0457, 0.112, 0;
+  pt_rear_contact_ << 0.088, 0, 0;
+  mid_disp_ = (pt_front_contact_ + pt_rear_contact_) / 2;
 }
 
 template <typename T>
@@ -643,169 +648,128 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
   } else if (robot_option_ == 1) {
 
     //////////// Version 1: features contain LIPM & swing foot //////////////////
-    //// Way 1: Get CoM and foot position from MBP //////
-    // Get CoM position and stance foot position in autoDiff
-    /*plant_->SetPositions(context_.get(), q);
-    // CoM
-    VectorX<U> CoM_drake = plant_->CalcCenterOfMassPosition(*context_);
-    cout << "CoM_drake = " << CoM_drake.transpose() << endl;
-    const auto & torso = plant_->GetBodyByName("torso_mass");
-    const auto & torso_pose = plant_->EvalBodyPoseInWorld(*context_, torso);
-    VectorX<U> CoM = 0.5 * torso_pose.translation();
-    for (int i = 0; i < 4; i++) {
-      const auto & body = plant_->GetBodyByName(leg_link_names_[i]);
-      const auto & body_pose = plant_->EvalBodyPoseInWorld(*context_, body);
+    // Currently it doesn't include floating base coordinates
+    // Didn't use sin and cos just to keep the size small for now
 
-      CoM += (body_pose.translation() + body_pose.linear() * mass_disp_) / 8.0;
-    }
+    // Get CoM position and stance foot position
+    plant_->SetPositions(context_.get(), q);
+    // CoM
+    VectorX<U> CoM = plant_->CalcCenterOfMassPosition(*context_);
     // Stance foot position (left foot)
-    const auto & left_lower_leg = plant_->GetBodyByName("left_lower_leg_mass");
-    const auto & left_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                         *context_, left_lower_leg);
-    const VectorX<U> left_lower_leg_Pos = left_lower_leg_pose.translation();
-    const MatrixX<U> left_lower_leg_Rotmat = left_lower_leg_pose.linear();
-    VectorX<U> left_foot_pos = left_lower_leg_Pos +
-                               left_lower_leg_Rotmat * foot_disp_;
+    VectorX<U> left_foot_pos(3);
+    const auto & left_toe = plant_->GetBodyByName("toe_left");
+    plant_->CalcPointsPositions(*context_, left_toe.body_frame(), mid_disp_,
+                                plant_->world_frame(), &left_foot_pos);
     VectorX<U> st_to_CoM = CoM - left_foot_pos;
     // Swing foot position (right foot)
-    const auto & right_lower_leg = plant_->GetBodyByName("right_lower_leg_mass");
-    const auto & right_lower_leg_pose = plant_->EvalBodyPoseInWorld(
-                                          *context_, right_lower_leg);
-    const VectorX<U> right_lower_leg_Pos = right_lower_leg_pose.translation();
-    const MatrixX<U> right_lower_leg_Rotmat = right_lower_leg_pose.linear();
-    VectorX<U> right_foot_pos = right_lower_leg_Pos +
-                                right_lower_leg_Rotmat * foot_disp_;
-    VectorX<U> CoM_to_sw = right_foot_pos - CoM;*/
+    const auto & right_toe = plant_->GetBodyByName("toe_right");
+    VectorX<U> right_foot_pos(3);
+    plant_->CalcPointsPositions(*context_, right_toe.body_frame(), mid_disp_,
+                                plant_->world_frame(), &right_foot_pos);
+    VectorX<U> CoM_to_sw = right_foot_pos - CoM;
+    // cout << "CoM = " << CoM.transpose() << endl;
+    // cout << "left_foot_pos = " << left_foot_pos.transpose() << endl;
+    // cout << "right_foot_pos = " << right_foot_pos.transpose() << endl;
     // cout << "CoM from MBP = " << CoM(0) << " " << CoM(2) << endl;
     // cout << "st_to_CoM from MBP = " << st_to_CoM(0) << " " << st_to_CoM(2) << endl;
     // cout << "CoM_to_sw from MBP = " << CoM_to_sw(0) << " " << CoM_to_sw(2) << endl;
 
-    //// Way 2: Get CoM and foot position by hand //////
-    // Calculate the CoM by hand instead of by using MBP
-    VectorX<U> CoM_xz(2);
-    CoM_xz << q(0) + (0.3 * sin(q(2))) / 2.0 + (
-             - 0.25 * sin(q(2) + q(3)) +
-             - 0.5 * sin(q(2) + q(3)) - 0.25 * sin(q(2) + q(3) + q(5)) +
-             - 0.25 * sin(q(2) + q(4)) +
-             - 0.5 * sin(q(2) + q(4)) - 0.25 * sin(q(2) + q(4) + q(6))) / 8.0,
-             q(1) + (0.3 * cos(q(2))) / 2.0 + (
-               - 0.25 * cos(q(2) + q(3)) +
-               - 0.5 * cos(q(2) + q(3)) - 0.25 * cos(q(2) + q(3) + q(5)) +
-               - 0.25 * cos(q(2) + q(4)) +
-               - 0.5 * cos(q(2) + q(4)) - 0.25 * cos(q(2) + q(4) + q(6))) / 8.0;
-    // Calculate the stance foot by hand instead of by using MBP
-    VectorX<U> left_foot_pos_xz(2);
-    left_foot_pos_xz <<
-                     q(0) - 0.5 * sin(q(2) + q(3)) - 0.5 * sin(q(2) + q(3) + q(5)),
-                     q(1) - 0.5 * cos(q(2) + q(3)) - 0.5 * cos(q(2) + q(3) + q(5));
-    VectorX<U> st_to_CoM_xz = CoM_xz - left_foot_pos_xz;
-    // Calculate the swing foot by hand instead of by using MBP
-    VectorX<U> right_foot_pos_xz(2);
-    right_foot_pos_xz <<
-                      q(0) - 0.5 * sin(q(2) + q(4)) - 0.5 * sin(q(2) + q(4) + q(6)),
-                      q(1) - 0.5 * cos(q(2) + q(4)) - 0.5 * cos(q(2) + q(4) + q(6));
-    VectorX<U> CoM_to_sw_xz = right_foot_pos_xz - CoM_xz;
-    // cout << "CoM_xz = " << CoM_xz.transpose() << endl;
-    // cout << "st_to_CoM_xz = " << st_to_CoM_xz.transpose() << endl;
-    // cout << "CoM_to_sw_xz = " << CoM_to_sw_xz.transpose() << endl;
-
     VectorX<U> feature_base(4);
-    feature_base << st_to_CoM_xz, CoM_to_sw_xz;
+    feature_base << st_to_CoM(0), st_to_CoM(2), CoM_to_sw(0), CoM_to_sw(2);
 
-    // elements:
-    // q(0),
-    // q(1),
-    // sin(q(2)), cos(q(2))
-    // sin(q(3)), cos(q(3))
-    // sin(q(4)), cos(q(4))
-    // sin(q(5)), cos(q(5))
-    // sin(q(6)), cos(q(6))
+    // elements: (no ankle joint, since it's redundant info for fixed_spring model)
+    // q(7)
+    // q(8)
+    // q(9)
+    // q(10)
+    // q(11)
+    // q(12)
+    // q(13)
+    // q(14)
+    // q(17)
+    // q(18)
     // feature_base(0), feature_base(1), feature_base(2), feature_base(3)
 
-    //////////// Version 11: Previous version without x and z ////////////////////
     VectorX<U> feature(70);  // 4 + 1 + 10 + (10C2 + 10) = 4 + 1 + 10 + 55 = 70
     feature << feature_base,
             1,
-            sin(q(2)),
-            cos(q(2)),
-            sin(q(3)),
-            cos(q(3)),
-            sin(q(4)),
-            cos(q(4)),
-            sin(q(5)),
-            cos(q(5)),
-            sin(q(6)),
-            cos(q(6)),  // linear until here, below are quadratic
+            q(7),
+            q(8),
+            q(9),
+            q(10),
+            q(11),
+            q(12),
+            q(13),
+            q(14),
+            q(17),
+            q(18),  // linear until here, below are quadratic
             // 1
-            sin(q(2)) * sin(q(2)),
-            cos(q(2)) * sin(q(2)),
-            sin(q(3)) * sin(q(2)),
-            cos(q(3)) * sin(q(2)),
-            sin(q(4)) * sin(q(2)),
-            cos(q(4)) * sin(q(2)),
-            sin(q(5)) * sin(q(2)),
-            cos(q(5)) * sin(q(2)),
-            sin(q(6)) * sin(q(2)),
-            cos(q(6)) * sin(q(2)),
+            q(7) * q(7),
+            q(8) * q(7),
+            q(9) * q(7),
+            q(10) * q(7),
+            q(11) * q(7),
+            q(12) * q(7),
+            q(13) * q(7),
+            q(14) * q(7),
+            q(17) * q(7),
+            q(18) * q(7),
             // 2
-            cos(q(2)) * cos(q(2)),
-            sin(q(3)) * cos(q(2)),
-            cos(q(3)) * cos(q(2)),
-            sin(q(4)) * cos(q(2)),
-            cos(q(4)) * cos(q(2)),
-            sin(q(5)) * cos(q(2)),
-            cos(q(5)) * cos(q(2)),
-            sin(q(6)) * cos(q(2)),
-            cos(q(6)) * cos(q(2)),
+            q(8) * q(8),
+            q(9) * q(8),
+            q(10) * q(8),
+            q(11) * q(8),
+            q(12) * q(8),
+            q(13) * q(8),
+            q(14) * q(8),
+            q(17) * q(8),
+            q(18) * q(8),
             // 3
-            sin(q(3)) * sin(q(3)),
-            cos(q(3)) * sin(q(3)),
-            sin(q(4)) * sin(q(3)),
-            cos(q(4)) * sin(q(3)),
-            sin(q(5)) * sin(q(3)),
-            cos(q(5)) * sin(q(3)),
-            sin(q(6)) * sin(q(3)),
-            cos(q(6)) * sin(q(3)),
+            q(9) * q(9),
+            q(10) * q(9),
+            q(11) * q(9),
+            q(12) * q(9),
+            q(13) * q(9),
+            q(14) * q(9),
+            q(17) * q(9),
+            q(18) * q(9),
             // 4
-            cos(q(3)) * cos(q(3)),
-            sin(q(4)) * cos(q(3)),
-            cos(q(4)) * cos(q(3)),
-            sin(q(5)) * cos(q(3)),
-            cos(q(5)) * cos(q(3)),
-            sin(q(6)) * cos(q(3)),
-            cos(q(6)) * cos(q(3)),
+            q(10) * q(10),
+            q(11) * q(10),
+            q(12) * q(10),
+            q(13) * q(10),
+            q(14) * q(10),
+            q(17) * q(10),
+            q(18) * q(10),
             // 5
-            sin(q(4)) * sin(q(4)),
-            cos(q(4)) * sin(q(4)),
-            sin(q(5)) * sin(q(4)),
-            cos(q(5)) * sin(q(4)),
-            sin(q(6)) * sin(q(4)),
-            cos(q(6)) * sin(q(4)),
+            q(11) * q(11),
+            q(12) * q(11),
+            q(13) * q(11),
+            q(14) * q(11),
+            q(17) * q(11),
+            q(18) * q(11),
             // 6
-            cos(q(4)) * cos(q(4)),
-            sin(q(5)) * cos(q(4)),
-            cos(q(5)) * cos(q(4)),
-            sin(q(6)) * cos(q(4)),
-            cos(q(6)) * cos(q(4)),
+            q(12) * q(12),
+            q(13) * q(12),
+            q(14) * q(12),
+            q(17) * q(12),
+            q(18) * q(12),
             // 7
-            sin(q(5)) * sin(q(5)),
-            cos(q(5)) * sin(q(5)),
-            sin(q(6)) * sin(q(5)),
-            cos(q(6)) * sin(q(5)),
+            q(13) * q(13),
+            q(14) * q(13),
+            q(17) * q(13),
+            q(18) * q(13),
             // 8
-            cos(q(5)) * cos(q(5)),
-            sin(q(6)) * cos(q(5)),
-            cos(q(6)) * cos(q(5)),
+            q(14) * q(14),
+            q(17) * q(14),
+            q(18) * q(14),
             // 9
-            sin(q(6)) * sin(q(6)),
-            cos(q(6)) * sin(q(6)),
+            q(17) * q(17),
+            q(18) * q(17),
             // 10
-            cos(q(6)) * cos(q(6));
+            q(18) * q(18);
 
     return feature;
-
-
-
   }
 
   DRAKE_DEMAND(false);  // shouldn't reach to this line of code

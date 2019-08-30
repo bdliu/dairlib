@@ -26,7 +26,7 @@ KinematicsConstraint::KinematicsConstraint(
   DRAKE_DEMAND(n_s * n_feature == theta_s.size());
 
   // Check the feature size implemented in the model expression
-  VectorXd q_temp = VectorXd::Zero(plant->num_positions());
+  VectorXd q_temp = VectorXd::Ones(plant->num_positions());
   DRAKE_DEMAND(n_feature == expression_double.getFeature(q_temp).size());
 }
 

@@ -113,6 +113,9 @@ void DirconAbstractConstraint<double>::DoEval(
     else if (this->get_description().compare("impact_constraint") == 0) {
       goldilocks_models::writeCSV("impact_constraint_grad.csv", dy);
     }
+    else if (this->get_description().compare("rom_dyn_constraint") == 0) {
+      goldilocks_models::writeCSV("rom_dyn_constraint_grad.csv", dy);
+    }
 
 
     // // central differencing

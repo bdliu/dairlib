@@ -52,7 +52,7 @@ DynamicsConstraint::DynamicsConstraint(
 
   // Check the feature size implemented in the model expression
   AutoDiffVecXd q_temp =
-    initializeAutoDiff(VectorXd::Zero(plant->num_positions()));
+    initializeAutoDiff(VectorXd::Ones(plant->num_positions()));
   DRAKE_DEMAND(n_feature_s == kin_expression_.getFeature(q_temp).size());
 
   // Check the theta size

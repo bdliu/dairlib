@@ -130,7 +130,7 @@ int doMain(int argc, char* argv[]) {
   // Setup
   KinematicsExpression<double> kin_expression(FLAGS_n_s, 0, &plant, FLAGS_robot_option);
   DynamicsExpression dyn_expression(FLAGS_n_s, 0, FLAGS_robot_option);
-  VectorXd dummy_q = VectorXd::Zero(plant.num_positions());
+  VectorXd dummy_q = VectorXd::Ones(plant.num_positions());
   VectorXd dummy_s = VectorXd::Ones(FLAGS_n_s);
   int n_feature_s = kin_expression.getFeature(dummy_q).size();
   int n_feature_sDDot = dyn_expression.getFeature(dummy_s, dummy_s).size();
