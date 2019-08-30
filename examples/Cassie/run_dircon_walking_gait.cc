@@ -909,9 +909,9 @@ void DoMain(double stride_length,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
       2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major optimality tolerance", 1e-5);  // target nonlinear constraint violation
+                           "Major optimality tolerance", 1e-4);  // target nonlinear constraint violation
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major feasibility tolerance", 1e-5);  // target complementarity gap
+                           "Major feasibility tolerance", 1e-4);  // target complementarity gap
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -1277,10 +1277,9 @@ void DoMain(double stride_length,
     counter += num_time_samples[i] - 1;
   }
 
-
   // add cost
-  const MatrixXd Q = 10 * MatrixXd::Identity(n_v, n_v)/* * omega_scale * omega_scale*/;
-  const MatrixXd R = 1000 * MatrixXd::Identity(n_u, n_u)/* * input_scale * input_scale*/;  // Cost on input effort
+  const MatrixXd Q = 12.5 * omega_scale * omega_scale * MatrixXd::Identity(n_v, n_v);
+  const MatrixXd R = 12.5 * input_scale * input_scale * MatrixXd::Identity(n_u, n_u);
   // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   // trajopt->AddRunningCost(x.segment(n_q,3).transpose() * 10.0 * x.segment(n_q,3));
   // trajopt->AddRunningCost(u.transpose()* R * u);
@@ -1301,13 +1300,16 @@ void DoMain(double stride_length,
   // trajopt->AddQuadraticCost(R * timesteps(N-2) / 2, VectorXd::Zero(n_u), uf);
 
   // if all timesteps are the same
-  double timestep = duration / (N - 1) / time_scale;
-  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
+  double fixed_timestep = duration / (N - 1);
+  trajopt->AddQuadraticCost(R * fixed_timestep / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
     auto ui = trajopt->input(i);
-    trajopt->AddQuadraticCost(R * timestep, VectorXd::Zero(n_u), ui);
+    trajopt->AddQuadraticCost(R * fixed_timestep, VectorXd::Zero(n_u), ui);
   }
-  trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
+  trajopt->AddQuadraticCost(R * fixed_timestep / 2, VectorXd::Zero(n_u), uf);
+
+
+
 
 
 

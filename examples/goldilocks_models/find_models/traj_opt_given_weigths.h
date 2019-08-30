@@ -45,6 +45,7 @@ void trajOptGivenWeights(
   const VectorXd & theta_s, const VectorXd & theta_sDDot,
   double stride_length, double ground_incline, double duration, int max_iter,
   double major_optimality_tol, double major_feasibility_tol,
+  vector<double> var_scale,
   std::string directory, std::string init_file, std::string prefix,
   /*vector<VectorXd> * w_sol_vec,
   vector<MatrixXd> * A_vec, vector<MatrixXd> * H_vec,
@@ -75,9 +76,9 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
  public:
   QuaternionNormConstraint(vector<double> var_scale) :
     DirconAbstractConstraint<double>(1, 4,
-               VectorXd::Zero(1), VectorXd::Zero(1),
-               "quaternion_norm_constraint"),
-        quaternion_scale_(var_scale[4]) {
+                                     VectorXd::Zero(1), VectorXd::Zero(1),
+                                     "quaternion_norm_constraint"),
+    quaternion_scale_(var_scale[4]) {
   }
   ~QuaternionNormConstraint() override = default;
 
@@ -88,7 +89,7 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
     *y = output;
   };
  private:
-   double quaternion_scale_;
+  double quaternion_scale_;
 };
 
 }  // namespace goldilocks_models

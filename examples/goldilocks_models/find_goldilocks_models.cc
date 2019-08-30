@@ -91,7 +91,8 @@ DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
 
-DEFINE_double(major_feasibility_tol, 1e-5, "nonlinear constraint violation tol");
+DEFINE_double(major_feasibility_tol, 1e-5,
+              "nonlinear constraint violation tol");
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -139,13 +140,36 @@ void createMBP(MultibodyPlant<double>* plant, int robot_option) {
     plant->Finalize();
   }
 }
-void setCostWeight(double* Q, double* R, int robot_option) {
+void setDecisionVarScaling(vector<double>* var_scale, int robot_option) {
+  if (robot_option == 0) {
+    var_scale->push_back(1.0);
+    var_scale->push_back(1.0);
+    var_scale->push_back(1.0);
+    var_scale->push_back(1.0);
+    var_scale->push_back(1.0);
+  } else if (robot_option == 1) {
+    double omega_scale = 10;  // 10
+    double input_scale = 100;
+    double force_scale = 1000;  // 400
+    double time_scale = 0.008;  // 0.01
+    double quaternion_scale = 0.5;  // 1
+    // double trans_pos_scale = 1;
+    // double rot_pos_scale = 1;
+    var_scale->push_back(omega_scale);
+    var_scale->push_back(input_scale);
+    var_scale->push_back(force_scale);
+    var_scale->push_back(time_scale);
+    var_scale->push_back(quaternion_scale);
+  }
+}
+void setCostWeight(double* Q, double* R, vector<double> var_scale,
+                   int robot_option) {
   if (robot_option == 0) {
     *Q = 10;
     *R = 10;
   } else if (robot_option == 1) {
-    *Q = 0;
-    *R = 1000;
+    *Q = 12.5;
+    *R = 12.5;
   }
 }
 void setRomDim(int* n_s, int* n_tau, int robot_option) {
@@ -765,7 +789,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double duration;
   if (FLAGS_robot_option == 0) {
     duration = 0.746;  // Fix the duration now since we add cost ourselves
-  } else if (FLAGS_robot_option ==1) {
+  } else if (FLAGS_robot_option == 1) {
     duration = 0.4;
   }
   cout << "N_sample_sl = " << N_sample_sl << endl;
@@ -795,10 +819,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
+  vector<double> var_scale;
+  setDecisionVarScaling(&var_scale, FLAGS_robot_option);
   double Q = 0; // Cost on velocity
   double R = 0;  // Cost on input effort
-  setCostWeight(&Q, &R, FLAGS_robot_option);
+  setCostWeight(&Q, &R, var_scale, FLAGS_robot_option);
   cout << "\nOptimization setting (inner loop):\n";
+  cout << "var_scale = "
+       << var_scale[0] << ", "
+       << var_scale[1] << ", "
+       << var_scale[2] << ", "
+       << var_scale[3] << ", "
+       << var_scale[4] << endl;
   cout << "max_inner_iter = " << max_inner_iter << endl;
   cout << "major_optimality_tolerance = " << FLAGS_major_feasibility_tol << endl;
   cout << "major_feasibility_tolerance = " << FLAGS_major_feasibility_tol << endl;
@@ -1064,6 +1096,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
               stride_length, ground_incline,
               duration, max_inner_iter_pass_in,
               FLAGS_major_feasibility_tol, FLAGS_major_feasibility_tol,
+              var_scale,
               dir, init_file_pass_in, prefix,
               Q, R,
               eps_regularization,
