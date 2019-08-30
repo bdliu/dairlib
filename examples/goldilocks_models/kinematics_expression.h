@@ -64,11 +64,11 @@ class KinematicsExpression {
   int robot_option_;
 
   // robot0
-  // const std::vector<std::string> leg_link_names_{
-  //   "left_upper_leg_mass", "left_lower_leg_mass",
-  //   "right_upper_leg_mass", "right_lower_leg_mass"};
-  // Vector3d mass_disp_ = Vector3d(0, 0, -0.25);
-  // Vector3d foot_disp_ = Vector3d(0, 0, -0.5);
+  const std::vector<std::string> leg_link_names_{
+    "left_upper_leg_mass", "left_lower_leg_mass",
+    "right_upper_leg_mass", "right_lower_leg_mass"};
+  Vector3d mass_disp_ = Vector3d(0, 0, -0.25);
+  Vector3d foot_disp_ = Vector3d(0, 0, -0.5);
 
   // robot1
 };

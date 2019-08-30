@@ -104,7 +104,7 @@ using dairlib::multibody::FixedPointSolver;
 
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 10000, "Iteration limit");
-DEFINE_double(duration_ss, 0.4, "Duration of the single support phase (s)");
+DEFINE_double(duration, 0.4, "Duration of the single support phase (s)");
 DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
 DEFINE_double(ground_incline, 0.0, "Duration of the walking gait (s)");
 DEFINE_double(omega_scale, 10, "Variable scaling");
@@ -504,7 +504,7 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
 
 void DoMain(double stride_length,
             double ground_incline,
-            double duration_ss, int iter,
+            double duration, int iter,
             string data_directory,
             string init_file,
             string output_prefix,
@@ -613,8 +613,6 @@ void DoMain(double stride_length,
                         // 1: single double single
                         // 2: heel to toe
   if (standing) walking_mode = -1;
-  bool two_contact_pt_for_walking = true;
-  if (walking_mode == 2) two_contact_pt_for_walking = false;
   bool set_second_contact_manually = false;
   bool set_both_contact_pos_manually = false;
 
@@ -667,7 +665,7 @@ void DoMain(double stride_length,
                                    heel_spring_right, pt_on_heel_spring,
                                    rod_length);
 
-  // Testing
+  // Relaxed constraint of rear contact point
   std::vector<bool> row_idx_set_to_0(3, false);
   row_idx_set_to_0[0] = true;
   auto left_toe_rear_indpt_constraint = DirconPositionData<double>(plant, toe_left,
@@ -676,16 +674,6 @@ void DoMain(double stride_length,
       pt_rear_contact, isXZ, ground_rp, false, row_idx_set_to_0);
   left_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
   right_toe_rear_indpt_constraint.addFixedNormalFrictionConstraints(normal, mu);
-
-  // Testing (mid contact point)
-  isXZ = false;
-  Vector3d pt_mid_contact = pt_front_contact + pt_rear_contact;
-  auto left_toe_mid_constraint = DirconPositionData<double>(plant, toe_left,
-                                 pt_mid_contact, isXZ, ground_rp);
-  auto right_toe_mid_constraint = DirconPositionData<double>(plant, toe_right,
-                                  pt_mid_contact, isXZ, ground_rp);
-  left_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
-  right_toe_mid_constraint.addFixedNormalFrictionConstraints(normal, mu);
 
   // Compose different types of stance (we call front contact toe and rear
   // contact heel here)
@@ -815,48 +803,7 @@ void DoMain(double stride_length,
     double_all_options.setConstraintRelative(10, true);
   }
 
-  // Testing - left stance (one contact point)
-  vector<DirconKinematicData<double>*> left_stance_mid_constraint;
-  left_stance_mid_constraint.push_back(&left_toe_mid_constraint);
-  left_stance_mid_constraint.push_back(&distance_constraint_left);
-  left_stance_mid_constraint.push_back(&distance_constraint_right);
-  auto left_mid_dataset = DirconKinematicDataSet<double>(plant,
-                      &left_stance_mid_constraint);
-  auto left_mid_options = DirconOptions(left_mid_dataset.countConstraints());
-  left_mid_options.setConstraintRelative(0, true);
-  left_mid_options.setConstraintRelative(1, true);
-
-  // Testing - right stance (one contact point)
-  vector<DirconKinematicData<double>*> right_stance_mid_constraint;
-  right_stance_mid_constraint.push_back(&right_toe_mid_constraint);
-  right_stance_mid_constraint.push_back(&distance_constraint_left);
-  right_stance_mid_constraint.push_back(&distance_constraint_right);
-  auto right_mid_dataset = DirconKinematicDataSet<double>(plant,
-                       &right_stance_mid_constraint);
-  auto right_mid_options = DirconOptions(right_mid_dataset.countConstraints());
-  right_mid_options.setConstraintRelative(0, true);
-  right_mid_options.setConstraintRelative(1, true);
-
-  // Testing - double stance (one contact point per leg)
-  vector<DirconKinematicData<double>*> double_stance_mid_constraint;
-  double_stance_mid_constraint.push_back(&left_toe_mid_constraint);
-  double_stance_mid_constraint.push_back(&right_toe_mid_constraint);
-  double_stance_mid_constraint.push_back(&distance_constraint_left);
-  double_stance_mid_constraint.push_back(&distance_constraint_right);
-  auto double_mid_dataset = DirconKinematicDataSet<double>(plant,
-                        &double_stance_mid_constraint);
-  auto double_mid_options = DirconOptions(double_mid_dataset.countConstraints());
-  double_mid_options.setConstraintRelative(0, true);
-  double_mid_options.setConstraintRelative(1, true);
-  double_mid_options.setConstraintRelative(3, true);
-  double_mid_options.setConstraintRelative(4, true);
-
-
-
   // Stated in the MultipleShooting class:
-  // This class assumes that there are a fixed number (N) time steps/samples
-  // and that the trajectory is discretized into timesteps h (N-1 of these),
-  // state x (N of these), and control input u (N of these).
   vector<int> num_time_samples;
   vector<double> min_dt;
   vector<double> max_dt;
@@ -865,7 +812,7 @@ void DoMain(double stride_length,
   if (walking_mode == 2) {
     num_time_samples.push_back(10);
   } else {
-    num_time_samples.push_back(int(40.0 * duration_ss));  // 40 nodes per second
+    num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
   }
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
@@ -876,32 +823,32 @@ void DoMain(double stride_length,
     options_list.push_back(double_all_options);
   } else {  // walking
     if (walking_mode == 0) {
-      dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);
-      options_list.push_back(two_contact_pt_for_walking? left_ht_options : left_mid_options);
+      dataset_list.push_back(&left_ht_dataset);
+      options_list.push_back(left_ht_options);
 
       // second phase
       num_time_samples.push_back(1);
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(two_contact_pt_for_walking? &right_ht_dataset : &right_mid_dataset);
-      options_list.push_back(two_contact_pt_for_walking? right_ht_options : right_mid_options);
+      dataset_list.push_back(&right_ht_dataset);
+      options_list.push_back(right_ht_options);
     } else if (walking_mode == 1) {  // walking with double support transition
-      dataset_list.push_back(two_contact_pt_for_walking? &left_ht_dataset : &left_mid_dataset);
-      options_list.push_back(two_contact_pt_for_walking? left_ht_options : left_mid_options);
+      dataset_list.push_back(&left_ht_dataset);
+      options_list.push_back(left_ht_options);
 
       // second phase
-      num_time_samples.push_back(int(10.0 * duration_ss));
+      num_time_samples.push_back(int(10.0 * duration));
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(two_contact_pt_for_walking? &double_all_dataset : &double_mid_dataset);
-      options_list.push_back(two_contact_pt_for_walking? double_all_options : double_mid_options);
+      dataset_list.push_back(&double_all_dataset);
+      options_list.push_back(double_all_options);
 
       // third phase
       num_time_samples.push_back(1);
       min_dt.push_back(.01);
       max_dt.push_back(.3);
-      dataset_list.push_back(two_contact_pt_for_walking? &right_ht_dataset : &right_mid_dataset);
-      options_list.push_back(two_contact_pt_for_walking? right_ht_options : right_mid_options);
+      dataset_list.push_back(&right_ht_dataset);
+      options_list.push_back(right_ht_options);
     } else if (walking_mode == 2) {  // walking with heel to toe transition
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
@@ -987,14 +934,14 @@ void DoMain(double stride_length,
   auto x0 = trajopt->initial_state();
   auto xf = trajopt->state_vars_by_mode(num_time_samples.size() - 1,
                                         num_time_samples[num_time_samples.size() - 1] - 1);
-  // Fix the time duration_ss
-  cout << "duration_ss = " << duration_ss << endl;
+  // Fix the time duration
+  cout << "duration = " << duration << endl;
   if (standing) {
-    trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
+    trajopt->AddDurationBounds(duration / time_scale, duration / time_scale);
   }
 
   // Fix time duration
-  trajopt->AddDurationBounds(duration_ss / time_scale, duration_ss / time_scale);
+  trajopt->AddDurationBounds(duration / time_scale, duration / time_scale);
 
   // quaterion norm constraint
   if (is_quaterion) {
@@ -1279,7 +1226,7 @@ void DoMain(double stride_length,
 
   // testing (add cost to help convergence postentially?)
   // vector<VectorXd> q_seed = GetInitGuessForQ(N, stride_length, plant);
-  // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration_ss / (N_ss - 1), plant);
+  // vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N_ss - 1), plant);
   // MatrixXd S = 10 * MatrixXd::Identity(n_q + n_v, n_q + n_v);
   // for (int i = 0; i < N; i++) {
   //   auto xi = trajopt->state(i);
@@ -1354,7 +1301,7 @@ void DoMain(double stride_length,
   // trajopt->AddQuadraticCost(R * timesteps(N-2) / 2, VectorXd::Zero(n_u), uf);
 
   // if all timesteps are the same
-  double timestep = duration_ss / (N - 1) / time_scale;
+  double timestep = duration / (N - 1) / time_scale;
   trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
     auto ui = trajopt->input(i);
@@ -1429,7 +1376,7 @@ void DoMain(double stride_length,
       // Do inverse kinematics to get q initial guess
       vector<VectorXd> q_seed = GetInitGuessForQ(N_ss, stride_length, plant);
       // Do finite differencing to get v initial guess
-      vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration_ss / (N_ss - 1), plant);
+      vector<VectorXd> v_seed = GetInitGuessForV(q_seed, duration / (N_ss - 1), plant);
       for (int i = 0; i < N; i++) {
         auto xi = trajopt->state(i);
         VectorXd xi_seed(n_q + n_v);
@@ -1446,7 +1393,7 @@ void DoMain(double stride_length,
       }
       /*
       // Get approximated vdot by finite difference
-      vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration_ss / (N - 1), plant);
+      vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
       // Solve QP to get u and lambda
       vector<VectorXd> u_seed(N, VectorXd::Zero(n_u));
       vector<VectorXd> lambda_seed(N, VectorXd::Zero(
@@ -1563,7 +1510,7 @@ void DoMain(double stride_length,
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  double duration_ss = FLAGS_duration_ss; //0.5
+  double duration = FLAGS_duration; //0.5
   int iter = FLAGS_max_iter;
   string data_directory = "examples/Cassie/trajopt_data/";
   string init_file = FLAGS_init_file;
@@ -1571,7 +1518,7 @@ int main(int argc, char* argv[]) {
   string output_prefix = "";
 
   dairlib::DoMain(FLAGS_stride_length, FLAGS_ground_incline,
-                  duration_ss, iter,
+                  duration, iter,
                   data_directory, init_file, output_prefix,
                   FLAGS_omega_scale,
                   FLAGS_input_scale,

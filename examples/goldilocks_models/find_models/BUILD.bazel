@@ -58,6 +58,7 @@ cc_library(
         "//systems/primitives",
         "//systems/trajectory_optimization:dircon",
         "//solvers:optimization_utils",
+        ":traj_opt_helper_func",
         "@drake//:drake_shared_library",
     ],
 )
@@ -122,3 +123,20 @@ cc_binary(
     ],
 )
 
+
+cc_library(
+    name = "traj_opt_helper_func",
+    srcs = [
+        "traj_opt_helper_func.cc",
+    ],
+    hdrs = [
+        "traj_opt_helper_func.h"
+    ],
+    deps = [
+        "@drake//:drake_shared_library",
+        "//multibody:utils",
+        "//systems/trajectory_optimization:dircon",
+        "//solvers:optimization_utils",
+        "//common",
+    ],
+)

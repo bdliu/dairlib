@@ -91,6 +91,7 @@ DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
 
+DEFINE_double(major_feasibility_tol, 1e-4, "nonlinear constraint violation tol");
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -127,7 +128,15 @@ void createMBP(MultibodyPlant<double>* plant, int robot_option) {
       plant->world_frame(), plant->GetFrameByName("base"),
       drake::math::RigidTransform<double>());
     plant->Finalize();
+
   } else if (robot_option == 1) {
+    Parser parser(plant);
+    string full_name =
+      FindResourceOrThrow("examples/Cassie/urdf/cassie_fixed_springs.urdf");
+    parser.AddModelFromFile(full_name);
+    plant->mutable_gravity_field().set_gravity_vector(
+      -9.81 * Eigen::Vector3d::UnitZ());
+    plant->Finalize();
   }
 }
 void setCostWeight(double* Q, double* R, int robot_option) {
@@ -135,48 +144,50 @@ void setCostWeight(double* Q, double* R, int robot_option) {
     *Q = 10;
     *R = 10;
   } else if (robot_option == 1) {
+    *Q = 0;
+    *R = 1000;
   }
 }
 void setRomDim(int* n_s, int* n_tau, int robot_option) {
   if (robot_option == 0) {
-    *n_s = 2;
-    *n_tau = 0;
   } else if (robot_option == 1) {
   }
+  *n_s = 2;
+  *n_tau = 0;
 }
 void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
   if (robot_option == 0) {
-    // *B_tau = MatrixXd::Identity(2, 2);
-    // (*B_tau)(2, 0) = 1;
-    // (*B_tau)(3, 1) = 1;
   } else if (robot_option == 1) {
   }
+  // *B_tau = MatrixXd::Identity(2, 2);
+  // (*B_tau)(2, 0) = 1;
+  // (*B_tau)(3, 1) = 1;
 }
 void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
                      int n_feature_s, int robot_option) {
   if (robot_option == 0) {
-    // theta_s(1) = 1;
-    // theta_s(2 + n_feature_s) = 1;
-    // theta_s(3 + 2 * n_feature_s) = 1;
-    // theta_s(2) = 1; // LIPM
-    // theta_sDDot(0) = 1;
-    // // 2D LIPM
-    // theta_s(0) = 1;
-    // theta_s(1 + n_feature_s) = 1;
-    // theta_sDDot(0) = 1;
-    // // 2D LIPM with 2D swing foot
-    theta_s(0) = 1;
-    theta_s(1 + n_feature_s) = 1;
-    // theta_s(2 + 2 *n_feature_s) = 1;
-    // theta_s(3 + 3 * n_feature_s) = 1;
-    theta_sDDot(0) = 1;
-    // // Testing intial theta
-    // theta_s = 0.25*VectorXd::Ones(n_theta_s);
-    // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
-    // theta_s = VectorXd::Random(n_theta_s);
-    // theta_sDDot = VectorXd::Random(n_theta_sDDot);
   } else if (robot_option == 1) {
   }
+  // theta_s(1) = 1;
+  // theta_s(2 + n_feature_s) = 1;
+  // theta_s(3 + 2 * n_feature_s) = 1;
+  // theta_s(2) = 1; // LIPM
+  // theta_sDDot(0) = 1;
+  // // 2D LIPM
+  // theta_s(0) = 1;
+  // theta_s(1 + n_feature_s) = 1;
+  // theta_sDDot(0) = 1;
+  // // 2D LIPM with 2D swing foot
+  theta_s(0) = 1;
+  theta_s(1 + n_feature_s) = 1;
+  // theta_s(2 + 2 *n_feature_s) = 1;
+  // theta_s(3 + 3 * n_feature_s) = 1;
+  theta_sDDot(0) = 1;
+  // // Testing intial theta
+  // theta_s = 0.25*VectorXd::Ones(n_theta_s);
+  // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
+  // theta_s = VectorXd::Random(n_theta_s);
+  // theta_sDDot = VectorXd::Random(n_theta_sDDot);
 }
 
 
@@ -708,6 +719,20 @@ int findGoldilocksModels(int argc, char* argv[]) {
     }
   }
 
+  if (FLAGS_robot_option == 0) {
+    cout << "Make sure to turn off scaling in dircon\n";
+  } else if (FLAGS_robot_option == 1) {
+    cout << "Make sure to turn on scaling in dircon\n";
+  }
+  char answer[1];
+  cin >> answer;
+  if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+    cout << "Ending the program.\n";
+    return 0;
+  } else {
+    cout << "Continue constructing the problem...\n\n";
+  }
+
   // Create MBP
   MultibodyPlant<double> plant;
   createMBP(&plant, FLAGS_robot_option);
@@ -746,7 +771,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "ground_incline_0 = " << ground_incline_0 << endl;
 
   // Paramters for the outer loop optimization
-  cout << "\nOptimization setting:\n";
+  cout << "\nOptimization setting (outer loop):\n";
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = FLAGS_max_outer_iter;
   double stopping_threshold = 1e-4;
@@ -768,6 +793,11 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double Q = 0; // Cost on velocity
   double R = 0;  // Cost on input effort
   setCostWeight(&Q, &R, FLAGS_robot_option);
+  cout << "\nOptimization setting (inner loop):\n";
+  cout << "max_inner_iter = " << max_inner_iter << endl;
+  cout << "major_optimality_tolerance = " << FLAGS_major_feasibility_tol << endl;
+  cout << "major_feasibility_tolerance = " << FLAGS_major_feasibility_tol << endl;
+
 
   // Reduced order model parameters
   cout << "\nReduced-order model setting:\n";
@@ -1028,6 +1058,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
               std::ref(theta_s), std::ref(theta_sDDot),
               stride_length, ground_incline,
               duration, max_inner_iter_pass_in,
+              FLAGS_major_feasibility_tol, FLAGS_major_feasibility_tol,
               dir, init_file_pass_in, prefix,
               Q, R,
               eps_regularization,
