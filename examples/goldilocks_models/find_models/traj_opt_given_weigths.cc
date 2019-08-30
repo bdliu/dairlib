@@ -229,10 +229,39 @@ void extractResult(VectorXd& w_sol,
   // Store the time, state, and input at knot points
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
   MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
-  // MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
+  MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
+  state_at_knots.col(N-1) = result.GetSolution(xf);
+  time_at_knots *= time_scale;
+  state_at_knots <<
+        state_at_knots.block(0,0,4,state_at_knots.cols()) * quaternion_scale,
+        state_at_knots.block(4,0,n_q-4,state_at_knots.cols()),
+        state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
+  // you'll need to update state_at_knots if it's multiple modes
+  DRAKE_DEMAND(robot_option == 0);
+  input_at_knots *= input_scale;
   writeCSV(directory + prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
-  // writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
+  writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
+  cout << "time_at_knots = \n" << time_at_knots << "\n";
+  cout << "state_at_knots = \n" << state_at_knots << "\n";
+  cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
+  cout << "input_at_knots = \n" << input_at_knots << "\n";
+
+  // Also store lambda. We might need to look at it in the future!
+  // (save it so we don't need to rerun)
+  std::ofstream ofile;
+  ofile.open(directory + prefix + string("lambda_at_knots.txt"),
+             std::ofstream::out);
+  cout << "lambda_at_knots = \n";
+  for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
+    for (int index = 0; index < num_time_samples[mode]; index++) {
+      auto lambdai = trajopt->force(mode, index);
+      cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
+      ofile << result.GetSolution(lambdai).transpose() * force_scale << endl;
+    }
+  }
+  ofile.close();
+
 
   // Get the solution of all the decision variable
   w_sol = result.GetSolution(
@@ -1885,7 +1914,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     vector<VectorXd> v_seed = GetCassieInitGuessForV(
         q_seed, duration / (N_ss - 1), plant);
     for (int i = 0; i < N; i++) {
-      auto xi = trajopt->state(i);
+      auto xi = gm_traj_opt.dircon->state(i);
       VectorXd xi_seed(n_q + n_v);
       if (i < N_ss) {
         xi_seed << q_seed.at(i).head(4) / quaternion_scale,
@@ -1896,7 +1925,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
             q_seed.at(N_ss - 1).tail(n_q - 4),
             v_seed.at(N_ss - 1)  / omega_scale;
       }
-      trajopt->SetInitialGuess(xi, xi_seed);
+      gm_traj_opt.dircon->SetInitialGuess(xi, xi_seed);
     }
     /*
     // Get approximated vdot by finite difference
@@ -1909,10 +1938,10 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                               q_seed, v_seed, vdot_approx,
                               &u_seed, &lambda_seed);
     for (int i = 0; i < N; i++) {
-      auto ui = trajopt->input(i);
-      trajopt->SetInitialGuess(ui, u_seed.at(i) / input_scale);
+      auto ui = gm_traj_opt.dircon->input(i);
+      gm_traj_opt.dircon->SetInitialGuess(ui, u_seed.at(i) / input_scale);
 
-      // trajopt->SetInitialGuess(lambdai, lambda_seed.at(i) / force_scale);
+      // gm_traj_opt.dircon->SetInitialGuess(lambdai, lambda_seed.at(i) / force_scale);
     }
     */
   }

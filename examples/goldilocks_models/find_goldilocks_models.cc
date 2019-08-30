@@ -91,7 +91,7 @@ DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 DEFINE_int32(N_sample_sl, 3, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
 
-DEFINE_double(major_feasibility_tol, 1e-4, "nonlinear constraint violation tol");
+DEFINE_double(major_feasibility_tol, 1e-5, "nonlinear constraint violation tol");
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
 DEFINE_double(h_step, 1e-4, "The step size for outer loop");
@@ -720,9 +720,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
   }
 
   if (FLAGS_robot_option == 0) {
-    cout << "Make sure to turn off scaling in dircon\n";
+    cout << "Make sure to turn off scaling in dircon. (Y/N)\n";
   } else if (FLAGS_robot_option == 1) {
-    cout << "Make sure to turn on scaling in dircon\n";
+    cout << "Make sure to turn on scaling in dircon. (Y/N)\n";
   }
   char answer[1];
   cin >> answer;
@@ -757,12 +757,17 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nTasks settings:\n";
   int N_sample_sl = FLAGS_N_sample_sl;
   int N_sample_gi = FLAGS_N_sample_gi;
-  int N_sample = N_sample_sl * N_sample_gi; //1;
+  int N_sample = N_sample_sl * N_sample_gi;  // 1;
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
-  double duration = 0.746; // Fix the duration now since we add cost ourselves
+  double duration;
+  if (FLAGS_robot_option == 0) {
+    duration = 0.746;  // Fix the duration now since we add cost ourselves
+  } else if (FLAGS_robot_option ==1) {
+    duration = 0.4;
+  }
   cout << "N_sample_sl = " << N_sample_sl << endl;
   cout << "N_sample_gi = " << N_sample_gi << endl;
   cout << "delta_stride_length = " << delta_stride_length << endl;

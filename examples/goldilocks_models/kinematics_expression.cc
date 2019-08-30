@@ -645,7 +645,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
     //////////// Version 1: features contain LIPM & swing foot //////////////////
     //// Way 1: Get CoM and foot position from MBP //////
     // Get CoM position and stance foot position in autoDiff
-    plant_->SetPositions(context_.get(), q);
+    /*plant_->SetPositions(context_.get(), q);
     // CoM
     VectorX<U> CoM_drake = plant_->CalcCenterOfMassPosition(*context_);
     cout << "CoM_drake = " << CoM_drake.transpose() << endl;
@@ -675,7 +675,7 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
     const MatrixX<U> right_lower_leg_Rotmat = right_lower_leg_pose.linear();
     VectorX<U> right_foot_pos = right_lower_leg_Pos +
                                 right_lower_leg_Rotmat * foot_disp_;
-    VectorX<U> CoM_to_sw = right_foot_pos - CoM;
+    VectorX<U> CoM_to_sw = right_foot_pos - CoM;*/
     // cout << "CoM from MBP = " << CoM(0) << " " << CoM(2) << endl;
     // cout << "st_to_CoM from MBP = " << st_to_CoM(0) << " " << st_to_CoM(2) << endl;
     // cout << "CoM_to_sw from MBP = " << CoM_to_sw(0) << " " << CoM_to_sw(2) << endl;
