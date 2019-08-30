@@ -170,8 +170,22 @@ void extractResult(VectorXd& w_sol,
                    bool extend_model,
                    bool is_add_tau_in_cost,
                    int batch,
+                   vector<double> var_scale,
                    int robot_option) {
+  //
+  int n_q = plant.num_positions();
+  int n_v = plant.num_velocities();
+  // int n_x = n_q + n_v;
+  // int n_u = plant.num_actuators();
 
+  // Extract var_scale
+  double omega_scale = var_scale[0];
+  double input_scale = var_scale[1];
+  double force_scale = var_scale[2];
+  double time_scale = var_scale[3];
+  double quaternion_scale = var_scale[4];
+
+  // Extract solution
   SolutionResult solution_result = result.get_solution_result();
   double tau_cost = 0;
   if (is_add_tau_in_cost) {
@@ -197,6 +211,9 @@ void extractResult(VectorXd& w_sol,
       N_accum -= 1;  // due to overlaps between modes
     }
   }
+
+  cout << "You should run throught the code, make sure that the scaling is consistent with goldilocks_models traj opt\n";
+  cout << "I think you also need to scale tau_cost by time_scale\n";
   /*cout << "batch# = " << batch << endl;
   cout << "    stride_length = " << stride_length << " | "
        << "ground_incline = " << ground_incline << " | "
@@ -211,7 +228,7 @@ void extractResult(VectorXd& w_sol,
                            " | init_file = " + init_file +
                            "\n    Solve time:" + to_string(elapsed.count()) +
                            " | " + to_string(solution_result) +
-                           " | Cost:" + to_string(result.get_optimal_cost()) +
+                           " | Cost:" + to_string(result.get_optimal_cost() * time_scale) +
                            " (tau cost = " + to_string(tau_cost) + ")\n";
   cout << string_to_print;
 
@@ -230,14 +247,15 @@ void extractResult(VectorXd& w_sol,
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
   MatrixXd state_at_knots = gm_traj_opt.dircon->GetStateSamples(result);
   MatrixXd input_at_knots = gm_traj_opt.dircon->GetInputSamples(result);
+  auto xf = gm_traj_opt.dircon->state_vars_by_mode(num_time_samples.size() - 1,
+                                        num_time_samples[num_time_samples.size() - 1] - 1);
   state_at_knots.col(N-1) = result.GetSolution(xf);
   time_at_knots *= time_scale;
   state_at_knots <<
         state_at_knots.block(0,0,4,state_at_knots.cols()) * quaternion_scale,
         state_at_knots.block(4,0,n_q-4,state_at_knots.cols()),
         state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
-  // you'll need to update state_at_knots if it's multiple modes
-  DRAKE_DEMAND(robot_option == 0);
+  cout << "you'll need to update state_at_knots if it's multiple modes\n";
   input_at_knots *= input_scale;
   writeCSV(directory + prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
@@ -255,7 +273,7 @@ void extractResult(VectorXd& w_sol,
   cout << "lambda_at_knots = \n";
   for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
     for (int index = 0; index < num_time_samples[mode]; index++) {
-      auto lambdai = trajopt->force(mode, index);
+      auto lambdai = gm_traj_opt.dircon->force(mode, index);
       cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
       ofile << result.GetSolution(lambdai).transpose() * force_scale << endl;
     }
@@ -1316,6 +1334,7 @@ void fiveLinkRobotTrajOpt(const MultibodyPlant<double> & plant,
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
 
+  vector<double> var_scale = {1.0, 1.0, 1.0, 1.0, 1.0};
   VectorXd w_sol;
   extractResult(w_sol, gm_traj_opt, result, elapsed,
                 num_time_samples, N,
@@ -1329,6 +1348,7 @@ void fiveLinkRobotTrajOpt(const MultibodyPlant<double> & plant,
                 is_get_nominal, is_zero_touchdown_impact,
                 extend_model, is_add_tau_in_cost,
                 batch,
+                var_scale,
                 robot_option);
   postProcessing(w_sol, gm_traj_opt, result, elapsed,
                  num_time_samples, N,
@@ -1372,6 +1392,10 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                    bool is_add_tau_in_cost,
                    int batch,
                    int robot_option) {
+
+  cout << "Testing. stride_length = 0.2\n";
+  stride_length = 0.2;
+
   // Create maps for joints
   map<string, int> pos_map = multibody::makeNameToPositionsMap(plant);
   map<string, int> vel_map = multibody::makeNameToVelocitiesMap(plant);
@@ -1894,6 +1918,51 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   trajopt->AddQuadraticCost(R * timestep / 2, VectorXd::Zero(n_u), uf);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  // Testing
+  if (!init_file.empty()) {
+    MatrixXd z0 = readCSV(directory + init_file);
+    trajopt->SetInitialGuessForAllVariables(z0);
+  }
+
+  cout << "Choose the best solver: " <<
+      drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
+
+  cout << "Solving DIRCON\n\n";
+  auto start2 = std::chrono::high_resolution_clock::now();
+  const auto result2 = Solve(*trajopt, trajopt->initial_guess());
+  SolutionResult solution_result2 = result2.get_solution_result();
+  auto finish2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed2 = finish2 - start2;
+  // trajopt->PrintSolution();
+  for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
+  cout << "\n" << to_string(solution_result2) << endl;
+  cout << "Solve time:" << elapsed2.count() << std::endl;
+  cout << "Cost:" << result2.get_optimal_cost() * time_scale << std::endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Move the trajectory optmization problem into GoldilocksModelTrajOpt
   // where we add the constraints for reduced order model
   GoldilocksModelTrajOpt gm_traj_opt(
@@ -1902,7 +1971,8 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     std::move(trajopt), &plant_autoDiff, &plant, num_time_samples,
     is_get_nominal, is_add_tau_in_cost, robot_option);
 
-  addRegularization(is_get_nominal, eps_reg, gm_traj_opt);
+  // addRegularization(is_get_nominal, eps_reg, gm_traj_opt);
+  cout << "Testing. Not adding regularization term yet.\n";
 
   // initial guess if the file exists
   if (!init_file.empty()) {
@@ -1971,7 +2041,9 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                 is_get_nominal, is_zero_touchdown_impact,
                 extend_model, is_add_tau_in_cost,
                 batch,
+                var_scale,
                 robot_option);
+  cout << "check. You might need var_scale in postprocessing\n";
   postProcessing(w_sol, gm_traj_opt, result, elapsed,
                  num_time_samples, N,
                  plant, plant_autoDiff,
