@@ -16,6 +16,7 @@ DynamicsConstraint::DynamicsConstraint(
   MatrixXd B_tau,
   const MultibodyPlant<AutoDiffXd> * plant,
   const MultibodyPlant<double> * plant_double,
+  vector<double> var_scale,
   bool is_head,
   int robot_option,
   const std::string& description) : DirconAbstractConstraint<double>(n_sDDot,
@@ -36,11 +37,15 @@ DynamicsConstraint::DynamicsConstraint(
   n_theta_sDDot_(theta_sDDot.size()),
   theta_sDDot_(theta_sDDot),
   n_tau_(n_tau),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant, robot_option)),
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s,
+                  plant, robot_option)),
   kin_expression_double_(KinematicsExpression<double>(n_s, n_feature_s,
                          plant_double, robot_option)),
-  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau, robot_option)),
-  is_head_(is_head) {
+  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau,
+                                     robot_option)),
+  is_head_(is_head),
+  quaternion_scale_(var_scale[4]),
+  omega_scale_(var_scale[0]) {
 
   // Check the theta size
   DRAKE_DEMAND(n_s * n_feature_s == theta_s.size());
@@ -107,12 +112,18 @@ VectorXd DynamicsConstraint::getConstraintValueInDouble(
 void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
     VectorXd & s, VectorXd & ds,
     const VectorXd & theta_s) const {
-  VectorXd q = x.head(n_q_);
-  VectorXd v = x.tail(n_v_);
+  // Scale to real-life scale
+  VectorXd state(n_q_ + n_v_);
+  state << x.segment(0, 4) * quaternion_scale_,
+        x.segment(4, n_q_ - 4),
+        x.segment(n_q_, n_v_) * omega_scale_;
+
+  VectorXd q = state.head(n_q_);
+  VectorXd v = state.tail(n_v_);
 
   VectorXd qdot(n_q_);
   VectorXd u = VectorXd::Zero(n_u_);
-  auto context = multibody::createContext(*plant_double_, x, u);
+  auto context = multibody::createContext(*plant_double_, state, u);
   plant_double_->MapVelocityToQDot(*context, v, &qdot);
 
   // 1. s
@@ -152,16 +163,17 @@ void DynamicsConstraint::getSAndSDotInDouble(VectorXd x,
   VectorXd phi_2(n_feature_s_);
   VectorXd phi_3(n_feature_s_);
   for (int i = 0; i < q.size(); i++) {
-    q(i) -= eps_ho_feature_/2;
+    q(i) -= eps_ho_feature_ / 2;
     phi_0 = kin_expression_double_.getFeature(q);
-    q(i) += eps_ho_feature_/4;
+    q(i) += eps_ho_feature_ / 4;
     phi_1 = kin_expression_double_.getFeature(q);
-    q(i) += eps_ho_feature_/2;
+    q(i) += eps_ho_feature_ / 2;
     phi_2 = kin_expression_double_.getFeature(q);
-    q(i) += eps_ho_feature_/4;
+    q(i) += eps_ho_feature_ / 4;
     phi_3 = kin_expression_double_.getFeature(q);
-    q(i) -= eps_ho_feature_/2;
-    d_phi_d_q.col(i) = (-phi_3 + 8 * phi_2 - 8 * phi_1 + phi_0) / (3 * eps_ho_feature_);
+    q(i) -= eps_ho_feature_ / 2;
+    d_phi_d_q.col(i) = (-phi_3 + 8 * phi_2 - 8 * phi_1 + phi_0) /
+                       (3 * eps_ho_feature_);
   }
 
   /// ground truth (testing the accuracy of gradients)
@@ -386,8 +398,10 @@ DynamicsConstraintAutodiffVersion::DynamicsConstraintAutodiffVersion(
   n_theta_sDDot_(theta_sDDot.size()),
   theta_sDDot_(theta_sDDot),
   n_tau_(n_tau),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant, robot_option)),
-  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau, robot_option)),
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_s, n_feature_s, plant,
+                  robot_option)),
+  dyn_expression_(DynamicsExpression(n_sDDot, n_feature_sDDot, B_tau,
+                                     robot_option)),
   is_head_(is_head) {
 
   // Check the theta size

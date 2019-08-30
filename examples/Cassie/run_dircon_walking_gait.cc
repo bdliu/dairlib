@@ -1438,7 +1438,7 @@ void DoMain(double stride_length,
   for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
   cout << "\n" << to_string(solution_result) << endl;
   cout << "Solve time:" << elapsed.count() << std::endl;
-  cout << "Cost:" << result.get_optimal_cost() * time_scale << std::endl;
+  cout << "Cost:" << result.get_optimal_cost() << std::endl;
 
   // Check which solver we are using
   cout << "Solver: " << result.get_solver_id().name() << endl;
@@ -1465,6 +1465,7 @@ void DoMain(double stride_length,
         state_at_knots.block(0,0,4,state_at_knots.cols()) * quaternion_scale,
         state_at_knots.block(4,0,n_q-4,state_at_knots.cols()),
         state_at_knots.block(n_q,0,n_v,state_at_knots.cols()) * omega_scale;
+  cout << "you'll need to update state_at_knots if it's multiple modes\n";
   input_at_knots *= input_scale;
   writeCSV(data_directory + string("t_i.csv"), time_at_knots);
   writeCSV(data_directory + string("x_i.csv"), state_at_knots);

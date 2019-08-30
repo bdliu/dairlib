@@ -212,8 +212,6 @@ void extractResult(VectorXd& w_sol,
     }
   }
 
-  cout << "You should run throught the code, make sure that the scaling is consistent with goldilocks_models traj opt\n";
-  cout << "I think you also need to scale tau_cost by time_scale\n";
   /*cout << "batch# = " << batch << endl;
   cout << "    stride_length = " << stride_length << " | "
        << "ground_incline = " << ground_incline << " | "
@@ -228,7 +226,7 @@ void extractResult(VectorXd& w_sol,
                            " | init_file = " + init_file +
                            "\n    Solve time:" + to_string(elapsed.count()) +
                            " | " + to_string(solution_result) +
-                           " | Cost:" + to_string(result.get_optimal_cost() * time_scale) +
+                           " | Cost:" + to_string(result.get_optimal_cost()) +
                            " (tau cost = " + to_string(tau_cost) + ")\n";
   cout << string_to_print;
 
@@ -240,8 +238,8 @@ void extractResult(VectorXd& w_sol,
   else is_success << 0;
   writeCSV(directory + prefix + string("is_success.csv"), is_success);
 
-  // The following line gives seg fault
-  // systems::trajectory_optimization::checkConstraints(trajopt.get(), result);
+  // bool constraint_satisfied = solvers::CheckGenericConstraints(*trajopt, result, 1e-5);
+  // cout << "constraint_satisfied = " << constraint_satisfied << endl;
 
   // Store the time, state, and input at knot points
   VectorXd time_at_knots = gm_traj_opt.dircon->GetSampleTimes(result);
@@ -279,7 +277,6 @@ void extractResult(VectorXd& w_sol,
     }
   }
   ofile.close();
-
 
   // Get the solution of all the decision variable
   w_sol = result.GetSolution(
@@ -1315,7 +1312,7 @@ void fiveLinkRobotTrajOpt(const MultibodyPlant<double> & plant,
     n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
     B_tau, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, &plant, num_time_samples,
-    is_get_nominal, is_add_tau_in_cost, robot_option);
+    is_get_nominal, is_add_tau_in_cost, var_scale, robot_option);
 
   addRegularization(is_get_nominal, eps_reg, gm_traj_opt);
 
@@ -1400,7 +1397,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // Extract var_scale
   double omega_scale = var_scale[0];
   double input_scale = var_scale[1];
-  double force_scale = var_scale[2];
+  // double force_scale = var_scale[2];
   double time_scale = var_scale[3];
   double quaternion_scale = var_scale[4];
 
@@ -1916,44 +1913,26 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
 
 
 
+  // // Testing -- this is the original traj opt without reduced order model
+  // if (!init_file.empty()) {
+  //   MatrixXd z0 = readCSV(directory + init_file);
+  //   trajopt->SetInitialGuessForAllVariables(z0);
+  // }
 
+  // cout << "Choose the best solver: " <<
+  //      drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
 
-
-
-
-
-
-
-
-
-  // Testing
-  if (!init_file.empty()) {
-    MatrixXd z0 = readCSV(directory + init_file);
-    trajopt->SetInitialGuessForAllVariables(z0);
-  }
-
-  cout << "Choose the best solver: " <<
-       drake::solvers::ChooseBestSolver(*trajopt).name() << endl;
-
-  cout << "Solving DIRCON\n\n";
-  auto start2 = std::chrono::high_resolution_clock::now();
-  const auto result2 = Solve(*trajopt, trajopt->initial_guess());
-  SolutionResult solution_result2 = result2.get_solution_result();
-  auto finish2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed2 = finish2 - start2;
-  // trajopt->PrintSolution();
-  for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
-  cout << "\n" << to_string(solution_result2) << endl;
-  cout << "Solve time:" << elapsed2.count() << std::endl;
-  cout << "Cost:" << result2.get_optimal_cost() * time_scale << std::endl;
-
-
-
-
-
-
-
-
+  // cout << "Solving DIRCON\n\n";
+  // auto start2 = std::chrono::high_resolution_clock::now();
+  // const auto result2 = Solve(*trajopt, trajopt->initial_guess());
+  // SolutionResult solution_result2 = result2.get_solution_result();
+  // auto finish2 = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double> elapsed2 = finish2 - start2;
+  // // trajopt->PrintSolution();
+  // for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
+  // cout << "\n" << to_string(solution_result2) << endl;
+  // cout << "Solve time:" << elapsed2.count() << std::endl;
+  // cout << "Cost:" << result2.get_optimal_cost() * time_scale << std::endl;
 
 
 
@@ -1965,10 +1944,9 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     n_s, n_sDDot, n_tau, n_feature_s, n_feature_sDDot,
     B_tau, theta_s, theta_sDDot,
     std::move(trajopt), &plant_autoDiff, &plant, num_time_samples,
-    is_get_nominal, is_add_tau_in_cost, robot_option);
+    is_get_nominal, is_add_tau_in_cost, var_scale, robot_option);
 
-  // addRegularization(is_get_nominal, eps_reg, gm_traj_opt);
-  cout << "Testing. Not adding regularization term yet.\n";
+  addRegularization(is_get_nominal, eps_reg, gm_traj_opt);
 
   // initial guess if the file exists
   if (!init_file.empty()) {
@@ -1993,25 +1971,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
       }
       gm_traj_opt.dircon->SetInitialGuess(xi, xi_seed);
     }
-    /*
-    // Get approximated vdot by finite difference
-    vector<VectorXd> vdot_approx = GetApproxVdot(v_seed, duration / (N - 1), plant);
-    // Solve QP to get u and lambda
-    vector<VectorXd> u_seed(N, VectorXd::Zero(n_u));
-    vector<VectorXd> lambda_seed(N, VectorXd::Zero(
-                                   left_dataset.countConstraints()));
-    GetInitGuessForUAndLambda(plant, left_dataset,
-                              q_seed, v_seed, vdot_approx,
-                              &u_seed, &lambda_seed);
-    for (int i = 0; i < N; i++) {
-      auto ui = gm_traj_opt.dircon->input(i);
-      gm_traj_opt.dircon->SetInitialGuess(ui, u_seed.at(i) / input_scale);
-
-      // gm_traj_opt.dircon->SetInitialGuess(lambdai, lambda_seed.at(i) / force_scale);
-    }
-    */
   }
-
 
   // Testing
   // cout << "Choose the best solver: " <<
@@ -2039,7 +1999,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                 extend_model, is_add_tau_in_cost,
                 batch,
                 robot_option);
-  cout << "check. You might need var_scale in postprocessing\n";
   postProcessing(w_sol, gm_traj_opt, result, elapsed,
                  num_time_samples, N,
                  plant, plant_autoDiff,

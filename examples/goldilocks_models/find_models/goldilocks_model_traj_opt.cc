@@ -5,16 +5,17 @@ namespace dairlib {
 namespace goldilocks_models {
 
 // Constructor
-GoldilocksModelTrajOpt::GoldilocksModelTrajOpt(
-  int n_s, int n_sDDot, int n_tau, int n_feature_s, int n_feature_sDDot,
-  MatrixXd B_tau, const VectorXd & theta_s, const VectorXd & theta_sDDot,
-  std::unique_ptr<HybridDircon<double>> dircon_in,
-  const MultibodyPlant<AutoDiffXd> * plant,
-  const MultibodyPlant<double> * plant_double,
-  const std::vector<int> & num_time_samples,
-  bool is_get_nominal,
-  bool is_add_tau_in_cost,
-  int robot_option):
+GoldilocksModelTrajOpt::GoldilocksModelTrajOpt(int n_s, int n_sDDot, int n_tau,
+    int n_feature_s, int n_feature_sDDot,
+    MatrixXd B_tau, const VectorXd & theta_s, const VectorXd & theta_sDDot,
+    std::unique_ptr<HybridDircon<double>> dircon_in,
+    const MultibodyPlant<AutoDiffXd> * plant,
+    const MultibodyPlant<double> * plant_double,
+    const std::vector<int> & num_time_samples,
+    bool is_get_nominal,
+    bool is_add_tau_in_cost,
+    vector<double> var_scale,
+    int robot_option):
   n_s_(n_s),
   n_sDDot_(n_sDDot),
   n_tau_(n_tau),
@@ -53,12 +54,14 @@ GoldilocksModelTrajOpt::GoldilocksModelTrajOpt(
     dynamics_constraint_at_head = make_shared<find_models::DynamicsConstraint>(
                                     n_s, n_feature_s, theta_s,
                                     n_sDDot, n_feature_sDDot, theta_sDDot,
-                                    n_tau, B_tau, plant, plant_double, true,
+                                    n_tau, B_tau, plant, plant_double,
+                                    var_scale, true,
                                     robot_option);
     // dynamics_constraint_at_tail = make_shared<find_models::DynamicsConstraint>(
     //                                n_s, n_feature_s, theta_s,
     //                                n_sDDot, n_feature_sDDot, theta_sDDot,
-    //                                n_tau, B_tau, plant, false,
+    //                                n_tau, B_tau, plant, plant_double,
+    //                                var_scale, false,
     //                                robot_option);
 
     // Add dynamics constraint for all segments (between knots)

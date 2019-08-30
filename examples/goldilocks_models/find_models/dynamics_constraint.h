@@ -66,6 +66,7 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
                      MatrixXd B_tau,
                      const MultibodyPlant<AutoDiffXd> * plant,
                      const MultibodyPlant<double> * plant_double,
+                     vector<double> var_scale,
                      bool is_head,
                      int robot_option,
                      const std::string& description = "rom_dyn_constraint");
@@ -119,7 +120,8 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
   int n_theta_sDDot_;
   VectorXd theta_sDDot_;
   int n_tau_;
-  KinematicsExpression<AutoDiffXd> kin_expression_;  // used to debug. (to compare gradient of features)
+  KinematicsExpression<AutoDiffXd> kin_expression_;  // used to debug.
+  //                                                 // (to compare gradient of features)
   KinematicsExpression<double> kin_expression_double_;
   DynamicsExpression dyn_expression_;
   bool is_head_;
@@ -141,6 +143,10 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
   vector<double> cd_shift_vec_{ -eps_cd_ / 2, eps_cd_ / 2};  // central difference
   vector<double> ho_shift_vec_{ -eps_ho_ / 2, -eps_ho_ / 4,
                                 eps_ho_ / 4, eps_ho_ / 2};
+
+  // Scaling
+  double quaternion_scale_;
+  double omega_scale_;
 };
 
 
@@ -156,15 +162,15 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
 class DynamicsConstraintAutodiffVersion : public Constraint {
  public:
   DynamicsConstraintAutodiffVersion(int n_s, int n_feature_s,
-                     const VectorXd & theta_s,
-                     int n_sDDot, int n_feature_sDDot,
-                     const VectorXd & theta_sDDot,
-                     int n_tau,
-                     MatrixXd B_tau,
-                     const MultibodyPlant<AutoDiffXd> * plant,
-                     bool is_head,
-                     int robot_option,
-                     const std::string& description = "");
+                                    const VectorXd & theta_s,
+                                    int n_sDDot, int n_feature_sDDot,
+                                    const VectorXd & theta_sDDot,
+                                    int n_tau,
+                                    MatrixXd B_tau,
+                                    const MultibodyPlant<AutoDiffXd> * plant,
+                                    bool is_head,
+                                    int robot_option,
+                                    const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
 
