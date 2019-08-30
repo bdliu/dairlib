@@ -1364,9 +1364,15 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // Set up contact/distance constraints and construct dircon
   // parameters
   bool is_quaterion = true;
-  int walking_mode = 1; // 0: instant change of support
+  int walking_mode = 0; // 0: instant change of support
   // 1: single double single
   // 2: heel to toe
+
+  // If you want to use walking_mode 1 or 2, then you should either
+  // 1. finish multi-phase ROM, or
+  // 2. write the code here so it takes care of multi-mode. (e.g. only have rom
+  //    in the first phase, etc)
+  DRAKE_DEMAND(walking_mode == 0);
 
   // Scaling paramters
   double omega_scale = 10;  // 10

@@ -909,9 +909,9 @@ void DoMain(double stride_length,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
       2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major optimality tolerance", 1e-4);  // target nonlinear constraint violation
+                           "Major optimality tolerance", 1e-5);  // target nonlinear constraint violation
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major feasibility tolerance", 1e-4);  // target complementarity gap
+                           "Major feasibility tolerance", 1e-5);  // target complementarity gap
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
