@@ -60,6 +60,8 @@ DEFINE_double(realtime_factor, 1, "Rate of which the traj is played back");
 DEFINE_int32(n_step, 3, "# of foot steps");
 DEFINE_double(ground_incline, 0, "Pitch angle of ground");
 
+DEFINE_int32(robot_option, 1, "0: plannar robot. 1: cassie_fixed_spring");
+
 void swapTwoBlocks(MatrixXd * mat, int i_1, int j_1, int i_2, int j_2,
                    int n_row, int n_col) {
   MatrixXd temp_block1 = mat->block(i_1, j_1, n_row, n_col);
@@ -76,7 +78,8 @@ void visualizeGait(int argc, char* argv[]) {
   int iter_end = (FLAGS_iter_end >= FLAGS_iter_start) ?
                  FLAGS_iter_end : FLAGS_iter_start;
   int n_step = FLAGS_n_step;  // Should be > 0
-  const string directory = "examples/goldilocks_models/find_models/data/";
+  const string directory = "examples/goldilocks_models/find_models/data/robot_"
+                           + to_string(FLAGS_robot_option) + "/";
 
   // Looping through the iterations
   for (int iter = iter_start; iter <= iter_end; iter++) {
@@ -89,11 +92,27 @@ void visualizeGait(int argc, char* argv[]) {
                                  to_string(FLAGS_batch) + string("_state_at_knots.csv"));
 
     int n_state = state_mat.rows();
-    int n_q = n_state / 2;
+    int n_q;
+    if (FLAGS_robot_option == 0) {
+      n_q = n_state / 2;
+    } else if (FLAGS_robot_option == 1) {
+      n_q = 19;
+    }
     int n_knots = time_mat.rows();
     VectorXd ones = VectorXd::Ones(n_knots - 1);
-    VectorXd xy_translation =
-      state_mat.block(0, n_knots - 1, 2, 1) - state_mat.block(0, 0, 2, 1);
+    int translation_size;
+    int translation_start_idx;
+    if (FLAGS_robot_option == 0) {
+      translation_size = 2;
+      translation_start_idx = 0;
+    } else if (FLAGS_robot_option == 1) {
+      translation_size = 3;
+      translation_start_idx = 4;
+    }
+    VectorXd xyz_translation =
+      state_mat.block(translation_start_idx, n_knots - 1, translation_size, 1)
+      - state_mat.block(translation_start_idx, 0, translation_size, 1);
+    cout << "xyz_translation = " << xyz_translation << endl;
 
     // Concatenate the traj so it has multiple steps
     VectorXd time_mat_cat(n_step * n_knots - (n_step - 1));
@@ -107,32 +126,112 @@ void visualizeGait(int argc, char* argv[]) {
     for (int i = 0; i < n_step; i++) {
       state_mat_cat.block(0, 1 + (n_knots - 1)*i, n_state, n_knots - 1) =
         state_mat.block(0, 1, n_state, n_knots - 1);
-      // Translate x and y
-      for (int j = 0; j < 2; j++) {
-        state_mat_cat.block(j, 1 + (n_knots - 1)*i, 1, n_knots - 1) =
-          state_mat.block(j, 1, 1, n_knots - 1)  +
-          i * xy_translation(j) * ones.transpose();
+      // Translate x and z
+      if (FLAGS_robot_option == 0) {
+        for (int j = 0; j < translation_size; j++) {
+          state_mat_cat.block(j, 1 + (n_knots - 1)*i, 1, n_knots - 1)
+            = state_mat.block(j, 1, 1, n_knots - 1)  +
+              i * xyz_translation(j) * ones.transpose();
+        }
+      } else if (FLAGS_robot_option == 1) {
+        if (i > 0) {
+          for (int j = 0; j < translation_size; j++) {
+            if (j == 1) {
+              // It's mirror in x-z plane, so we don't need to translate in y here.
+            } else {
+              state_mat_cat.block(j + translation_start_idx,
+                                  1 + (n_knots - 1)*i, 1, n_knots - 1)
+                = state_mat.block(j + translation_start_idx, 1, 1, n_knots - 1)  +
+                  i * xyz_translation(j) * ones.transpose();
+            }
+          }
+        }
+      }
+      // Flip the sign
+      if (FLAGS_robot_option) {
+        if (i % 2) {
+          // Quaternion sign should also be flipped.
+          state_mat_cat.block(1, 1 + (n_knots - 1)*i, 1, n_knots - 1) *= -1;
+          state_mat_cat.block(3, 1 + (n_knots - 1)*i, 1, n_knots - 1) *= -1;
+          // y should be flipped
+          state_mat_cat.block(5, 1 + (n_knots - 1)*i, 1, n_knots - 1) *= -1;
+          // Hip roll and yaw sign should also be flipped.
+          state_mat_cat.block(7, 1 + (n_knots - 1)*i, 4, n_knots - 1) *= -1;
+        }
       }
       // Swap the leg
       if (i % 2) {
-        // Position
-        swapTwoBlocks(&state_mat_cat,
-                      3, 1 + (n_knots - 1) * i,
-                      4, 1 + (n_knots - 1) * i,
-                      1, n_knots - 1);
-        swapTwoBlocks(&state_mat_cat,
-                      5, 1 + (n_knots - 1) * i,
-                      6, 1 + (n_knots - 1) * i,
-                      1, n_knots - 1);
-        // Velocity (not necessary for plotting the traj)
-        swapTwoBlocks(&state_mat_cat,
-                      n_q + 3, 1 + (n_knots - 1) * i,
-                      n_q + 4, 1 + (n_knots - 1) * i,
-                      1, n_knots - 1);
-        swapTwoBlocks(&state_mat_cat,
-                      n_q + 5, 1 + (n_knots - 1) * i,
-                      n_q + 6, 1 + (n_knots - 1) * i,
-                      1, n_knots - 1);
+        if (FLAGS_robot_option == 0) {
+          // Position
+          swapTwoBlocks(&state_mat_cat,
+                        3, 1 + (n_knots - 1) * i,
+                        4, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        5, 1 + (n_knots - 1) * i,
+                        6, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          // Velocity (not necessary for plotting the traj)
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 3, 1 + (n_knots - 1) * i,
+                        n_q + 4, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 5, 1 + (n_knots - 1) * i,
+                        n_q + 6, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+        } else if (FLAGS_robot_option == 1) {
+          // Position
+          swapTwoBlocks(&state_mat_cat,
+                        7, 1 + (n_knots - 1) * i,
+                        8, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        9, 1 + (n_knots - 1) * i,
+                        10, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        11, 1 + (n_knots - 1) * i,
+                        12, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        13, 1 + (n_knots - 1) * i,
+                        14, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        15, 1 + (n_knots - 1) * i,
+                        16, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        17, 1 + (n_knots - 1) * i,
+                        18, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          // Velocity (not necessary for plotting the traj)
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 6, 1 + (n_knots - 1) * i,
+                        n_q + 7, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 8, 1 + (n_knots - 1) * i,
+                        n_q + 9, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 10, 1 + (n_knots - 1) * i,
+                        n_q + 11, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 12, 1 + (n_knots - 1) * i,
+                        n_q + 13, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 14, 1 + (n_knots - 1) * i,
+                        n_q + 15, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+          swapTwoBlocks(&state_mat_cat,
+                        n_q + 16, 1 + (n_knots - 1) * i,
+                        n_q + 17, 1 + (n_knots - 1) * i,
+                        1, n_knots - 1);
+        }
       }
     }
 
@@ -153,14 +252,22 @@ void visualizeGait(int argc, char* argv[]) {
     Vector3d ground_normal(sin(FLAGS_ground_incline), 0, cos(FLAGS_ground_incline));
     multibody::addTerrain(&plant, &scene_graph, 0.8, 0.8, ground_normal);
     Parser parser(&plant, &scene_graph);
-    std::string full_name = FindResourceOrThrow(
-                              "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
+    std::string full_name;
+    if (FLAGS_robot_option == 0) {
+      full_name = FindResourceOrThrow(
+                    "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
+    } else if (FLAGS_robot_option == 1) {
+      full_name = FindResourceOrThrow(
+                    "examples/Cassie/urdf/cassie_fixed_springs.urdf");
+    }
     parser.AddModelFromFile(full_name);
     plant.mutable_gravity_field().set_gravity_vector(
       -9.81 * Eigen::Vector3d::UnitZ());
-    plant.WeldFrames(
-      plant.world_frame(), plant.GetFrameByName("base"),
-      drake::math::RigidTransform<double>());
+    if (FLAGS_robot_option == 0) {
+      plant.WeldFrames(
+        plant.world_frame(), plant.GetFrameByName("base"),
+        drake::math::RigidTransform<double>());
+    }
     plant.Finalize();
 
     // visualizer

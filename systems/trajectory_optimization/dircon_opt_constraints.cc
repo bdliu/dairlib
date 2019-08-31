@@ -366,15 +366,25 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   constraints_->updateData(*context, force);
 
   double vel_scale = 10;
-  double accel_scale = 300 * 20;  //300 * 4
+  double accel_scale = 300 * 2;  //300 * 4
   // An even better scaling is to scale the distance constraint (four-bar linkage).
+  double fourbar_scale = 0.05;
 
   switch (type_) {
     case kAll:
-      *y = VectorX<T>(3*num_kinematic_constraints_);
-      *y << constraints_->getC() + relative_map_*offset - phi_vals_,
-            constraints_->getCDot() / vel_scale,
-            constraints_->getCDDot() / accel_scale;
+      {
+        VectorX<T> output(3*num_kinematic_constraints_);
+        output << constraints_->getC() + relative_map_*offset - phi_vals_,
+              constraints_->getCDot() / vel_scale,
+              constraints_->getCDDot() / accel_scale;
+
+        if (num_kinematic_constraints_ == 8) {
+          output.segment(6,2) /= fourbar_scale;
+          output.segment(6+8,2) /= fourbar_scale;
+          output.segment(6+16,2) /= fourbar_scale * 10;
+        }
+        *y = output;
+      }
       break;
     case kAccelAndVel:
       *y = VectorX<T>(2*num_kinematic_constraints_);

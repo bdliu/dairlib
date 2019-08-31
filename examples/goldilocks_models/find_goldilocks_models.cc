@@ -202,11 +202,11 @@ void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
   // theta_s(1 + n_feature_s) = 1;
   // theta_sDDot(0) = 1;
   // // 2D LIPM with 2D swing foot
-  theta_s(0) = 1;
+  // theta_s(0) = 1;
   theta_s(1 + n_feature_s) = 1;
   // theta_s(2 + 2 *n_feature_s) = 1;
   // theta_s(3 + 3 * n_feature_s) = 1;
-  theta_sDDot(0) = 1;
+  // theta_sDDot(0) = 1;
   // // Testing intial theta
   // theta_s = 0.25*VectorXd::Ones(n_theta_s);
   // theta_sDDot = 0.5*VectorXd::Ones(n_theta_sDDot);
@@ -744,7 +744,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   }
 
   if (FLAGS_robot_option == 0) {
-    cout << "Make sure to turn off scaling in dircon. (Y/N)\n";
+    cout << "Make sure to turn off scaling in dircon (TURN OFF the hackings!). (Y/N)\n";
   } else if (FLAGS_robot_option == 1) {
     cout << "Make sure to turn on scaling in dircon. (Y/N)\n";
   }

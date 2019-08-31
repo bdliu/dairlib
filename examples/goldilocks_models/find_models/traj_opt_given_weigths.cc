@@ -1410,14 +1410,14 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   int n_v = plant.num_velocities();
   int n_u = plant.num_actuators();
   // int n_x = n_q + n_v;
-  cout << "n_q = " << n_q << "\n";
-  cout << "n_v = " << n_v << "\n";
+  // cout << "n_q = " << n_q << "\n";
+  // cout << "n_v = " << n_v << "\n";
   // cout << "n_x = " << n_x << "\n";
   // cout << "n_u = " << n_u << "\n";
-  cout << "floating_positions_start = " <<
-       plant.GetBodyByName("pelvis").floating_positions_start() << endl;
-  cout << "floating_velocities_start = " <<
-       plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
+  // cout << "floating_positions_start = " <<
+  //      plant.GetBodyByName("pelvis").floating_positions_start() << endl;
+  // cout << "floating_velocities_start = " <<
+  //      plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
 
   // Set up contact/distance constraints and construct dircon
   // parameters
@@ -1654,8 +1654,9 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                  is_quaterion,
                  var_scale);
 
-  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-  //                          "Print file", "snopt.out");
+  cout << "WARNING: you are printing snopt log.\n";
+  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+                           "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", max_iter);
   // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
