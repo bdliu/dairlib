@@ -168,7 +168,7 @@ void setCostWeight(double* Q, double* R, vector<double> var_scale,
     *Q = 10;
     *R = 10;
   } else if (robot_option == 1) {
-    *Q = 12.5;
+    *Q = 10 * 12.5;
     *R = 12.5;
   }
 }

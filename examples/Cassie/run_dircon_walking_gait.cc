@@ -1060,6 +1060,7 @@ void DoMain(double stride_length,
 
 
   // Testing - fix com height during walking (only the first mode)
+  // The purpose is to get a good seed for RoM traj opt
   auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
   for (int index = 0; index < num_time_samples[0] - 1; index++) {
     auto x0 = trajopt->state(index);
@@ -1365,15 +1366,15 @@ void DoMain(double stride_length,
 
   // if all timesteps are the same
   double fixed_dt = duration / (N - 1);
-  trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), x0.tail(n_v));
+  // trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), x0.tail(n_v));
   trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
     auto xi = trajopt->state(i);
     auto ui = trajopt->input(i);
-    trajopt->AddQuadraticCost(Q * fixed_dt, VectorXd::Zero(n_v), xi.tail(n_v));
+    // trajopt->AddQuadraticCost(Q * fixed_dt, VectorXd::Zero(n_v), xi.tail(n_v));
     trajopt->AddQuadraticCost(R * fixed_dt, VectorXd::Zero(n_u), ui);
   }
-  trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), xf.tail(n_v));
+  // trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), xf.tail(n_v));
   trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), uf);
 
 
