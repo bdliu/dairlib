@@ -231,8 +231,13 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
   else if (!has_been_all_success && !previous_iter_is_success)
     *init_file = to_string(iter) +  "_" +
                  to_string(sample) + string("_w.csv");
-  else if (iter == 1)
+  else if (iter == 1) {
     *init_file = string("0_0_w.csv");
+
+    // Testing:
+    cout<< "testing with manual init file\n";
+    *init_file = "w0.csv";
+  }
   else
     *init_file = to_string(iter - 1) +  "_" +
                  to_string(sample) + string("_w.csv");

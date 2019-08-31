@@ -82,6 +82,8 @@ using drake::systems::rendering::MultibodyPositionToGeometryPose;
 
 using drake::multibody::JointActuator;
 using drake::multibody::JointActuatorIndex;
+using drake::multibody::BodyIndex;
+using drake::multibody::ModelInstanceIndex;
 
 using drake::math::RotationMatrix;
 using drake::math::RollPitchYaw;
@@ -538,6 +540,102 @@ class ComHeightConstraint : public DirconAbstractConstraint<double> {
   int n_v_;
   double quaternion_scale_;
 };
+
+class ComHeightVelConstraint : public DirconAbstractConstraint<double> {
+ public:
+  ComHeightVelConstraint(const MultibodyPlant<double>* plant,
+                         vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions() + plant->num_velocities(),
+      VectorXd::Zero(1), VectorXd::Zero(1),
+      "com_height_vel_constraint"),
+    plant_(plant),
+    n_q_(plant->num_positions()),
+    n_v_(plant->num_velocities()),
+    omega_scale_(var_scale[0]),
+    quaternion_scale_(var_scale[4]) {
+
+    DRAKE_DEMAND(plant->num_bodies() > 1);
+    DRAKE_DEMAND(plant->num_model_instances() > 1);
+
+    // Get all body indices
+    std::vector<ModelInstanceIndex> model_instances;
+    for (ModelInstanceIndex model_instance_index(1);
+         model_instance_index < plant->num_model_instances();
+         ++model_instance_index)
+      model_instances.push_back(model_instance_index);
+    for (auto model_instance : model_instances) {
+      const std::vector<BodyIndex> body_index_in_instance =
+        plant->GetBodyIndices(model_instance);
+      for (BodyIndex body_index : body_index_in_instance)
+        body_indexes_.push_back(body_index);
+    }
+    // Get total mass
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant->CreateDefaultContext();
+    for (BodyIndex body_index : body_indexes_) {
+      if (body_index == 0) continue;
+      const Body<double>& body = plant_->get_body(body_index);
+
+      // Calculate composite_mass_.
+      const double& body_mass = body.get_mass(*context);
+      // composite_mass_ = ∑ mᵢ
+      composite_mass_ += body_mass;
+    }
+    if (!(composite_mass_ > 0)) {
+      throw std::runtime_error(
+        "The total mass must larger than zero.");
+    }
+  }
+  ~ComHeightVelConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x.head(n_q_);
+    q.head(4) *= quaternion_scale_;
+    VectorXd v = x.tail(n_v_) * omega_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+    plant_->SetVelocities(context.get(), v);
+
+    const drake::multibody::Frame<double>& world = plant_->world_frame();
+
+    // Get com jacobian
+    MatrixXd Jcom = MatrixXd::Zero(3, n_v_);
+    for (BodyIndex body_index : body_indexes_) {
+      if (body_index == 0) continue;
+
+      const Body<double>& body = plant_->get_body(body_index);
+      const Vector3d pi_BoBcm = body.CalcCenterOfMassInBodyFrame(*context);
+
+      // Calculate M * J in world frame.
+      const double& body_mass = body.get_mass(*context);
+      // Jcom = ∑ mᵢ * Ji
+      MatrixXd Jcom_i(3, n_v_);
+      plant_->CalcJacobianTranslationalVelocity(
+        *context, drake::multibody::JacobianWrtVariable::kV,
+        body.body_frame(), pi_BoBcm, world, world, &Jcom_i);
+      Jcom += body_mass * Jcom_i;
+      // cout << "body_mass = " << body_mass << endl;
+      // cout << "Jcom_i = " << Jcom_i << endl;
+    }
+    Jcom /= composite_mass_;
+
+    *y = Jcom.row(2) * v;
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  int n_q_;
+  int n_v_;
+  double omega_scale_;
+  double quaternion_scale_;
+
+  std::vector<BodyIndex> body_indexes_;
+  double composite_mass_;
+};
+
 
 void DoMain(double stride_length,
             double ground_incline,
@@ -1066,6 +1164,11 @@ void DoMain(double stride_length,
     auto x0 = trajopt->state(index);
     auto x1 = trajopt->state(index + 1);
     trajopt->AddConstraint(com_constraint, {x0, x1});
+  }
+  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant, var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(com_vel_constraint, x);
   }
 
 

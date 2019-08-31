@@ -119,6 +119,9 @@ void DirconAbstractConstraint<double>::DoEval(
     else if (this->get_description().compare("com_height_constraint") == 0) {
       goldilocks_models::writeCSV("com_height_constraint_grad.csv", dy);
     }
+    else if (this->get_description().compare("com_height_vel_constraint") == 0) {
+      goldilocks_models::writeCSV("com_height_vel_constraint_grad.csv", dy);
+    }
 
 
     // // central differencing
