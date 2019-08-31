@@ -651,9 +651,8 @@ VectorX<U> KinematicsExpression<T>::getFeature(const VectorX<U> & q) const {
     // Currently it doesn't include floating base coordinates
     // Didn't use sin and cos just to keep the size small for now
 
-    // Get CoM position and stance foot position
+    // Get CoM position
     plant_->SetPositions(context_.get(), q);
-    // CoM
     VectorX<U> CoM = plant_->CalcCenterOfMassPosition(*context_);
     // Stance foot position (left foot)
     VectorX<U> left_foot_pos(3);

@@ -116,6 +116,9 @@ void DirconAbstractConstraint<double>::DoEval(
     else if (this->get_description().compare("rom_dyn_constraint") == 0) {
       goldilocks_models::writeCSV("rom_dyn_constraint_grad.csv", dy);
     }
+    else if (this->get_description().compare("com_height_constraint") == 0) {
+      goldilocks_models::writeCSV("com_height_constraint_grad.csv", dy);
+    }
 
 
     // // central differencing
@@ -185,7 +188,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
       4*(num_kinematic_constraints_) + num_quat_slack_);
 
   double v_c_scale = 10;
-  double gamma_scale = 0.002;
+  // double gamma_scale = 0.002;
 
   // Extract our input variables:
   // h - current time (knot) value
@@ -241,7 +244,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
 
   double vel_scale = 60;
   double accel_scale = 20 * vel_scale;
-  double toe_scale = 50;
+  // double toe_scale = 50;
   VectorX<T> output = xdotcol - g;
   output.head(num_positions_) /= vel_scale;
   output.tail(num_velocities_) /= accel_scale;

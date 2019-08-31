@@ -112,7 +112,6 @@ void visualizeGait(int argc, char* argv[]) {
     VectorXd xyz_translation =
       state_mat.block(translation_start_idx, n_knots - 1, translation_size, 1)
       - state_mat.block(translation_start_idx, 0, translation_size, 1);
-    cout << "xyz_translation = " << xyz_translation << endl;
 
     // Concatenate the traj so it has multiple steps
     VectorXd time_mat_cat(n_step * n_knots - (n_step - 1));

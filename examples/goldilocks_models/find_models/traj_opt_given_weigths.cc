@@ -1879,8 +1879,10 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
 
 
   // add cost
-  const MatrixXd Q = Q_double * omega_scale * omega_scale * MatrixXd::Identity(n_v, n_v);
-  const MatrixXd R = R_double * input_scale * input_scale * MatrixXd::Identity(n_u, n_u);
+  const MatrixXd Q = Q_double *
+                     omega_scale * omega_scale * MatrixXd::Identity(n_v, n_v);
+  const MatrixXd R = R_double *
+                     input_scale * input_scale * MatrixXd::Identity(n_u, n_u);
   // trajopt->AddRunningCost(x.tail(n_v).transpose()* Q * x.tail(n_v));
   // trajopt->AddRunningCost(x.segment(n_q,3).transpose() * 10.0 * x.segment(n_q,3));
   // trajopt->AddRunningCost(u.transpose()* R * u);
@@ -1903,13 +1905,17 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // trajopt->AddQuadraticCost(R * timesteps(N-2) / 2, VectorXd::Zero(n_u), uf);
 
   // if all timesteps are the same
-  double fixed_timestep = duration / (N - 1);
-  trajopt->AddQuadraticCost(R * fixed_timestep / 2, VectorXd::Zero(n_u), u0);
+  double fixed_dt = duration / (N - 1);
+  trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), x0.tail(n_v));
+  trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
+    auto xi = trajopt->state(i);
     auto ui = trajopt->input(i);
-    trajopt->AddQuadraticCost(R * fixed_timestep, VectorXd::Zero(n_u), ui);
+    trajopt->AddQuadraticCost(Q * fixed_dt, VectorXd::Zero(n_v), xi.tail(n_v));
+    trajopt->AddQuadraticCost(R * fixed_dt, VectorXd::Zero(n_u), ui);
   }
-  trajopt->AddQuadraticCost(R * fixed_timestep / 2, VectorXd::Zero(n_u), uf);
+  trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), xf.tail(n_v));
+  trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), uf);
 
 
 
