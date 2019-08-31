@@ -29,6 +29,9 @@ using drake::MatrixX;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 
+using std::cout;
+using std::endl;
+
 template <typename T>
 DirconAbstractConstraint<T>::DirconAbstractConstraint(int num_constraints, int num_vars,
                                                       const VectorXd& lb,
@@ -70,21 +73,63 @@ void DirconAbstractConstraint<AutoDiffXd>::DoEval(
 template <>
 void DirconAbstractConstraint<double>::DoEval(
     const Eigen::Ref<const AutoDiffVecXd>& x, AutoDiffVecXd* y) const {
-    // forward differencing
-    double dx = 1e-8;
+    // // 1 .forward differencing
+    // double dx = 1e-8;
+
+    // VectorXd x_val = autoDiffToValueMatrix(x);
+    // VectorXd y0,yi;
+    // EvaluateConstraint(x_val,&y0);
+
+    // MatrixXd dy = MatrixXd(y0.size(),x_val.size());
+    // for (int i=0; i < x_val.size(); i++) {
+    //   x_val(i) += dx;
+    //   EvaluateConstraint(x_val,&yi);
+    //   x_val(i) -= dx;
+    //   dy.col(i) = (yi - y0)/dx;
+    // }
+    // drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
+
+    // // 2 .central differencing
+    // double dx = 1e-8;
+
+    // VectorXd x_val = autoDiffToValueMatrix(x);
+    // VectorXd y0,yi;
+    // EvaluateConstraint(x_val,y0);
+
+    // MatrixXd dy = MatrixXd(y0.size(),x_val.size());
+    // for (int i=0; i < x_val.size(); i++) {
+    //   x_val(i) -= dx/2;
+    //   EvaluateConstraint(x_val,y0);
+    //   x_val(i) += dx;
+    //   EvaluateConstraint(x_val,yi);
+    //   x_val(i) -= dx/2;
+    //   dy.col(i) = (yi - y0)/dx;
+    // }
+    // EvaluateConstraint(x_val,y0);
+    // initializeAutoDiffGivenGradientMatrix(y0, dy, y);
+
+    // 3. Higher order finite differencing
+    double eps_ho = 1e-3;
 
     VectorXd x_val = autoDiffToValueMatrix(x);
-    VectorXd y0,yi;
+    VectorXd y0,y1,y2,y3,y4;
     EvaluateConstraint(x_val,&y0);
 
     MatrixXd dy = MatrixXd(y0.size(),x_val.size());
     for (int i=0; i < x_val.size(); i++) {
-      x_val(i) += dx;
-      EvaluateConstraint(x_val,&yi);
-      x_val(i) -= dx;
-      dy.col(i) = (yi - y0)/dx;
+      x_val(i) -= eps_ho/2;
+      EvaluateConstraint(x_val,&y1);
+      x_val(i) += eps_ho/4;
+      EvaluateConstraint(x_val,&y2);
+      x_val(i) += eps_ho/2;
+      EvaluateConstraint(x_val,&y3);
+      x_val(i) += eps_ho/4;
+      EvaluateConstraint(x_val,&y4);
+      x_val(i) -= eps_ho/2;
+      dy.col(i) = (-y4 + 8 * y3 - 8 * y2 + y1) / (3 * eps_ho);
     }
     drake::math::initializeAutoDiffGivenGradientMatrix(y0, dy, *y);
+
 
     // Testing - looking at gradient values
     double max_element = dy(0, 0);
@@ -122,26 +167,6 @@ void DirconAbstractConstraint<double>::DoEval(
     else if (this->get_description().compare("com_height_vel_constraint") == 0) {
       goldilocks_models::writeCSV("com_height_vel_constraint_grad.csv", dy);
     }
-
-
-    // // central differencing
-    // double dx = 1e-8;
-
-    // VectorXd x_val = autoDiffToValueMatrix(x);
-    // VectorXd y0,yi;
-    // EvaluateConstraint(x_val,y0);
-
-    // MatrixXd dy = MatrixXd(y0.size(),x_val.size());
-    // for (int i=0; i < x_val.size(); i++) {
-    //   x_val(i) -= dx/2;
-    //   EvaluateConstraint(x_val,y0);
-    //   x_val(i) += dx;
-    //   EvaluateConstraint(x_val,yi);
-    //   x_val(i) -= dx/2;
-    //   dy.col(i) = (yi - y0)/dx;
-    // }
-    // EvaluateConstraint(x_val,y0);
-    // initializeAutoDiffGivenGradientMatrix(y0, dy, y);
 }
 
 
