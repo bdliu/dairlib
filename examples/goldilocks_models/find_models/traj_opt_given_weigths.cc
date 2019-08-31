@@ -1984,6 +1984,20 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     }
   }
 
+
+  // testing
+  VectorXd w_sol2 = readCSV(directory + init_file).col(0);
+  cout << "\nGetting A, H, y, lb, ub, b.\n";
+  MatrixXd A, H;
+  VectorXd y, lb, ub, b;
+  cout << "LinearizeConstraints...\n";
+  solvers::LinearizeConstraints(
+    *gm_traj_opt.dircon.get(), w_sol2, &y, &A, &lb, &ub);
+
+
+
+
+
   // Testing
   // cout << "Choose the best solver: " <<
   //      drake::solvers::ChooseBestSolver(*(gm_traj_opt.dircon)).name() << endl;

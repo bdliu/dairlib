@@ -132,7 +132,9 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
     AutoDiffVecXd x_val = initializeAutoDiff(x_binding);
 
     // Evaluate constraint and extract gradient
+    cout << "Evaluate constraint and extract gradient\n";
     binding.evaluator()->Eval(x_val, &y_val);
+    cout << "Finished evaluating constraint and extract gradient\n";
     MatrixXd dx = autoDiffToGradientMatrix(y_val);
 
     y->segment(constraint_index, n) = autoDiffToValueMatrix(y_val);
