@@ -10,6 +10,9 @@ using drake::math::initializeAutoDiff;
 using drake::math::autoDiffToGradientMatrix;
 using drake::math::autoDiffToValueMatrix;
 
+using std::cout;
+using std::endl;
+
 namespace dairlib {
 namespace solvers {
 
@@ -105,9 +108,12 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
 
   int constraint_index = 0;
   auto constraints = prog.GetAllConstraints();
-
+  cout << "constraints.size() = " << constraints.size() << endl;
+  int i = 0;
   for (auto const& binding : constraints) {
+    cout << "i = " << i << ": ";
     auto const& c = binding.evaluator();
+    std::cout << c->get_description() << std::endl;
     int n = c->num_constraints();
     lb->segment(constraint_index, n) = c->lower_bound();
     ub->segment(constraint_index, n) = c->upper_bound();
@@ -136,7 +142,9 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
     }
 
     constraint_index += n;
+    i++;
   }
+  std::cout << "end of LinearizeConstraints\n";
 }
 
 /// Helper method, returns a vector of given length

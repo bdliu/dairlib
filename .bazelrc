@@ -50,8 +50,8 @@ build --action_env=CCACHE_DISABLE=1
 
 # build with snopt
 #build --define=WITH_SNOPT=ON  # dairlab's setting
-build --define=WITH_SNOPT_F2C=ON  # using f2c as default
-#build --define=WITH_SNOPT_FORTRAN=ON  # using fortran as default
+#build --define=WITH_SNOPT_F2C=ON  # using f2c as default
+build --define=WITH_SNOPT_FORTRAN=ON  # using fortran as default
 #build:snopt --define=WITH_SNOPT=ON
 # build:snopt_fortran --define=WITH_SNOPT_FORTRAN=ON
 # build:snopt_f2c --define=WITH_SNOPT_F2C=ON

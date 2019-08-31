@@ -227,16 +227,18 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
     *init_file = string("0_0_w.csv");  // Use nominal traj
     // *init_file = string("");  // No initial guess for the first iter
     // *init_file = string("w0.csv");  // w0 as initial guess for the first iter
+
+    // Testing:
+    cout << "testing with manual init file: ";
+    // *init_file = "w0.csv";
+    *init_file = "1_0_w.csv";
+    cout << *init_file << endl;
   }
   else if (!has_been_all_success && !previous_iter_is_success)
     *init_file = to_string(iter) +  "_" +
                  to_string(sample) + string("_w.csv");
   else if (iter == 1) {
     *init_file = string("0_0_w.csv");
-
-    // Testing:
-    cout<< "testing with manual init file\n";
-    *init_file = "w0.csv";
   }
   else
     *init_file = to_string(iter - 1) +  "_" +
@@ -1111,8 +1113,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
               FLAGS_is_add_tau_in_cost,
               sample,
               FLAGS_robot_option);
-          // string_to_be_print = "Finished adding sample #" + to_string(sample) +
-          //                      " to thread # " + to_string(availible_thread_idx.front()) + ".\n";
+          string_to_be_print = "Finished adding sample #" + to_string(sample) +
+                               " to thread # " + to_string(availible_thread_idx.front()) + ".\n";
           // cout << string_to_be_print;
           assigned_thread_idx.push_back(
             std::make_pair(availible_thread_idx.front(), sample));
@@ -1134,6 +1136,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           string_to_be_print = "Thread #" +
                                to_string(thread_to_wait_idx) +
                                " has joined.\n";
+          // cout << string_to_be_print;
 
           availible_thread_idx.push(thread_to_wait_idx);
           assigned_thread_idx.erase(assigned_thread_idx.begin() + selected_idx);
@@ -1157,6 +1160,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
       }  // while(sample < n_sample)
     }  // end if-else (start_with_adjusting_stepsize)
     if (FLAGS_is_debug) break;
+
+    // cout << "Only run for 1 iteration. for testing.\n";
+    // break;
 
     // Logic for how to iterate
     if (samples_are_success && !is_get_nominal) has_been_all_success = true;

@@ -462,15 +462,17 @@ void postProcessing(const VectorXd& w_sol,
   } else {
     // Assume theta is fixed. Get the linear approximation of
     //      // the cosntraints and second order approximation of the cost.
-    // cout << "\nGetting A, H, y, lb, ub, b.\n";
+    cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
+    cout << "LinearizeConstraints...\n";
     solvers::LinearizeConstraints(
       *gm_traj_opt.dircon.get(), w_sol, &y, &A, &lb, &ub);
+    cout << "SecondOrderCost...\n";
     solvers::SecondOrderCost(*gm_traj_opt.dircon.get(), w_sol, &H, &b);
 
     // Get matrix B (~get feature vectors)
-    // cout << "\nGetting B.\n";
+    cout << "\nGetting B.\n";
     int n_theta_s = theta_s.size();
     int n_theta_sDDot = theta_sDDot.size();
     int n_theta = n_theta_s + n_theta_sDDot;
@@ -537,7 +539,7 @@ void postProcessing(const VectorXd& w_sol,
     B_vec->push_back(B);*/
 
     // Store the vectors and matrices
-    // cout << "\nStoring vectors and matrices into csv.\n";
+    cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
@@ -547,7 +549,7 @@ void postProcessing(const VectorXd& w_sol,
     writeCSV(directory + prefix + string("B.csv"), B);
 
     // Store s, ds, dds and tau into csv files
-    // cout << "\nStoring s, ds and dds into csv.\n";
+    cout << "\nStoring s, ds and dds into csv.\n";
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;
@@ -1437,7 +1439,9 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   Vector3d pt_front_contact(-0.0457, 0.112, 0);
   Vector3d pt_rear_contact(0.088, 0, 0);
   bool isXZ = false;
-  Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
+  // Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
+  cout << "Not having any ground incline yet.\n";
+  Eigen::Vector2d ground_rp(0, 0);  // gournd incline in roll pitch
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
                                    pt_front_contact, isXZ, ground_rp);
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
@@ -1992,6 +1996,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   std::chrono::duration<double> elapsed = finish - start;
 
   VectorXd w_sol;
+  cout << "before extractResult\n";
   extractResult(w_sol, gm_traj_opt, result, elapsed,
                 num_time_samples, N,
                 plant, plant_autoDiff,
@@ -2006,6 +2011,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                 extend_model, is_add_tau_in_cost,
                 batch,
                 robot_option);
+  cout << "before postProcessing\n";
   postProcessing(w_sol, gm_traj_opt, result, elapsed,
                  num_time_samples, N,
                  plant, plant_autoDiff,
@@ -2019,6 +2025,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                  extend_model, is_add_tau_in_cost,
                  batch,
                  robot_option);
+  cout << "after postProcessing\n";
 
   // For multithreading purpose. Indicate this function has ended.
   VectorXd thread_finished(1);
@@ -2080,8 +2087,8 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                   is_get_nominal, is_zero_touchdown_impact,
                   extend_model, is_add_tau_in_cost,
                   batch, robot_option);
-
   }
+  cout << "the end of traj_opt_given_weigths\n";
 }
 
 }  // namespace goldilocks_models

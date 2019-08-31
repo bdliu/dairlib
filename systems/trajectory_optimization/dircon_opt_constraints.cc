@@ -32,6 +32,8 @@ using Eigen::MatrixXd;
 using std::cout;
 using std::endl;
 
+int robot_option = 1;  // hard-coded robot options
+
 template <typename T>
 DirconAbstractConstraint<T>::DirconAbstractConstraint(int num_constraints, int num_vars,
                                                       const VectorXd& lb,
@@ -215,7 +217,7 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
 
-  double v_c_scale = 10;
+  double v_c_scale = (robot_option==1)? 10:1;
   // double gamma_scale = 0.002;
 
   // Extract our input variables:
@@ -270,8 +272,8 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
     g.head(4) += xcol.head(4) * gamma;
   }
 
-  double vel_scale = 60;
-  double accel_scale = 20 * vel_scale;
+  double vel_scale = (robot_option==1)? 60:1;
+  double accel_scale = (robot_option==1)? 20 * vel_scale : 1;
   // double toe_scale = 50;
   VectorX<T> output = xdotcol - g;
   output.head(num_positions_) /= vel_scale;
@@ -396,10 +398,10 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
   auto context = multibody::createContext(plant_, state, input);
   constraints_->updateData(*context, force);
 
-  double vel_scale = 10;
-  double accel_scale = 300 * 2;  //300 * 4
+  double vel_scale = (robot_option==1)? 10: 1;
+  double accel_scale = (robot_option==1)? 300*2 : 1;  // 300 * 4
   // An even better scaling is to scale the distance constraint (four-bar linkage).
-  double fourbar_scale = 0.05;
+  double fourbar_scale = (robot_option==1)? 0.05: 1;
 
   switch (type_) {
     case kAll:
@@ -409,7 +411,7 @@ void DirconKinematicConstraint<T>::EvaluateConstraint(
               constraints_->getCDot() / vel_scale,
               constraints_->getCDDot() / accel_scale;
 
-        if (num_kinematic_constraints_ == 8) {
+        if (num_kinematic_constraints_ == 8 && robot_option==1) {
           output.segment(6,2) /= fourbar_scale;
           output.segment(6+8,2) /= fourbar_scale;
           output.segment(6+16,2) /= fourbar_scale * 10;
@@ -490,11 +492,13 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   MatrixX<T> M(num_velocities_, num_velocities_);
   plant_.CalcMassMatrixViaInverseDynamics(*context, &M);
 
-  double accel_scale = 12;
-  double xyz_scale = 50;
+  double accel_scale =  (robot_option==1)? 12 : 1;
+  double xyz_scale =  (robot_option==1)? 50: 1;
   VectorX<T> output = M*(v1 - v0) - constraints_->getJ().transpose()*impulse;
   output /= accel_scale;
-  output.segment(3,3) /= xyz_scale;
+  if (robot_option==1) {
+    output.segment(3,3) /= xyz_scale;
+  }
   *y = output;
 }
 
