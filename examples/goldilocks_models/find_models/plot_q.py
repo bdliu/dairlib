@@ -19,7 +19,10 @@ if len(sys.argv) == 3:
 
 iteration = 1
 batch = 2
-directory = 'data/'
+
+robot_option = 1;  # 0 is five-link robot. 1 is cassie_fixed_spring
+directory = 'data/robot_' + str(robot_option) + '/'
+
 
 fig = plt.figure(1)
 

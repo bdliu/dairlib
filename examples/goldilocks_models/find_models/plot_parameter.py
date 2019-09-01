@@ -27,7 +27,9 @@ name = 'theta_sDDot' # theta_s or theta_sDDot
 if kin_or_dyn == 0:
     name = 'theta_s'
 
-directory = 'data/'
+robot_option = 1;  # 0 is five-link robot. 1 is cassie_fixed_spring
+directory = 'data/robot_' + str(robot_option) + '/'
+
 
 while 1:
     fig1 = plt.figure(1)

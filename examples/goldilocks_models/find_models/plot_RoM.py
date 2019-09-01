@@ -21,7 +21,10 @@ if len(sys.argv) >= 5:
     name_idx = int(sys.argv[4])
 
 batch = 4
-directory = 'data/'
+
+robot_option = 1;  # 0 is five-link robot. 1 is cassie_fixed_spring
+directory = 'data/robot_' + str(robot_option) + '/'
+
 
 name_list = ['s', 'ds', 'dds', 'tau']
 name = name_list[name_idx]
