@@ -71,7 +71,7 @@ DEFINE_int32(robot_option, 1, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 1, "The starting iteration #. 0 is nominal traj.");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
-DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
+DEFINE_bool(is_stochastic, false, "Random tasks or fixed tasks");
 DEFINE_bool(is_debug, false, "Debugging or not");
 DEFINE_bool(start_with_adjusting_stepsize, false, "");
 DEFINE_bool(extend_model, false, "Extend the model in iteration # iter_start "
@@ -171,7 +171,7 @@ void setRomDim(int* n_s, int* n_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
-  *n_s = 2;
+  *n_s = 1;
   *n_tau = 0;
 }
 void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
@@ -192,13 +192,15 @@ void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
   // theta_s(3 + 2 * n_feature_s) = 1;
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
+  // 1D LIPM (fixed height)
+  theta_s(1) = 1;
   // // 2D LIPM
   // theta_s(0) = 1;
   // theta_s(1 + n_feature_s) = 1;
   // theta_sDDot(0) = 1;
   // // 2D LIPM with 2D swing foot
   // theta_s(0) = 1;
-  theta_s(1 + n_feature_s) = 1;
+  // theta_s(1 + n_feature_s) = 1;
   // theta_s(2 + 2 *n_feature_s) = 1;
   // theta_s(3 + 3 * n_feature_s) = 1;
   // theta_sDDot(0) = 1;
@@ -788,6 +790,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
   int N_sample = N_sample_sl * N_sample_gi;  // 1;
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
+  if (FLAGS_robot_option == 1) {
+    stride_length_0 = 0.2;
+  }
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
   double duration;
@@ -849,7 +854,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "is_add_tau_in_cost = " << FLAGS_is_add_tau_in_cost << endl;
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
-  cout << "n_rerun = " << n_rerun << endl;
+  cout << "# of reun after finding a solution = " << n_rerun << endl;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
@@ -874,7 +879,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "\nReduced-order model setting:\n";
   cout << "Warning: Need to make sure that the implementation in "
        "DynamicsExpression agrees with n_s and n_tau.\n";
-  int n_s = 2; //2
+  int n_s = 0; //2
   int n_tau = 0;
   setRomDim(&n_s, &n_tau, FLAGS_robot_option);
   int n_sDDot = n_s; // Assume that are the same (no quaternion)
@@ -1055,7 +1060,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
            " (rerun = " << current_rerun << ") *************" << endl;
     }
     if (iter != 0) {
-      cout << "theta_sDDot.head(10) = " << theta_sDDot.head(10).transpose() << endl;
+      cout << "theta_sDDot.head(6) = " << theta_sDDot.head(6).transpose() << endl;
     }
 
     // setup for each iteration

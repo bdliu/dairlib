@@ -94,7 +94,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
   //            ds(1) * ds(1);
 
   // Version 6: ns = 1, all combinations until quadratic
-  /*if (n_sDDot_ == 1) {
+  if (n_sDDot_ == 1) {
     // DRAKE_DEMAND(n_sDDot_ == 1);
     T feature(6);
     feature << 1,     // constant
@@ -104,7 +104,7 @@ T DynamicsExpression::getFeature(const T & s, const T & ds) const {
             ds(0) * s(0),
             ds(0) * ds(0);
     return feature;
-  }*/
+  }
 
   // Version 7: testing (debug B matrix)
   /*DRAKE_DEMAND(n_sDDot_ == 1);

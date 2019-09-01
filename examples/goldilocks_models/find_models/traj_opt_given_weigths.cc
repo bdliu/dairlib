@@ -1439,9 +1439,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   Vector3d pt_front_contact(-0.0457, 0.112, 0);
   Vector3d pt_rear_contact(0.088, 0, 0);
   bool isXZ = false;
-  // Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
-  cout << "Not having any ground incline yet.\n";
-  Eigen::Vector2d ground_rp(0, 0);  // gournd incline in roll pitch
+  Eigen::Vector2d ground_rp(0, ground_incline);  // gournd incline in roll pitch
   auto left_toe_front_constraint = DirconPositionData<double>(plant, toe_left,
                                    pt_front_contact, isXZ, ground_rp);
   auto left_toe_rear_constraint = DirconPositionData<double>(plant, toe_left,
