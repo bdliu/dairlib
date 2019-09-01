@@ -67,8 +67,8 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-DEFINE_int32(robot_option, 0, "0: plannar robot. 1: cassie_fixed_spring");
-DEFINE_int32(iter_start, 0, "The starting iteration #");
+DEFINE_int32(robot_option, 1, "0: plannar robot. 1: cassie_fixed_spring");
+DEFINE_int32(iter_start, 1, "The starting iteration #. 0 is nominal traj.");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
 DEFINE_bool(is_newton, false, "Newton method or gradient descent");
 DEFINE_bool(is_stochastic, true, "Random tasks or fixed tasks");
@@ -87,6 +87,8 @@ DEFINE_bool(is_zero_touchdown_impact, false,
 DEFINE_bool(is_add_tau_in_cost, true, "Add RoM input in the cost function");
 DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
+DEFINE_int32(n_rerun, -1, "snopt might settle down at a bad sub-optimal"
+             " solution, so we rerun");
 
 DEFINE_int32(N_sample_sl, 1, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
@@ -818,6 +820,16 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
   bool is_stochastic = FLAGS_is_stochastic;
+  int n_rerun;
+  if (FLAGS_n_rerun > -1) {
+    n_rerun = FLAGS_n_rerun;
+  } else {
+    if (FLAGS_robot_option == 1) {
+      n_rerun = 1;
+    } else {
+      n_rerun = 0;
+    }
+  }
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;
@@ -825,6 +837,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "is_add_tau_in_cost = " << FLAGS_is_add_tau_in_cost << endl;
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
+  cout << "n_rerun = " << n_rerun << endl;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
@@ -986,6 +999,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
     cout << "current_iter_step_size = " << current_iter_step_size << endl;
   }
 
+  int current_rerun = 0;
+
   cout << endl;
   bool extend_model = FLAGS_extend_model;
   int extend_model_iter = (FLAGS_extend_model_iter == -1) ?
@@ -1021,9 +1036,15 @@ int findGoldilocksModels(int argc, char* argv[]) {
     auto end = std::chrono::system_clock::now();
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
     cout << "Current time: " << std::ctime(&end_time);
-    cout << "************ Iteration " << iter << " *************" << endl;
-    if (iter != 0)
+    if (current_rerun == 0) {
+      cout << "************ Iteration " << iter << " *************" << endl;
+    } else {
+      cout << "************ Iteration " << iter <<
+           " (rerun = " << current_rerun << ") *************" << endl;
+    }
+    if (iter != 0){
       cout << "theta_sDDot.head(10) = " << theta_sDDot.head(10).transpose() << endl;
+    }
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
@@ -1241,8 +1262,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
           theta_s = theta.head(n_theta_s);
           theta_sDDot = theta.tail(n_theta_sDDot);
         }
-      }
-      else {
+      } else if (current_rerun < n_rerun) {
+        current_rerun++;
+        iter -= 1;
+        has_been_all_success = false;
+        previous_iter_is_success = false;
+      } else {
+        current_rerun = 0;
+
         // Extract active and independent constraints (multithreading)
         vector<std::thread *> threads(std::min(CORES, n_succ_sample));
         cout << "Extracting active and independent rows of A...\n";

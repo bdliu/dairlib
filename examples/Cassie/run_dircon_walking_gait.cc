@@ -947,20 +947,18 @@ void DoMain(double stride_length,
   vector<double> max_dt;
   vector<DirconKinematicDataSet<double>*> dataset_list;
   vector<DirconOptions> options_list;
-  if (walking_mode == 2) {
-    num_time_samples.push_back(10);
-  } else {
-    num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
-  }
+  // num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
   // Be careful that the nodes per second cannot be too high be cause you have
   // min_dt bound.
   min_dt.push_back(.01);
   max_dt.push_back(.3);
   if (standing) {  // standing
+    num_time_samples.push_back(int(40.0 * duration));  // 40 nodes per second
     dataset_list.push_back(&double_all_dataset);
     options_list.push_back(double_all_options);
   } else {  // walking
     if (walking_mode == 0) {
+      num_time_samples.push_back(8); //16 for 0.4 second
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
 
@@ -971,11 +969,12 @@ void DoMain(double stride_length,
       dataset_list.push_back(&right_ht_dataset);
       options_list.push_back(right_ht_options);
     } else if (walking_mode == 1) {  // walking with double support transition
+      num_time_samples.push_back(16);
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
 
       // second phase
-      num_time_samples.push_back(int(10.0 * duration));
+      num_time_samples.push_back(4);
       min_dt.push_back(.01);
       max_dt.push_back(.3);
       dataset_list.push_back(&double_all_dataset);
@@ -988,6 +987,7 @@ void DoMain(double stride_length,
       dataset_list.push_back(&right_ht_dataset);
       options_list.push_back(right_ht_options);
     } else if (walking_mode == 2) {  // walking with heel to toe transition
+      num_time_samples.push_back(10);
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
 
