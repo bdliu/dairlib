@@ -97,14 +97,7 @@ DEFINE_double(major_feasibility_tol, 1e-4,
               "nonlinear constraint violation tol");
 DEFINE_int32(max_inner_iter, 1000, "Max iteration # for traj opt");
 DEFINE_int32(max_outer_iter, 10000, "Max iteration # for theta update");
-DEFINE_double(h_step, 1e-4, "The step size for outer loop");
-//                 // After adding tau
-//                 // 1e-4 doesn't diverge
-//                 // 1e-3 diverges
-//                 // Before adding tau
-//                 // 1e-3 is small enough to avoid gittering at the end
-//                 // 1e-2 is a good compromise on both speed and gittering
-//                 // 1e-1 caused divergence when close to optimal sol
+DEFINE_double(h_step, -1, "The step size for outer loop");
 DEFINE_double(eps_regularization, 1e-8, "Weight of regularization term"); //1e-4
 
 // Not sure why using the below function caused a problem.
@@ -815,7 +808,26 @@ int findGoldilocksModels(int argc, char* argv[]) {
   int iter_start = FLAGS_iter_start;
   int max_outer_iter = FLAGS_max_outer_iter;
   double stopping_threshold = 1e-4;
-  double h_step = FLAGS_h_step;
+  double h_step;
+  if (FLAGS_h_step > 0) {
+    h_step = FLAGS_h_step;
+  } else {
+    h_step = 1e-3;
+    if (FLAGS_robot_option == 0) {
+      // After adding tau
+      // 1e-4 doesn't diverge
+      // 1e-3 diverges
+      // Before adding tau
+      // 1e-3 is small enough to avoid gittering at the end
+      // 1e-2 is a good compromise on both speed and gittering
+      // 1e-1 caused divergence when close to optimal sol
+      h_step = 1e-4;
+    } else if (FLAGS_robot_option) {
+      // Without tau:
+      //  1e-4: doesn't always decrease with a fixed task
+      h_step = 3e-5;
+    }
+  }
   double eps_regularization = FLAGS_eps_regularization;
   double indpt_row_tol = 1e-6;//1e-6
   bool is_newton = FLAGS_is_newton;
@@ -1042,7 +1054,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "************ Iteration " << iter <<
            " (rerun = " << current_rerun << ") *************" << endl;
     }
-    if (iter != 0){
+    if (iter != 0) {
       cout << "theta_sDDot.head(10) = " << theta_sDDot.head(10).transpose() << endl;
     }
 
