@@ -507,10 +507,12 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
   }
 
   // Only add the rows that are linearly independent
-  // cout << "Start extracting independent rows of A\n";
+  cout << "Start extracting independent rows of A\n";
   vector<int> full_row_rank_idx;
   full_row_rank_idx.push_back(0);
   for (int i = 1; i < nl_i; i++) {
+    // cout << "total i = " << nl_i;
+    // cout << ", i = " << i << endl;
     // Construct test matrix
     int n_current_rows = full_row_rank_idx.size();
     MatrixXd A_test(n_current_rows + 1, nw_i);
@@ -527,7 +529,7 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
       full_row_rank_idx.push_back(i);
     }
   }
-  // cout << "Finished extracting independent rows of A\n\n";
+  cout << "Finished extracting independent rows of A\n\n";
 
   nl_i = full_row_rank_idx.size();
 

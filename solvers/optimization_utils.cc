@@ -108,12 +108,11 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
 
   int constraint_index = 0;
   auto constraints = prog.GetAllConstraints();
-  cout << "constraints.size() = " << constraints.size() << endl;
   int i = 0;
   for (auto const& binding : constraints) {
-    cout << "i = " << i << ": ";
+    // cout << "i = " << i << ": ";
     auto const& c = binding.evaluator();
-    std::cout << c->get_description() << std::endl;
+    // std::cout << c->get_description() << std::endl;
     int n = c->num_constraints();
     lb->segment(constraint_index, n) = c->lower_bound();
     ub->segment(constraint_index, n) = c->upper_bound();
@@ -121,8 +120,18 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
     auto variables = binding.variables();
 
     // Initialize AutoDiff vector for result
+    // Warning: there is a bug in initializeAutoDiff.
+    // You cannot use it if gradient.rows() > gradient.cols(). (it'll write outside the range)
+    // AutoDiffVecXd y_val = initializeAutoDiff(
+    //     VectorXd::Zero(c->num_constraints()), variables.size());
+    // if (c->num_constraints() > variables.size()) {
+    //   cout << c->get_description() << " has thin-tall jacobian matrix.\n";
+    // }
     AutoDiffVecXd y_val = initializeAutoDiff(
-        VectorXd::Zero(c->num_constraints()), variables.size());
+      VectorXd::Zero(c->num_constraints()));
+    MatrixXd grad = MatrixXd::Zero(c->num_constraints(),variables.size());
+    drake::math::initializeAutoDiffGivenGradientMatrix(
+        VectorXd::Zero(c->num_constraints()), grad, y_val);
 
     // Extract subset of decision variable vector
     VectorXd x_binding(variables.size());
@@ -132,11 +141,7 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
     AutoDiffVecXd x_val = initializeAutoDiff(x_binding);
 
     // Evaluate constraint and extract gradient
-    cout << "Evaluate constraint and extract gradient\n";
-    cout << "x_val.size() = " << x_val.size() << endl;
-    cout << "y_val.size() = " << y_val.size() << endl;
     binding.evaluator()->Eval(x_val, &y_val);
-    cout << "Finished evaluating constraint and extract gradient\n";
     MatrixXd dx = autoDiffToGradientMatrix(y_val);
 
     y->segment(constraint_index, n) = autoDiffToValueMatrix(y_val);
@@ -145,13 +150,9 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
           prog.FindDecisionVariableIndex(variables(i)), n, 1) = dx.col(i);
     }
 
-    cout << "Finished assigning to A\n";
-
     constraint_index += n;
     i++;
-    cout << "The end of for loop\n";
   }
-  std::cout << "end of LinearizeConstraints\n";
 }
 
 /// Helper method, returns a vector of given length

@@ -462,17 +462,17 @@ void postProcessing(const VectorXd& w_sol,
   } else {
     // Assume theta is fixed. Get the linear approximation of
     //      // the cosntraints and second order approximation of the cost.
-    cout << "\nGetting A, H, y, lb, ub, b.\n";
+    // cout << "\nGetting A, H, y, lb, ub, b.\n";
     MatrixXd A, H;
     VectorXd y, lb, ub, b;
-    cout << "LinearizeConstraints...\n";
+    // cout << "LinearizeConstraints...\n";
     solvers::LinearizeConstraints(
       *gm_traj_opt.dircon.get(), w_sol, &y, &A, &lb, &ub);
-    cout << "SecondOrderCost...\n";
+    // cout << "SecondOrderCost...\n";
     solvers::SecondOrderCost(*gm_traj_opt.dircon.get(), w_sol, &H, &b);
 
     // Get matrix B (~get feature vectors)
-    cout << "\nGetting B.\n";
+    // cout << "\nGetting B.\n";
     int n_theta_s = theta_s.size();
     int n_theta_sDDot = theta_sDDot.size();
     int n_theta = n_theta_s + n_theta_sDDot;
@@ -539,7 +539,7 @@ void postProcessing(const VectorXd& w_sol,
     B_vec->push_back(B);*/
 
     // Store the vectors and matrices
-    cout << "\nStoring vectors and matrices into csv.\n";
+    // cout << "\nStoring vectors and matrices into csv.\n";
     writeCSV(directory + prefix + string("H.csv"), H);
     writeCSV(directory + prefix + string("b.csv"), b);
     writeCSV(directory + prefix + string("A.csv"), A);
@@ -549,7 +549,7 @@ void postProcessing(const VectorXd& w_sol,
     writeCSV(directory + prefix + string("B.csv"), B);
 
     // Store s, ds, dds and tau into csv files
-    cout << "\nStoring s, ds and dds into csv.\n";
+    // cout << "\nStoring s, ds and dds into csv.\n";
     std::vector<VectorXd> s_vec;
     std::vector<VectorXd> ds_vec;
     std::vector<VectorXd> dds_vec;
@@ -1913,7 +1913,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), x0.tail(n_v));
   trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
-    auto xi = trajopt->state(i);
+    // auto xi = trajopt->state(i);
     auto ui = trajopt->input(i);
     // trajopt->AddQuadraticCost(Q * fixed_dt, VectorXd::Zero(n_v), xi.tail(n_v));
     trajopt->AddQuadraticCost(R * fixed_dt, VectorXd::Zero(n_u), ui);
@@ -1984,20 +1984,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     }
   }
 
-
-  // testing
-  VectorXd w_sol2 = readCSV(directory + init_file).col(0);
-  cout << "\nGetting A, H, y, lb, ub, b.\n";
-  MatrixXd A, H;
-  VectorXd y, lb, ub, b;
-  cout << "LinearizeConstraints...\n";
-  solvers::LinearizeConstraints(
-    *gm_traj_opt.dircon.get(), w_sol2, &y, &A, &lb, &ub);
-
-
-
-
-
   // Testing
   // cout << "Choose the best solver: " <<
   //      drake::solvers::ChooseBestSolver(*(gm_traj_opt.dircon)).name() << endl;
@@ -2010,7 +1996,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   std::chrono::duration<double> elapsed = finish - start;
 
   VectorXd w_sol;
-  cout << "before extractResult\n";
   extractResult(w_sol, gm_traj_opt, result, elapsed,
                 num_time_samples, N,
                 plant, plant_autoDiff,
@@ -2025,7 +2010,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                 extend_model, is_add_tau_in_cost,
                 batch,
                 robot_option);
-  cout << "before postProcessing\n";
   postProcessing(w_sol, gm_traj_opt, result, elapsed,
                  num_time_samples, N,
                  plant, plant_autoDiff,
@@ -2039,7 +2023,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                  extend_model, is_add_tau_in_cost,
                  batch,
                  robot_option);
-  cout << "after postProcessing\n";
 
   // For multithreading purpose. Indicate this function has ended.
   VectorXd thread_finished(1);
@@ -2102,7 +2085,6 @@ void trajOptGivenWeights(const MultibodyPlant<double> & plant,
                   extend_model, is_add_tau_in_cost,
                   batch, robot_option);
   }
-  cout << "the end of traj_opt_given_weigths\n";
 }
 
 }  // namespace goldilocks_models
