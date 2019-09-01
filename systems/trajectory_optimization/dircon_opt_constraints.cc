@@ -79,7 +79,8 @@ void DirconAbstractConstraint<double>::DoEval(
     double dx = 1e-8;
 
     VectorXd x_val = autoDiffToValueMatrix(x);
-    VectorXd y0,yi;
+    VectorXd y0(this->num_constraints());
+    VectorXd yi(this->num_constraints());
     EvaluateConstraint(x_val,&y0);
 
     MatrixXd dy = MatrixXd(y0.size(),x_val.size());

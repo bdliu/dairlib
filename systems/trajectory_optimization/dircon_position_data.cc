@@ -104,9 +104,9 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
     A_fric << (mu*normal_xz + d_xz).transpose(),
               (mu*normal_xz - d_xz).transpose();
 
-    Vector2d lb_fric = Vector2d::Zero();
-    Vector2d ub_fric = Vector2d::Constant(
-        std::numeric_limits<double>::infinity());
+    // Vector2d lb_fric = Vector2d::Zero();
+    // Vector2d ub_fric = Vector2d::Constant(
+    //     std::numeric_limits<double>::infinity());
 
     // auto force_constraint = std::make_shared<drake::solvers::LinearConstraint>(
     //     A_fric, lb_fric, ub_fric);
@@ -125,10 +125,10 @@ void DirconPositionData<T>::addFixedNormalFrictionConstraints(Vector3d normal,
 
   } else {
     // builds a basis from the normal
-    const Matrix3d basis = drake::math::ComputeBasisFromAxis(2, normal);
-    Matrix3d A_fric;
-    A_fric << mu*normal.transpose(), basis.block(0, 1, 3, 2).transpose();
-    Vector3d b_fric = Vector3d::Zero();
+    // const Matrix3d basis = drake::math::ComputeBasisFromAxis(2, normal);
+    // Matrix3d A_fric;
+    // A_fric << mu*normal.transpose(), basis.block(0, 1, 3, 2).transpose();
+    // Vector3d b_fric = Vector3d::Zero();
     // auto force_constraint =
     //     std::make_shared<drake::solvers::LorentzConeConstraint>(A_fric, b_fric);
     // this->force_constraints_.push_back(force_constraint);

@@ -133,6 +133,8 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
 
     // Evaluate constraint and extract gradient
     cout << "Evaluate constraint and extract gradient\n";
+    cout << "x_val.size() = " << x_val.size() << endl;
+    cout << "y_val.size() = " << y_val.size() << endl;
     binding.evaluator()->Eval(x_val, &y_val);
     cout << "Finished evaluating constraint and extract gradient\n";
     MatrixXd dx = autoDiffToGradientMatrix(y_val);
@@ -143,8 +145,11 @@ void LinearizeConstraints(const MathematicalProgram& prog, const VectorXd& x,
           prog.FindDecisionVariableIndex(variables(i)), n, 1) = dx.col(i);
     }
 
+    cout << "Finished assigning to A\n";
+
     constraint_index += n;
     i++;
+    cout << "The end of for loop\n";
   }
   std::cout << "end of LinearizeConstraints\n";
 }

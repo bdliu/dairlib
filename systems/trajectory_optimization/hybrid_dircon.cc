@@ -150,7 +150,8 @@ HybridDircon<T>::HybridDircon(
       for (int j = 0; j < constraints_[i]->getNumConstraintObjects(); j++) {
         DirconKinematicData<T>* constraint_j = constraints_[i]->getConstraint(j);
         for (int k = 0; k < constraint_j->numForceConstraints(); k++) {
-          AddConstraint(constraint_j->getForceConstraint(k), force_vars(i).segment(start_index, constraint_j->getLength()));
+          auto binding = AddConstraint(constraint_j->getForceConstraint(k), force_vars(i).segment(start_index, constraint_j->getLength()));
+          binding.evaluator()->set_description("force_constraint_"+std::to_string(j)+"_"+std::to_string(k));
         }
         start_index += constraint_j->getLength();
       }
