@@ -641,15 +641,13 @@ class ComHeightVelConstraint : public DirconAbstractConstraint<double> {
 class LeftFootYConstraint : public DirconAbstractConstraint<double> {
  public:
   LeftFootYConstraint(const MultibodyPlant<double>* plant,
-                      BodyIndex body_index,
                       vector<double> var_scale) :
     DirconAbstractConstraint<double>(
-      1, plant->num_positions() + plant->num_velocities(),
+      1, plant->num_positions(),
       VectorXd::Ones(1) * 0.03,
       VectorXd::Ones(1) * std::numeric_limits<double>::infinity(),
       "left_foot_constraint"),
     plant_(plant),
-    n_q_(plant->num_positions()),
     body_(plant->GetBodyByName("toe_left")),
     quaternion_scale_(var_scale[4]) {
   }
@@ -657,7 +655,7 @@ class LeftFootYConstraint : public DirconAbstractConstraint<double> {
 
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
                           drake::VectorX<double>* y) const override {
-    VectorXd q = x.head(n_q_);
+    VectorXd q = x;
     q.head(4) *= quaternion_scale_;
 
     std::unique_ptr<drake::systems::Context<double>> context =
@@ -668,26 +666,23 @@ class LeftFootYConstraint : public DirconAbstractConstraint<double> {
     this->plant_->CalcPointsPositions(*context,
                                       body_.body_frame(), Vector3d::Zero(),
                                       plant_->world_frame(), &pt);
-    *y = pt.segment(1,1);
+    *y = pt.segment(1, 1);
   };
  private:
   const MultibodyPlant<double>* plant_;
-  int n_q_;
   const drake::multibody::Body<double>& body_;
   double quaternion_scale_;
 };
 class RightFootYConstraint : public DirconAbstractConstraint<double> {
  public:
   RightFootYConstraint(const MultibodyPlant<double>* plant,
-                      BodyIndex body_index,
-                      vector<double> var_scale) :
+                       vector<double> var_scale) :
     DirconAbstractConstraint<double>(
-      1, plant->num_positions() + plant->num_velocities(),
+      1, plant->num_positions(),
       VectorXd::Ones(1) * (-std::numeric_limits<double>::infinity()),
       VectorXd::Ones(1) * (-0.03),
       "right_foot_constraint"),
     plant_(plant),
-    n_q_(plant->num_positions()),
     body_(plant->GetBodyByName("toe_right")),
     quaternion_scale_(var_scale[4]) {
   }
@@ -695,11 +690,7 @@ class RightFootYConstraint : public DirconAbstractConstraint<double> {
 
   void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
                           drake::VectorX<double>* y) const override {
-    // testing
-    cout << VectorXd::Ones(1) * (-std::numeric_limits<double>::infinity()) << endl;
-
-
-    VectorXd q = x.head(n_q_);
+    VectorXd q = x;
     q.head(4) *= quaternion_scale_;
 
     std::unique_ptr<drake::systems::Context<double>> context =
@@ -710,11 +701,10 @@ class RightFootYConstraint : public DirconAbstractConstraint<double> {
     this->plant_->CalcPointsPositions(*context,
                                       body_.body_frame(), Vector3d::Zero(),
                                       plant_->world_frame(), &pt);
-    *y = pt.segment(1,1);
+    *y = pt.segment(1, 1);
   };
  private:
   const MultibodyPlant<double>* plant_;
-  int n_q_;
   const drake::multibody::Body<double>& body_;
   double quaternion_scale_;
 };
@@ -1258,6 +1248,21 @@ void DoMain(double stride_length,
   //   trajopt->AddConstraint(com_vel_constraint, x);
   // }
 
+
+  cout << "Adding left foot constraint in y direction\n";
+  auto left_foot_constraint = std::make_shared<LeftFootYConstraint>(
+                                &plant, var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(left_foot_constraint, x.head(n_q));
+  }
+  cout << "Adding right foot constraint in y direction\n";
+  auto right_foot_constraint = std::make_shared<RightFootYConstraint>(
+                                &plant, var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
+  }
 
 
   // Periodicity constraints
