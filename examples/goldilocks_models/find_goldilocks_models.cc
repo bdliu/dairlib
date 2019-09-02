@@ -506,6 +506,7 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
   }
 
   // Only add the rows that are linearly independent
+  cout << "n_w = " << nw_i << endl;
   cout << "Start extracting independent rows of A (# of rows = " << nl_i << ")\n";
   vector<int> full_row_rank_idx;
   full_row_rank_idx.push_back(0);
@@ -526,6 +527,11 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
     // double sigular_value = svd.singularValues()(n_current_rows);
     if (svd.singularValues()(n_current_rows) > indpt_row_tol) {
       full_row_rank_idx.push_back(i);
+    }
+
+    if (full_row_rank_idx.size() == nw_i) {
+      cout << "# of A's row is the same as the # of col. So stop adding rows.\n";
+      break;
     }
   }
   nl_i = full_row_rank_idx.size();

@@ -218,8 +218,8 @@ void DirconDynamicConstraint<T>::EvaluateConstraint(
   DRAKE_ASSERT(x.size() == 1 + (2 * num_states_) + (2 * num_inputs_) +
       4*(num_kinematic_constraints_) + num_quat_slack_);
 
-  double v_c_scale = (robot_option==1)? 10:1;
-  // double gamma_scale = 0.002;
+  double v_c_scale = (robot_option==1)? 0.1:1; // 10
+  // double gamma_scale = 0.01;
 
   // Extract our input variables:
   // h - current time (knot) value
@@ -468,6 +468,10 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
     const Eigen::Ref<const VectorX<T>>& x, VectorX<T>* y) const {
   DRAKE_ASSERT(x.size() == 2 * num_velocities_ + num_positions_ +
                            num_kinematic_constraints_);
+  double impluse_scale = 1;
+  if (robot_option==1) {
+    impluse_scale = 0.1;
+  }
 
   // Extract our input variables:
   // x0, state vector at time k^-
@@ -477,7 +481,7 @@ void DirconImpactConstraint<T>::EvaluateConstraint(
   x0 << x.segment(0, 4) * quaternion_scale_,
         x.segment(4, num_positions_ - 4),
         x.segment(num_positions_, num_velocities_)*omega_scale_;
-  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)/**force_scale_*/;
+  const VectorX<T> impulse = x.segment(num_states_, num_kinematic_constraints_)*impluse_scale;
   const VectorX<T> v1 = x.segment(num_states_ + num_kinematic_constraints_,
                             num_velocities_)*omega_scale_;
 

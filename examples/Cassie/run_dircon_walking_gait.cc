@@ -638,6 +638,86 @@ class ComHeightVelConstraint : public DirconAbstractConstraint<double> {
   double composite_mass_;
 };
 
+class LeftFootYConstraint : public DirconAbstractConstraint<double> {
+ public:
+  LeftFootYConstraint(const MultibodyPlant<double>* plant,
+                      BodyIndex body_index,
+                      vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions() + plant->num_velocities(),
+      VectorXd::Ones(1) * 0.03,
+      VectorXd::Ones(1) * std::numeric_limits<double>::infinity(),
+      "left_foot_constraint"),
+    plant_(plant),
+    n_q_(plant->num_positions()),
+    body_(plant->GetBodyByName("toe_left")),
+    quaternion_scale_(var_scale[4]) {
+  }
+  ~LeftFootYConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x.head(n_q_);
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = pt.segment(1,1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  int n_q_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+};
+class RightFootYConstraint : public DirconAbstractConstraint<double> {
+ public:
+  RightFootYConstraint(const MultibodyPlant<double>* plant,
+                      BodyIndex body_index,
+                      vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions() + plant->num_velocities(),
+      VectorXd::Ones(1) * (-std::numeric_limits<double>::infinity()),
+      VectorXd::Ones(1) * (-0.03),
+      "right_foot_constraint"),
+    plant_(plant),
+    n_q_(plant->num_positions()),
+    body_(plant->GetBodyByName("toe_right")),
+    quaternion_scale_(var_scale[4]) {
+  }
+  ~RightFootYConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    // testing
+    cout << VectorXd::Ones(1) * (-std::numeric_limits<double>::infinity()) << endl;
+
+
+    VectorXd q = x.head(n_q_);
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = pt.segment(1,1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  int n_q_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+};
 
 void DoMain(double stride_length,
             double ground_incline,
@@ -734,14 +814,14 @@ void DoMain(double stride_length,
   int n_v = plant.num_velocities();
   int n_u = plant.num_actuators();
   // int n_x = n_q + n_v;
-  cout << "n_q = " << n_q << "\n";
-  cout << "n_v = " << n_v << "\n";
+  // cout << "n_q = " << n_q << "\n";
+  // cout << "n_v = " << n_v << "\n";
   // cout << "n_x = " << n_x << "\n";
   // cout << "n_u = " << n_u << "\n";
-  cout << "floating_positions_start = " <<
-       plant.GetBodyByName("pelvis").floating_positions_start() << endl;
-  cout << "floating_velocities_start = " <<
-       plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
+  // cout << "floating_positions_start = " <<
+  //      plant.GetBodyByName("pelvis").floating_positions_start() << endl;
+  // cout << "floating_velocities_start = " <<
+  //      plant.GetBodyByName("pelvis").floating_velocities_start() << endl;
 
   // Set up contact/distance constraints and construct dircon
   // parameters
@@ -1033,6 +1113,7 @@ void DoMain(double stride_length,
     }
     cout << endl;
   }
+  cout << endl;
 
   auto trajopt = std::make_shared<HybridDircon<double>>(plant,
                  num_time_samples, min_dt, max_dt, dataset_list, options_list,
@@ -1162,18 +1243,20 @@ void DoMain(double stride_length,
 
   // Testing - fix com height during walking (only the first mode)
   // The purpose is to get a good seed for RoM traj opt
-  auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
-  for (int index = 0; index < num_time_samples[0] - 1; index++) {
-    auto x0 = trajopt->state(index);
-    auto x1 = trajopt->state(index + 1);
-    trajopt->AddConstraint(com_constraint, {x0, x1});
-  }
-  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
-                            var_scale);
-  for (int index = 0; index < num_time_samples[0]; index++) {
-    auto x = trajopt->state(index);
-    trajopt->AddConstraint(com_vel_constraint, x);
-  }
+  // cout << "Adding COM position constraint\n";
+  // auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
+  // for (int index = 0; index < num_time_samples[0] - 1; index++) {
+  //   auto x0 = trajopt->state(index);
+  //   auto x1 = trajopt->state(index + 1);
+  //   trajopt->AddConstraint(com_constraint, {x0, x1});
+  // }
+  // cout << "Adding COM velocity constraint\n";
+  // auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+  //                           var_scale);
+  // for (int index = 0; index < num_time_samples[0]; index++) {
+  //   auto x = trajopt->state(index);
+  //   trajopt->AddConstraint(com_vel_constraint, x);
+  // }
 
 
 
@@ -1476,7 +1559,7 @@ void DoMain(double stride_length,
   // trajopt->AddQuadraticCost(Q * fixed_dt / 2, VectorXd::Zero(n_v), x0.tail(n_v));
   trajopt->AddQuadraticCost(R * fixed_dt / 2, VectorXd::Zero(n_u), u0);
   for (int i = 1; i <= N - 2; i++) {
-    auto xi = trajopt->state(i);
+    // auto xi = trajopt->state(i);
     auto ui = trajopt->input(i);
     // trajopt->AddQuadraticCost(Q * fixed_dt, VectorXd::Zero(n_v), xi.tail(n_v));
     trajopt->AddQuadraticCost(R * fixed_dt, VectorXd::Zero(n_u), ui);
