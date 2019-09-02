@@ -363,6 +363,8 @@ void extendModel(string dir, int iter, int n_feature_s,
   B_tau.block(B_tau_old.rows(), B_tau_old.cols(), n_extend, n_extend) =
     MatrixXd::Identity(n_extend, n_extend);
   cout << "Updated B_tau = \n" << B_tau << endl;
+  writeCSV(dir + string("B_tau (before extension).csv"), B_tau_old);
+  writeCSV(dir + string("B_tau.csv"), B_tau);
   // update theta_s
   string prefix = to_string(iter) +  "_";
   writeCSV(dir + prefix + string("theta_s (before extension).csv"),
@@ -886,8 +888,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   setRomBMatrix(&B_tau, FLAGS_robot_option);
   cout << "n_s = " << n_s << ", n_tau = " << n_tau << endl;
   cout << "B_tau = \n" << B_tau << endl;
-  prefix = "";
-  writeCSV(dir + prefix + string("B_tau.csv"), B_tau);
+  writeCSV(dir + string("B_tau.csv"), B_tau);
 
   // Reduced order model setup
   KinematicsExpression<double> kin_expression(n_s, 0, &plant, FLAGS_robot_option);
@@ -1048,6 +1049,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
   // Start the gradient descent
   int iter;
   for (iter = iter_start; iter <= max_outer_iter; iter++)  {
+    // For testing
+    // if (iter == 2) break;
+
     // Print info about iteration # and current time
     auto end = std::chrono::system_clock::now();
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
