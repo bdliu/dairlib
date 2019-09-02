@@ -1392,10 +1392,6 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                    bool is_add_tau_in_cost,
                    int batch,
                    int robot_option) {
-
-  cout << "Testing. stride_length = 0.2\n";
-  stride_length = 0.2;
-
   // Extract var_scale
   double omega_scale = var_scale[0];
   double input_scale = var_scale[1];

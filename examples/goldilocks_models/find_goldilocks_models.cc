@@ -171,7 +171,7 @@ void setRomDim(int* n_s, int* n_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
-  *n_s = 1;
+  *n_s = 2;
   *n_tau = 0;
 }
 void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
@@ -193,11 +193,11 @@ void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
   // theta_s(2) = 1; // LIPM
   // theta_sDDot(0) = 1;
   // 1D LIPM (fixed height)
-  theta_s(1) = 1;
+  // theta_s(1) = 1;
   // // 2D LIPM
-  // theta_s(0) = 1;
-  // theta_s(1 + n_feature_s) = 1;
-  // theta_sDDot(0) = 1;
+  theta_s(0) = 1;
+  theta_s(1 + n_feature_s) = 1;
+  theta_sDDot(0) = 1;
   // // 2D LIPM with 2D swing foot
   // theta_s(0) = 1;
   // theta_s(1 + n_feature_s) = 1;
@@ -504,7 +504,7 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
   }
 
   // Only add the rows that are linearly independent
-  cout << "Start extracting independent rows of A\n";
+  cout << "Start extracting independent rows of A (# of rows = " << nl_i << ")\n";
   vector<int> full_row_rank_idx;
   full_row_rank_idx.push_back(0);
   for (int i = 1; i < nl_i; i++) {
@@ -526,9 +526,8 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
       full_row_rank_idx.push_back(i);
     }
   }
-  cout << "Finished extracting independent rows of A\n\n";
-
   nl_i = full_row_rank_idx.size();
+  cout << "Finished extracting independent rows of A (# of rows = " << nl_i << ")\n\n";
 
   // Assign the rows
   MatrixXd A_full_row_rank(nl_i, nw_i);
@@ -830,7 +829,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     } else if (FLAGS_robot_option) {
       // Without tau:
       //  1e-4: doesn't always decrease with a fixed task
-      h_step = 3e-5;
+      h_step = 1e-5;
     }
   }
   double eps_regularization = FLAGS_eps_regularization;

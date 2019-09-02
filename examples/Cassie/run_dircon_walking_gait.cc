@@ -114,6 +114,8 @@ DEFINE_double(input_scale, 100, "Variable scaling");
 DEFINE_double(force_scale, 1000, "Variable scaling");
 DEFINE_double(time_scale, 0.008, "Variable scaling");
 DEFINE_double(quaternion_scale, 0.5, "Variable scaling");
+DEFINE_double(tol, 1e-4,
+              "Tolerance for constraint violation and dual gap");
 
 namespace dairlib {
 
@@ -647,7 +649,8 @@ void DoMain(double stride_length,
             double input_scale,
             double force_scale,
             double time_scale,
-            double quaternion_scale) {
+            double quaternion_scale,
+            double tol) {
   drake::systems::DiagramBuilder<double> builder;
   SceneGraph<double>& scene_graph = *builder.AddSystem<SceneGraph>();
   scene_graph.set_name("scene_graph");
@@ -958,7 +961,7 @@ void DoMain(double stride_length,
     options_list.push_back(double_all_options);
   } else {  // walking
     if (walking_mode == 0) {
-      num_time_samples.push_back(8); //16 for 0.4 second
+      num_time_samples.push_back(16); //16 for 0.4 second
       dataset_list.push_back(&left_ht_dataset);
       options_list.push_back(left_ht_options);
 
@@ -1047,9 +1050,9 @@ void DoMain(double stride_length,
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(), "Scale option",
                            2);  // 0 // snopt doc said try 2 if seeing snopta exit 40
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major optimality tolerance", 1e-4);  // target nonlinear constraint violation
+                           "Major optimality tolerance", tol);  // target nonlinear constraint violation
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major feasibility tolerance", 1e-4);  // target complementarity gap
+                           "Major feasibility tolerance", tol);  // target complementarity gap
 
   int N = 0;
   for (uint i = 0; i < num_time_samples.size(); i++)
@@ -1165,7 +1168,8 @@ void DoMain(double stride_length,
     auto x1 = trajopt->state(index + 1);
     trajopt->AddConstraint(com_constraint, {x0, x1});
   }
-  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant, var_scale);
+  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+                            var_scale);
   for (int index = 0; index < num_time_samples[0]; index++) {
     auto x = trajopt->state(index);
     trajopt->AddConstraint(com_vel_constraint, x);
@@ -1701,5 +1705,6 @@ int main(int argc, char* argv[]) {
                   FLAGS_input_scale,
                   FLAGS_force_scale,
                   FLAGS_time_scale,
-                  FLAGS_quaternion_scale);
+                  FLAGS_quaternion_scale,
+                  FLAGS_tol);
 }
