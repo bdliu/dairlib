@@ -107,7 +107,7 @@ using dairlib::multibody::FixedPointSolver;
 DEFINE_string(init_file, "", "the file name of initial guess");
 DEFINE_int32(max_iter, 10000, "Iteration limit");
 DEFINE_double(duration, 0.4, "Duration of the single support phase (s)");
-DEFINE_double(stride_length, 0.2, "Duration of the walking gait (s)");
+DEFINE_double(stride_length, 0.15, "Duration of the walking gait (s)");
 DEFINE_double(ground_incline, 0.0, "Duration of the walking gait (s)");
 DEFINE_double(omega_scale, 10, "Variable scaling");
 DEFINE_double(input_scale, 100, "Variable scaling");
@@ -1270,19 +1270,21 @@ void DoMain(double stride_length,
 
   // Testing - fix com height during walking (only the first mode)
   // The purpose is to get a good seed for RoM traj opt
-  cout << "Adding COM position constraint\n";
-  auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
-  for (int index = 0; index < num_time_samples[0] - 1; index++) {
-    auto x0 = trajopt->state(index);
-    auto x1 = trajopt->state(index + 1);
-    trajopt->AddConstraint(com_constraint, {x0, x1});
-  }
-  cout << "Adding COM velocity constraint\n";
-  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
-                            var_scale);
-  for (int index = 0; index < num_time_samples[0]; index++) {
-    auto x = trajopt->state(index);
-    trajopt->AddConstraint(com_vel_constraint, x);
+  if (ground_incline == 0) {
+    cout << "Adding COM position constraint\n";
+    auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
+    for (int index = 0; index < num_time_samples[0] - 1; index++) {
+      auto x0 = trajopt->state(index);
+      auto x1 = trajopt->state(index + 1);
+      trajopt->AddConstraint(com_constraint, {x0, x1});
+    }
+    cout << "Adding COM velocity constraint\n";
+    auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+                              var_scale);
+    for (int index = 0; index < num_time_samples[0]; index++) {
+      auto x = trajopt->state(index);
+      trajopt->AddConstraint(com_vel_constraint, x);
+    }
   }
 
 
@@ -1300,14 +1302,15 @@ void DoMain(double stride_length,
     auto x = trajopt->state(index);
     trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
   }
-  cout << "Adding right foot constraint in z direction\n";
-  auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
-                                &plant, var_scale);
-  for (int index = 1; index < num_time_samples[0] - 1; index++) {
-    auto x = trajopt->state(index);
-    trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
+  if (ground_incline == 0) {
+    cout << "Adding right foot constraint in z direction\n";
+    auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
+                                  &plant, var_scale);
+    for (int index = 1; index < num_time_samples[0] - 1; index++) {
+      auto x = trajopt->state(index);
+      trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
+    }
   }
-
 
   // Periodicity constraints
   // vector<string> left_joint_names {
@@ -1389,8 +1392,10 @@ void DoMain(double stride_length,
                                  -xf(positions_map.at("position[3]")));
     trajopt->AddLinearConstraint(x0(positions_map.at("position[5]")) ==
                                  -xf(positions_map.at("position[5]")));
-    trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
-                                 xf(positions_map.at("position[6]")));
+    if (ground_incline == 0) {
+      trajopt->AddLinearConstraint(x0(positions_map.at("position[6]")) ==
+                                   xf(positions_map.at("position[6]")));
+    }
     trajopt->AddLinearConstraint(
       x0(n_q + velocities_map.at("velocity[0]")) ==
       xf(n_q + velocities_map.at("velocity[0]")));
