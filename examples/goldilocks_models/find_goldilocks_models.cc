@@ -839,7 +839,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       // Without tau:
       //  1e-4: doesn't always decrease with a fixed task  // This is with  h_step / sqrt(norm_grad_cost(0));
       //  1e-5: barely increase with a fixed task   // This is with  h_step / sqrt(norm_grad_cost(0));
-      h_step = 1e-4;
+      h_step = 1e-3;
     }
   }
   double eps_regularization = FLAGS_eps_regularization;

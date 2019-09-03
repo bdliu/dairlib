@@ -253,26 +253,26 @@ void extractResult(VectorXd& w_sol,
       << state_at_knots.block(0, 0, 4, state_at_knots.cols()) * quaternion_scale,
       state_at_knots.block(4, 0, n_q - 4, state_at_knots.cols()),
       state_at_knots.block(n_q, 0, n_v, state_at_knots.cols()) * omega_scale;
-  cout << "you'll need to update state_at_knots if it's multiple modes\n";
+  // cout << "you'll need to update state_at_knots if it's multiple modes\n";
   input_at_knots *= input_scale;
   writeCSV(directory + prefix + string("time_at_knots.csv"), time_at_knots);
   writeCSV(directory + prefix + string("state_at_knots.csv"), state_at_knots);
   writeCSV(directory + prefix + string("input_at_knots.csv"), input_at_knots);
-  cout << "time_at_knots = \n" << time_at_knots << "\n";
-  cout << "state_at_knots = \n" << state_at_knots << "\n";
-  cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
-  cout << "input_at_knots = \n" << input_at_knots << "\n";
+  // cout << "time_at_knots = \n" << time_at_knots << "\n";
+  // cout << "state_at_knots = \n" << state_at_knots << "\n";
+  // cout << "state_at_knots.size() = " << state_at_knots.size() << endl;
+  // cout << "input_at_knots = \n" << input_at_knots << "\n";
 
   // Also store lambda. We might need to look at it in the future!
   // (save it so we don't need to rerun)
   std::ofstream ofile;
   ofile.open(directory + prefix + string("lambda_at_knots.txt"),
              std::ofstream::out);
-  cout << "lambda_at_knots = \n";
+  // cout << "lambda_at_knots = \n";
   for (unsigned int mode = 0; mode < num_time_samples.size(); mode++) {
     for (int index = 0; index < num_time_samples[mode]; index++) {
       auto lambdai = gm_traj_opt.dircon->force(mode, index);
-      cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
+      // cout << result.GetSolution(lambdai).transpose() * force_scale << endl;
       ofile << result.GetSolution(lambdai).transpose() * force_scale << endl;
     }
   }
