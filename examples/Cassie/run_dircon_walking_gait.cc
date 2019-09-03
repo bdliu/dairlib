@@ -709,6 +709,43 @@ class RightFootYConstraint : public DirconAbstractConstraint<double> {
   double quaternion_scale_;
 };
 
+class RightFootZConstraint : public DirconAbstractConstraint<double> {
+ public:
+  RightFootZConstraint(const MultibodyPlant<double>* plant,
+                       vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions(),
+      VectorXd::Ones(1) * 0.05,
+      VectorXd::Ones(1) * std::numeric_limits<double>::infinity(),
+      "right_foot_height_constraint"),
+    plant_(plant),
+    body_(plant->GetBodyByName("toe_right")),
+    quaternion_scale_(var_scale[4]) {
+  }
+  ~RightFootZConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x;
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = pt.tail(1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+};
+
+
 void DoMain(double stride_length,
             double ground_incline,
             double duration, int iter,
@@ -1233,20 +1270,20 @@ void DoMain(double stride_length,
 
   // Testing - fix com height during walking (only the first mode)
   // The purpose is to get a good seed for RoM traj opt
-  // cout << "Adding COM position constraint\n";
-  // auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
-  // for (int index = 0; index < num_time_samples[0] - 1; index++) {
-  //   auto x0 = trajopt->state(index);
-  //   auto x1 = trajopt->state(index + 1);
-  //   trajopt->AddConstraint(com_constraint, {x0, x1});
-  // }
-  // cout << "Adding COM velocity constraint\n";
-  // auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
-  //                           var_scale);
-  // for (int index = 0; index < num_time_samples[0]; index++) {
-  //   auto x = trajopt->state(index);
-  //   trajopt->AddConstraint(com_vel_constraint, x);
-  // }
+  cout << "Adding COM position constraint\n";
+  auto com_constraint = std::make_shared<ComHeightConstraint>(&plant, var_scale);
+  for (int index = 0; index < num_time_samples[0] - 1; index++) {
+    auto x0 = trajopt->state(index);
+    auto x1 = trajopt->state(index + 1);
+    trajopt->AddConstraint(com_constraint, {x0, x1});
+  }
+  cout << "Adding COM velocity constraint\n";
+  auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+                            var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(com_vel_constraint, x);
+  }
 
 
   cout << "Adding left foot constraint in y direction\n";
@@ -1262,6 +1299,13 @@ void DoMain(double stride_length,
   for (int index = 0; index < num_time_samples[0]; index++) {
     auto x = trajopt->state(index);
     trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
+  }
+  cout << "Adding right foot constraint in z direction\n";
+  auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
+                                &plant, var_scale);
+  for (int index = 1; index < num_time_samples[0] - 1; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
   }
 
 

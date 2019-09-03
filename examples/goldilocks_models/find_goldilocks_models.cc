@@ -535,7 +535,8 @@ void extractActiveAndIndependentRows(int sample, double indpt_row_tol,
     }
   }
   nl_i = full_row_rank_idx.size();
-  cout << "Finished extracting independent rows of A (# of rows = " << nl_i << ")\n\n";
+  cout << "Finished extracting independent rows of A (# of rows = " << nl_i <<
+       ")\n\n";
 
   // Assign the rows
   MatrixXd A_full_row_rank(nl_i, nw_i);
@@ -827,7 +828,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     h_step = 1e-3;
     if (FLAGS_robot_option == 0) {
       // After adding tau
-      // 1e-4 doesn't diverge
+      // 1e-4 doesn't diverge   // This is with  h_step / sqrt(norm_grad_cost(0));
       // 1e-3 diverges
       // Before adding tau
       // 1e-3 is small enough to avoid gittering at the end
@@ -836,8 +837,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
       h_step = 1e-4;
     } else if (FLAGS_robot_option) {
       // Without tau:
-      //  1e-4: doesn't always decrease with a fixed task
-      h_step = 1e-5;
+      //  1e-4: doesn't always decrease with a fixed task  // This is with  h_step / sqrt(norm_grad_cost(0));
+      //  1e-5: barely increase with a fixed task   // This is with  h_step / sqrt(norm_grad_cost(0));
+      h_step = 1e-4;
     }
   }
   double eps_regularization = FLAGS_eps_regularization;
@@ -849,7 +851,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     n_rerun = FLAGS_n_rerun;
   } else {
     if (FLAGS_robot_option == 1) {
-      n_rerun = 1;
+      n_rerun = 2;
     } else {
       n_rerun = 0;
     }
@@ -1499,7 +1501,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // Gradient descent
         prev_theta = theta;
         // current_iter_step_size = h_step;
-        current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
+        // current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
+        current_iter_step_size = h_step / norm_grad_cost(0);  // Heuristic
         cout << "step size = " << current_iter_step_size << "\n\n";
         if (is_newton)
           theta = theta + current_iter_step_size * step_direction;
