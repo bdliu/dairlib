@@ -92,5 +92,76 @@ class QuaternionNormConstraint : public DirconAbstractConstraint<double> {
   double quaternion_scale_;
 };
 
+class LeftFootYConstraint : public DirconAbstractConstraint<double> {
+ public:
+  LeftFootYConstraint(const MultibodyPlant<double>* plant,
+                      vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions(),
+      VectorXd::Ones(1) * 0.03,
+      VectorXd::Ones(1) * std::numeric_limits<double>::infinity(),
+      "left_foot_constraint"),
+    plant_(plant),
+    body_(plant->GetBodyByName("toe_left")),
+    quaternion_scale_(var_scale[4]) {
+  }
+  ~LeftFootYConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x;
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = pt.segment(1, 1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+};
+class RightFootYConstraint : public DirconAbstractConstraint<double> {
+ public:
+  RightFootYConstraint(const MultibodyPlant<double>* plant,
+                       vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions(),
+      VectorXd::Ones(1) * (-std::numeric_limits<double>::infinity()),
+      VectorXd::Ones(1) * (-0.03),
+      "right_foot_constraint"),
+    plant_(plant),
+    body_(plant->GetBodyByName("toe_right")),
+    quaternion_scale_(var_scale[4]) {
+  }
+  ~RightFootYConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x;
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = pt.segment(1, 1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+};
+
 }  // namespace goldilocks_models
 }  // namespace dairlib

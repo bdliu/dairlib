@@ -1714,6 +1714,23 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // trajopt->AddLinearConstraint(x0(pos_map.at("position[6]")) == 1);
   // trajopt->AddLinearConstraint(x0(n_q + vel_map.at("velocity[5]")) == 0);
 
+
+  // cout << "Adding left foot constraint in y direction\n";
+  auto left_foot_constraint = std::make_shared<LeftFootYConstraint>(
+                                &plant, var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(left_foot_constraint, x.head(n_q));
+  }
+  // cout << "Adding right foot constraint in y direction\n";
+  auto right_foot_constraint = std::make_shared<RightFootYConstraint>(
+                                &plant, var_scale);
+  for (int index = 0; index < num_time_samples[0]; index++) {
+    auto x = trajopt->state(index);
+    trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
+  }
+
+
   // Periodicity constraints
   vector<std::pair<string, string>> l_r_pairs {
     std::pair<string, string>("_left", "_right"),
