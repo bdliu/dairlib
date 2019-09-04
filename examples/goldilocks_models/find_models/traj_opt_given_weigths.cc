@@ -1652,9 +1652,9 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                  is_quaterion,
                  var_scale);
 
-  cout << "WARNING: you are printing snopt log.\n";
-  trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Print file", "snopt.out");
+  // cout << "WARNING: you are printing snopt log.\n";
+  // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
+  //                          "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Major iterations limit", max_iter);
   // trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
@@ -1772,8 +1772,10 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
                                -xf(pos_map.at("position[3]")));
   trajopt->AddLinearConstraint(x0(pos_map.at("position[5]")) ==
                                -xf(pos_map.at("position[5]")));
-  trajopt->AddLinearConstraint(x0(pos_map.at("position[6]")) ==
-                               xf(pos_map.at("position[6]")));
+  if (ground_incline == 0) {
+    trajopt->AddLinearConstraint(x0(pos_map.at("position[6]")) ==
+                                 xf(pos_map.at("position[6]")));
+  }
   trajopt->AddLinearConstraint(
     x0(n_q + vel_map.at("velocity[0]")) ==
     xf(n_q + vel_map.at("velocity[0]")));

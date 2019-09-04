@@ -799,7 +799,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
   if (FLAGS_robot_option == 1) {
-    stride_length_0 = 0.2;
+    stride_length_0 = 0.2;  //0.15
   }
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
@@ -864,6 +864,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
   cout << "# of reun after finding a solution = " << n_rerun << endl;
+  if (is_stochastic == 0) {
+    cout << "Make sure that you turned off snopt log and constraint jacobian "
+         "writing.\nProceed? (Y/N)\n";
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+      cout << "Ending the program.\n";
+      return 0;
+    } else {
+      cout << "Continue constructing the problem...\n";
+    }
+  }
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
@@ -1213,6 +1225,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
     if (FLAGS_is_debug) break;
 
     // cout << "Only run for 1 iteration. for testing.\n";
+    // for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
     // break;
 
     // Logic for how to iterate
