@@ -17,6 +17,7 @@ DynamicsConstraint::DynamicsConstraint(
   const MultibodyPlant<AutoDiffXd> * plant,
   const MultibodyPlant<double> * plant_double,
   vector<double> var_scale,
+  double tau_scale,
   bool is_head,
   int robot_option,
   const std::string& description) : DirconAbstractConstraint<double>(n_sDDot,
@@ -45,7 +46,8 @@ DynamicsConstraint::DynamicsConstraint(
                                      robot_option)),
   is_head_(is_head),
   quaternion_scale_(var_scale[4]),
-  omega_scale_(var_scale[0]) {
+  omega_scale_(var_scale[0]),
+  tau_scale_(tau_scale) {
 
   // Check the theta size
   DRAKE_DEMAND(n_s * n_feature_s == theta_s.size());
@@ -97,15 +99,18 @@ VectorXd DynamicsConstraint::getConstraintValueInDouble(
   getSAndSDotInDouble(x_i, s_i, ds_i, theta_s);
   getSAndSDotInDouble(x_iplus1, s_iplus1, ds_iplus1, theta_s);
 
+  VectorXd tau_i_scaled = tau_scale_ * tau_i;
+  VectorXd tau_iplus1_scaled = tau_scale_ * tau_iplus1;
+
   // Get constraint value
   if (is_head_) {
     return 2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
            (h_i(0) * h_i(0)) -
-           dyn_expression_.getExpression(theta_sDDot, s_i, ds_i, tau_i);
+           dyn_expression_.getExpression(theta_sDDot, s_i, ds_i, tau_i_scaled);
   } else {
     return (6 * (s_i - s_iplus1) + h_i(0) * (4 * ds_iplus1 + 2 * ds_i)) /
            (h_i(0) * h_i(0)) -
-           dyn_expression_.getExpression(theta_sDDot, s_iplus1, ds_iplus1, tau_iplus1);
+           dyn_expression_.getExpression(theta_sDDot, s_iplus1, ds_iplus1, tau_iplus1_scaled);
   }
 }
 
@@ -199,8 +204,8 @@ void DynamicsConstraint::getSAndSDot(const VectorXd & x,
 }
 
 MatrixXd DynamicsConstraint::getGradientWrtTheta(
-  const VectorXd & x_i_double, const VectorXd & tau_i_double,
-  const VectorXd & x_iplus1_double, const VectorXd & tau_iplus1_double,
+  const VectorXd & x_i_double, const VectorXd & tau_i,
+  const VectorXd & x_iplus1_double, const VectorXd & tau_iplus1,
   const VectorXd & h_i_double) const {
   // It's a nonlinear function in theta, so we use autoDiff to get the gradient.
   // The calculation here will not be the same as the one in eval(), because
@@ -210,6 +215,9 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
 
   // You'll need to create autoDiff yourself first, cause the input is double
   // and you need to jacobian to get ds.
+
+  VectorXd tau_i_scaled = tau_scale_ * tau_i;
+  VectorXd tau_iplus1_scaled = tau_scale_ * tau_iplus1;
 
   // ////////// V1: Do forward differencing wrt theta //////////////////////////
   /*
@@ -230,8 +238,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
       //                                         x_i, x_iplus1, h_i,
       //                                         theta_s, theta_sDDot)));
       y_vec.push_back(getConstraintValueInDouble(
-                        x_i_double, tau_i_double,
-                        x_iplus1_double, tau_iplus1_double,
+                        x_i_double, tau_i_scaled,
+                        x_iplus1_double, tau_iplus1_scaled,
                         h_i_double,
                         theta_s, theta_sDDot));
 
@@ -261,8 +269,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
       //                                         x_i, x_iplus1, h_i,
       //                                         theta_s, theta_sDDot)));
       y_vec.push_back(getConstraintValueInDouble(
-                        x_i_double, tau_i_double,
-                        x_iplus1_double, tau_iplus1_double,
+                        x_i_double, tau_i_scaled,
+                        x_iplus1_double, tau_iplus1_scaled,
                         h_i_double,
                         theta_s, theta_sDDot));
 
@@ -295,8 +303,8 @@ MatrixXd DynamicsConstraint::getGradientWrtTheta(
       //                                         x_i, x_iplus1, h_i,
       //                                         theta_s, theta_sDDot)));
       y_vec.push_back(getConstraintValueInDouble(
-                        x_i_double, tau_i_double,
-                        x_iplus1_double, tau_iplus1_double,
+                        x_i_double, tau_i_scaled,
+                        x_iplus1_double, tau_iplus1_scaled,
                         h_i_double,
                         theta_s, theta_sDDot));
 
@@ -340,10 +348,10 @@ VectorXd DynamicsConstraint::computeTauToExtendModel(
   // Get constraint value (without h(s,ds) and tau)
   if (is_head_) {
     return 2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
-           (h_i(0) * h_i(0));
+           (h_i(0) * h_i(0)) / tau_scale_;
   } else {
     return (6 * (s_i - s_iplus1) + h_i(0) * (4 * ds_iplus1 + 2 * ds_i)) /
-           (h_i(0) * h_i(0));
+           (h_i(0) * h_i(0)) / tau_scale_;
   }
 }
 

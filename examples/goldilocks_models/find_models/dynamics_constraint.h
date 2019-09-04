@@ -67,6 +67,7 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
                      const MultibodyPlant<AutoDiffXd> * plant,
                      const MultibodyPlant<double> * plant_double,
                      vector<double> var_scale,
+                     double tau_scale,
                      bool is_head,
                      int robot_option,
                      const std::string& description = "rom_dyn_constraint");
@@ -147,6 +148,7 @@ class DynamicsConstraint : public DirconAbstractConstraint<double> {
   // Scaling
   double quaternion_scale_;
   double omega_scale_;
+  double tau_scale_;  // reduced order model input
 };
 
 
