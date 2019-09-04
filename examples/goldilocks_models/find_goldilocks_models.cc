@@ -228,7 +228,8 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
     // Testing:
     cout << "testing with manual init file: ";
     // *init_file = "w0.csv";
-    *init_file = "1_0_w.csv";
+    *init_file = to_string(iter) +  "_" +
+                 to_string(sample) + string("_w.csv");
     cout << *init_file << endl;
   }
   else if (!has_been_all_success && !previous_iter_is_success)
@@ -756,6 +757,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
       cout << "Continue constructing the problem...\n\n";
     }
   }
+  if (FLAGS_is_multithread) {
+    cout << "Make sure that you turned off snopt log and constraint jacobian "
+         "writing.\nProceed? (Y/N)\n";
+    char answer[1];
+    cin >> answer;
+    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
+      cout << "Ending the program.\n";
+      return 0;
+    } else {
+      cout << "Continue constructing the problem...\n";
+    }
+  }
 
   if (FLAGS_robot_option == 0) {
     cout << "Make sure to turn off scaling in dircon (TURN OFF the hackings!). (Y/N)\n";
@@ -799,7 +812,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
   if (FLAGS_robot_option == 1) {
-    stride_length_0 = 0.2;  //0.15
+    stride_length_0 = 0.185;  //0.15
   }
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
@@ -864,18 +877,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
   cout << "# of reun after finding a solution = " << n_rerun << endl;
-  if (is_stochastic == 0) {
-    cout << "Make sure that you turned off snopt log and constraint jacobian "
-         "writing.\nProceed? (Y/N)\n";
-    char answer[1];
-    cin >> answer;
-    if (!((answer[0] == 'Y') || (answer[0] == 'y'))) {
-      cout << "Ending the program.\n";
-      return 0;
-    } else {
-      cout << "Continue constructing the problem...\n";
-    }
-  }
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;

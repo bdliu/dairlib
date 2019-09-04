@@ -135,7 +135,7 @@ void DirconAbstractConstraint<double>::DoEval(
 
 
     // Testing - looking at gradient values
-    double max_element = dy(0, 0);
+    /*double max_element = dy(0, 0);
     double max_idx_i = 0;
     double max_idx_j = 0;
     for (int i = 0; i < dy.rows(); i++)
@@ -169,7 +169,7 @@ void DirconAbstractConstraint<double>::DoEval(
     }
     else if (this->get_description().compare("com_height_vel_constraint") == 0) {
       goldilocks_models::writeCSV("com_height_vel_constraint_grad.csv", dy);
-    }
+    }*/
 }
 
 
