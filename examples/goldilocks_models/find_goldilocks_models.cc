@@ -828,6 +828,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "stride_length_0 = " << stride_length_0 << endl;
   cout << "delta_ground_incline = " << delta_ground_incline << endl;
   cout << "ground_incline_0 = " << ground_incline_0 << endl;
+  VectorXd previous_ground_incline = VectorXd::Zero(N_sample);
+  VectorXd previous_stride_length = VectorXd::Zero(N_sample);
 
   // Paramters for the outer loop optimization
   cout << "\nOptimization setting (outer loop):\n";
@@ -1149,6 +1151,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
           if (!is_get_nominal && is_stochastic) {
             stride_length += dist_sl(e1);
             ground_incline += dist_gi(e2);
+          }
+          // Store the tasks or overwrite it with previous tasks
+          if (current_rerun == 0) {
+            previous_stride_length(sample) = stride_length;
+            previous_ground_incline(sample) = ground_incline;
+          } else {
+            stride_length = previous_stride_length(sample);
+            ground_incline = previous_ground_incline(sample);
           }
 
           prefix = to_string(iter) +  "_" + to_string(sample) + "_";
