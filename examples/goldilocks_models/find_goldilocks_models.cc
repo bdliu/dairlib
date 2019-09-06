@@ -1226,14 +1226,19 @@ int findGoldilocksModels(int argc, char* argv[]) {
           prefix = to_string(iter) +  "_" + to_string(corresponding_sample) + "_";
           int sample_success =
             (readCSV(dir + prefix + string("is_success.csv")))(0, 0);
-          samples_are_success = (samples_are_success & (sample_success == 1));
-          a_sample_is_success = (a_sample_is_success | (sample_success == 1));
 
           // Accumulate failed samples
           if (sample_success != 1) {
             failed_sample++;
           }
+
+          // Logic of fail or success
+          a_sample_is_success = (a_sample_is_success | (sample_success == 1));
+          // samples_are_success = (samples_are_success & (sample_success == 1));
           double fail_rate = double(failed_sample) / double(n_sample);
+          if (fail_rate > fail_threshold) {
+            samples_are_success = false;
+          }
 
           // If a sample failed, stop evaluating.
           // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
@@ -1244,7 +1249,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
           //   break;
           // }
           // If failure rate is higher than threshold, stop evaluating.
-          if ((has_been_all_success && (fail_rate > fail_threshold)) || FLAGS_is_debug) {
+          if ((has_been_all_success && (!samples_are_success)) || FLAGS_is_debug) {
             // Wait for the assigned threads to join, and then break;
             cout << failed_sample << " # of samples failed to find solution."
                  " Wait for all threads to join and stop current iteration.\n";
@@ -1316,7 +1321,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
       if (!current_iter_is_success) {
         iter -= 1;
-        if (has_been_all_success) {
+        if (has_been_all_success || (current_rerun > 0)) {
           current_iter_step_size = current_iter_step_size / 2;
           // if(current_iter_step_size<1e-5){
           //   cout<<"switch to the other method.";
@@ -1334,6 +1339,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // Assign theta_s and theta_sDDot
           theta_s = theta.head(n_theta_s);
           theta_sDDot = theta.tail(n_theta_sDDot);
+
+          // for the case of (current_rerun > 0)
+          has_been_all_success = true;
+          current_rerun = 0;
         }
       } else if (current_rerun < n_rerun) {
         current_rerun++;
