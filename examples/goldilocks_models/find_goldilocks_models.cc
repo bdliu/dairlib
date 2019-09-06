@@ -142,12 +142,14 @@ void setDecisionVarScaling(vector<double>* var_scale, int robot_option) {
     var_scale->push_back(1.0);
     var_scale->push_back(1.0);
     var_scale->push_back(1.0);
+    var_scale->push_back(1.0);
   } else if (robot_option == 1) {
     double omega_scale = 10;  // 10
     double input_scale = 100;
     double force_scale = 1000;  // 400
     double time_scale = 0.008;  // 0.01
     double quaternion_scale = 0.5;  // 1
+    double tau_scale = 10;
     // double trans_pos_scale = 1;
     // double rot_pos_scale = 1;
     var_scale->push_back(omega_scale);
@@ -155,6 +157,7 @@ void setDecisionVarScaling(vector<double>* var_scale, int robot_option) {
     var_scale->push_back(force_scale);
     var_scale->push_back(time_scale);
     var_scale->push_back(quaternion_scale);
+    var_scale->push_back(tau_scale);
   }
 }
 void setCostWeight(double* Q, double* R, vector<double> var_scale,
@@ -171,16 +174,16 @@ void setRomDim(int* n_s, int* n_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
-  *n_s = 2;
-  *n_tau = 0;
+  *n_s = 4;
+  *n_tau = 2;
 }
 void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
   // *B_tau = MatrixXd::Identity(2, 2);
-  // (*B_tau)(2, 0) = 1;
-  // (*B_tau)(3, 1) = 1;
+  (*B_tau)(2, 0) = 1;
+  (*B_tau)(3, 1) = 1;
 }
 void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
                      int n_feature_s, int robot_option) {
@@ -914,7 +917,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
        << var_scale[1] << ", "
        << var_scale[2] << ", "
        << var_scale[3] << ", "
-       << var_scale[4] << endl;
+       << var_scale[4] << ", "
+       << var_scale[5] << endl;
   cout << "max_inner_iter = " << max_inner_iter << endl;
   cout << "major_optimality_tolerance = " << FLAGS_major_feasibility_tol << endl;
   cout << "major_feasibility_tolerance = " << FLAGS_major_feasibility_tol << endl;

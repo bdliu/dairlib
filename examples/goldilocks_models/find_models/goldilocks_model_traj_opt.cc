@@ -36,7 +36,7 @@ GoldilocksModelTrajOpt::GoldilocksModelTrajOpt(int n_s, int n_sDDot, int n_tau,
   // (Since VectorX allows 0-size vector, the trajectory optimization works even
   // when n_tau = 0.)
   tau_vars_ = dircon->NewContinuousVariables(n_tau * N, "tau");
-  double tau_scale = 10;
+  double tau_scale = var_scale[5];
 
   // Add cost for the input tau
   if (is_add_tau_in_cost) {

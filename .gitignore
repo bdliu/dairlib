@@ -12,3 +12,5 @@ examples/Cassie/trajopt_data/
 snopt.out
 snopt_find_model.out
 *.csv
+
+fort.0
