@@ -18,8 +18,8 @@ if len(sys.argv) == 3:
     is_iter_end = 1
 
 
-n_sampel_sl = 1  # should be > 0
-n_sampel_gi = 1  # should be > 0
+n_sampel_sl = 3  # should be > 0
+n_sampel_gi = 3  # should be > 0
 batch_max = n_sampel_sl * n_sampel_gi
 min_dist = 0.3 - 0.015
 delta_dist = 0.015

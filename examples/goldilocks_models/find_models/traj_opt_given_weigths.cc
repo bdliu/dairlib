@@ -1674,7 +1674,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   for (uint i = 0; i < num_time_samples.size(); i++)
     N += num_time_samples[i];
   N -= num_time_samples.size() - 1;  // because of overlaps between modes
-  cout << "N = " << N << endl;
+  // cout << "N = " << N << endl;
   // N_ss used in initial guess
   int N_ss;
   if (walking_mode == 2) {

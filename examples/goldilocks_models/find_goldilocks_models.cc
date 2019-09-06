@@ -869,6 +869,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       n_rerun = 0;
     }
   }
+  double fail_threshold = 0.2;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;
@@ -877,6 +878,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
   FLAGS_is_zero_touchdown_impact ? cout << "Zero touchdown impact\n" :
                                         cout << "Non-zero touchdown impact\n";
   cout << "# of reun after finding a solution = " << n_rerun << endl;
+  cout << "Failure rate threshold = " << fail_threshold << endl;
 
   // Paramters for the inner loop optimization
   int max_inner_iter = FLAGS_max_inner_iter;
@@ -1135,6 +1137,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
       // Evaluate samples
       int sample = 0;
+      int failed_sample = 0;
       while ((sample < n_sample) || !assigned_thread_idx.empty()) {
         // Evaluate a sample when there is an availible thread. Otherwise, wait.
         if ((sample < n_sample) && !availible_thread_idx.empty()) {
@@ -1212,10 +1215,24 @@ int findGoldilocksModels(int argc, char* argv[]) {
           samples_are_success = (samples_are_success & (sample_success == 1));
           a_sample_is_success = (a_sample_is_success | (sample_success == 1));
 
+          // Accumulate failed samples
+          if (sample_success != 1) {
+            failed_sample++;
+          }
+          double fail_rate = double(failed_sample) / double(n_sample);
+
           // If a sample failed, stop evaluating.
-          if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
+          // if ((has_been_all_success && !samples_are_success) || FLAGS_is_debug) {
+          //   // Wait for the assigned threads to join, and then break;
+          //   cout << "Sameple #" << corresponding_sample << " was not successful."
+          //        " Wait for all threads to join and stop current iteration.\n";
+          //   waitForAllThreadsToJoin(&threads, &assigned_thread_idx, dir, iter);
+          //   break;
+          // }
+          // If failure rate is higher than threshold, stop evaluating.
+          if ((has_been_all_success && (fail_rate > fail_threshold)) || FLAGS_is_debug) {
             // Wait for the assigned threads to join, and then break;
-            cout << "Sameple #" << corresponding_sample << " was not successful."
+            cout << failed_sample << " # of samples failed to find solution."
                  " Wait for all threads to join and stop current iteration.\n";
             waitForAllThreadsToJoin(&threads, &assigned_thread_idx, dir, iter);
             break;
