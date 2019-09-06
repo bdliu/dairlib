@@ -827,12 +827,24 @@ int findGoldilocksModels(int argc, char* argv[]) {
   } else if (FLAGS_robot_option == 1) {
     duration = 0.4;
   }
+  DRAKE_DEMAND(N_sample_sl % 2 == 1);
+  DRAKE_DEMAND(N_sample_gi % 2 == 1);
   cout << "N_sample_sl = " << N_sample_sl << endl;
   cout << "N_sample_gi = " << N_sample_gi << endl;
   cout << "delta_stride_length = " << delta_stride_length << endl;
   cout << "stride_length_0 = " << stride_length_0 << endl;
   cout << "delta_ground_incline = " << delta_ground_incline << endl;
   cout << "ground_incline_0 = " << ground_incline_0 << endl;
+  cout << "stride length ranges from "
+       << stride_length_0 - delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
+       << " to "
+       << stride_length_0 + delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
+       << endl;
+  cout << "ground incline ranges from "
+       << ground_incline_0 - delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
+       << " to "
+       << ground_incline_0 + delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
+       << endl;
   VectorXd previous_ground_incline = VectorXd::Zero(N_sample);
   VectorXd previous_stride_length = VectorXd::Zero(N_sample);
 
@@ -1158,8 +1170,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
           //                        stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
           // double ground_incline = is_get_nominal ? ground_incline_0 :
           //                         ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
-          double stride_length = stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
-          double ground_incline = ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
+          double stride_length = stride_length_0 + delta_stride_length_vec[sample %
+                                 N_sample_sl];
+          double ground_incline = ground_incline_0 + delta_ground_incline_vec[sample /
+                                  N_sample_sl];
           if (!is_get_nominal && is_stochastic) {
             stride_length += dist_sl(e1);
             ground_incline += dist_gi(e2);
