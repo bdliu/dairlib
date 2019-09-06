@@ -1014,8 +1014,6 @@ int findGoldilocksModels(int argc, char* argv[]) {
   VectorXd theta(n_theta);
   theta << theta_s, theta_sDDot;
   VectorXd prev_theta = theta;
-  VectorXd step_direction;
-  double current_iter_step_size = h_step;
   bool previous_iter_is_success = FLAGS_previous_iter_is_success;
   bool has_been_all_success;
   if (FLAGS_proceed_with_failure || (iter_start <= 1))
@@ -1023,6 +1021,15 @@ int findGoldilocksModels(int argc, char* argv[]) {
   else
     has_been_all_success = true;
   cout << "has_been_all_success = " << has_been_all_success << endl;
+
+  double current_iter_step_size = h_step;
+  VectorXd step_direction;
+  if (iter_start > 1) {
+    cout << "Reading previous step direction... (will get memory issue if the file doesn't exist)\n";
+    MatrixXd step_direction_mat =
+      readCSV(dir + to_string(iter_start - 1) + string("_step_direction.csv"));
+    step_direction = step_direction_mat.col(0);
+  }
 
   bool start_with_adjusting_stepsize = FLAGS_start_with_adjusting_stepsize;
   if (start_with_adjusting_stepsize) {
@@ -1032,12 +1039,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
       readCSV(dir + to_string(iter_start - 1) + string("_theta_sDDot.csv"));
     prev_theta << prev_theta_s_mat.col(0), prev_theta_sDDot_mat.col(0);
 
-    MatrixXd step_direction_mat =
-      readCSV(dir + to_string(iter_start - 1) + string("_step_direction.csv"));
-    step_direction = step_direction_mat.col(0);
-
     // Below only works for Gradient Descent method (not Newton's method)
-    current_iter_step_size = h_step / sqrt(step_direction.norm());  // Heuristic
+    // current_iter_step_size = h_step / sqrt(step_direction.norm());  // Heuristic
+    current_iter_step_size = h_step / step_direction.norm();  // Heuristic
     cout << "current_iter_step_size = " << current_iter_step_size << endl;
   }
 
