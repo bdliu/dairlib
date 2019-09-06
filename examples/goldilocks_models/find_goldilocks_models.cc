@@ -870,7 +870,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       // 1e-2 is a good compromise on both speed and gittering
       // 1e-1 caused divergence when close to optimal sol
       h_step = 1e-4;
-    } else if (FLAGS_robot_option) {
+    } else if (FLAGS_robot_option == 1) {
       // Without tau:
       //  1e-4: doesn't always decrease with a fixed task  // This is with  h_step / sqrt(norm_grad_cost(0));
       //  1e-5: barely increase with a fixed task   // This is with  h_step / sqrt(norm_grad_cost(0));
