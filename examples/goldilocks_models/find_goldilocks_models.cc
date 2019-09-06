@@ -882,7 +882,9 @@ int findGoldilocksModels(int argc, char* argv[]) {
   if (FLAGS_n_rerun > -1) {
     n_rerun = FLAGS_n_rerun;
   } else {
-    if (FLAGS_robot_option == 1) {
+    if (FLAGS_robot_option == 0) {
+      n_rerun = 1;
+    } else if (FLAGS_robot_option == 1) {
       n_rerun = 2;
     } else {
       n_rerun = 0;
