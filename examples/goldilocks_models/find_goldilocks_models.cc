@@ -218,19 +218,24 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
                      bool is_debug) {
   if (is_get_nominal && previous_iter_is_success)
     *init_file = nominal_traj_init_file;
-  else if (is_get_nominal && !previous_iter_is_success)
-    *init_file = string("0_0_w.csv");
+  else if (is_get_nominal && !previous_iter_is_success) {
+    // *init_file = string("0_0_w.csv");
+    *init_file = "0_" +
+                 to_string(sample) + string("_w.csv");
+  }
   else if (!has_been_all_success && previous_iter_is_success) {
     *init_file = string("0_0_w.csv");  // Use nominal traj
     // *init_file = string("");  // No initial guess for the first iter
     // *init_file = string("w0.csv");  // w0 as initial guess for the first iter
+    *init_file = "0_" +
+                 to_string(sample) + string("_w.csv");
 
     // Testing:
-    cout << "testing with manual init file: ";
+    // cout << "testing with manual init file: ";
     // *init_file = "w0.csv";
-    *init_file = to_string(iter) +  "_" +
-                 to_string(sample) + string("_w.csv");
-    cout << *init_file << endl;
+    // *init_file = to_string(iter) +  "_" +
+    //              to_string(sample) + string("_w.csv");
+    // cout << *init_file << endl;
   }
   else if (!has_been_all_success && !previous_iter_is_success)
     *init_file = to_string(iter) +  "_" +
@@ -1097,7 +1102,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
     // setup for each iteration
     bool is_get_nominal = iter == 0 ? true : false;
-    int n_sample = is_get_nominal ? 1 : N_sample;
+    // int n_sample = is_get_nominal ? 1 : N_sample;
+    int n_sample = N_sample;
     int max_inner_iter_pass_in = is_get_nominal ? 1000 : max_inner_iter;
     bool extend_model_this_iter =
       (extend_model && (iter == extend_model_iter) && !has_visit_this_iter) ?
@@ -1148,10 +1154,12 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // Evaluate a sample when there is an availible thread. Otherwise, wait.
         if ((sample < n_sample) && !availible_thread_idx.empty()) {
           // setup for each sample
-          double stride_length = is_get_nominal ? stride_length_0 :
-                                 stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
-          double ground_incline = is_get_nominal ? ground_incline_0 :
-                                  ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
+          // double stride_length = is_get_nominal ? stride_length_0 :
+          //                        stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
+          // double ground_incline = is_get_nominal ? ground_incline_0 :
+          //                         ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
+          double stride_length = stride_length_0 + delta_stride_length_vec[sample % N_sample_sl];
+          double ground_incline = ground_incline_0 + delta_ground_incline_vec[sample / N_sample_sl];
           if (!is_get_nominal && is_stochastic) {
             stride_length += dist_sl(e1);
             ground_incline += dist_gi(e2);

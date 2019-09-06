@@ -32,7 +32,7 @@ using Eigen::MatrixXd;
 using std::cout;
 using std::endl;
 
-int robot_option = 1;  // hard-coded robot options
+int robot_option = 0;  // hard-coded robot options
 
 template <typename T>
 DirconAbstractConstraint<T>::DirconAbstractConstraint(int num_constraints, int num_vars,
