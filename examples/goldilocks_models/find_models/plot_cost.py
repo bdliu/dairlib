@@ -6,6 +6,7 @@ import time
 import sys
 
 only_plot_average_cost = True
+normalize_by_nominal_cost = True
 
 iter_start = 1
 iter_end = 11
@@ -32,6 +33,22 @@ directory = 'data/robot_' + str(robot_option) + '/'
 # file_name = 'c.csv'
 file_name = 'c_without_tau.csv'
 
+
+# get nomial cost
+nominal_cost = 0.0
+if normalize_by_nominal_cost:
+    for batch in reversed(range(batch_max)):
+        cost = []
+        assert os.path.isfile(directory+'0_'+str(batch)+'_'+file_name), 'file does not exist'
+        matrix = np.genfromtxt (directory+'0_'+str(batch)+'_'+file_name, delimiter=",")
+        cost.append(matrix)
+
+        nominal_cost += cost[0] / batch_max;
+else:
+    nominal_cost = 1.0;
+print('nominal_cost = '+str(nominal_cost))
+
+# plot
 while 1:
     fig1 = plt.figure(1)
     ax1 = fig1.gca()
@@ -43,7 +60,7 @@ while 1:
         iteration = iter_start
         while os.path.isfile(directory+str(iteration)+'_'+str(batch)+'_'+file_name):
             # way1
-            matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_'+file_name, delimiter=",")
+            matrix = np.genfromtxt (directory+str(iteration)+'_'+str(batch)+'_'+file_name, delimiter=",") / nominal_cost
             cost.append(matrix)
             # way2
             # with open(directory+str(iteration)+'_'+str(batch)+'_'+file_name,'r') as csvfile:
