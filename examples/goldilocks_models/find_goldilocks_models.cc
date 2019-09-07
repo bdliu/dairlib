@@ -1064,7 +1064,10 @@ int findGoldilocksModels(int argc, char* argv[]) {
 
     // Below only works for Gradient Descent method (not Newton's method)
     // current_iter_step_size = h_step / sqrt(step_direction.norm());  // Heuristic
-    current_iter_step_size = h_step / step_direction.norm();  // Heuristic
+    double step_dir_norm = step_direction.norm();
+    if (step_dir_norm > 1) {
+      current_iter_step_size = h_step / step_direction.norm();  // Heuristic
+    }
     cout << "current_iter_step_size = " << current_iter_step_size << endl;
   }
 
@@ -1583,8 +1586,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
         // Gradient descent
         prev_theta = theta;
         // current_iter_step_size = h_step;
-        // current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
-        current_iter_step_size = h_step / norm_grad_cost(0);  // Heuristic
+        double norm_grad_cost_double = norm_grad_cost(0);
+        if (norm_grad_cost_double > 1) {
+          // current_iter_step_size = h_step / sqrt(norm_grad_cost(0));  // Heuristic
+          current_iter_step_size = h_step / norm_grad_cost_double;  // Heuristic
+        } else {
+          current_iter_step_size = h_step;
+        }
         cout << "step size = " << current_iter_step_size << "\n\n";
         if (is_newton)
           theta = theta + current_iter_step_size * step_direction;
