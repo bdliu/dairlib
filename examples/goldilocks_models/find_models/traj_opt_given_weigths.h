@@ -167,6 +167,52 @@ class RightFootYConstraint : public DirconAbstractConstraint<double> {
   const drake::multibody::Body<double>& body_;
   double quaternion_scale_;
 };
+class RightFootZConstraint : public DirconAbstractConstraint<double> {
+ public:
+  RightFootZConstraint(const MultibodyPlant<double>* plant,
+                       double ground_incline,
+                       vector<double> var_scale) :
+    DirconAbstractConstraint<double>(
+      1, plant->num_positions(),
+      VectorXd::Ones(1) * 0.05,
+      VectorXd::Ones(1) * std::numeric_limits<double>::infinity(),
+      "right_foot_height_constraint"),
+    plant_(plant),
+    body_(plant->GetBodyByName("toe_right")),
+    quaternion_scale_(var_scale[4]) {
+
+    Eigen::AngleAxisd rollAngle(0, Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(ground_incline, Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
+    Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+    Eigen::Matrix3d inv_rot_mat_ground = q.matrix().transpose();
+
+    T_ground_incline_ = inv_rot_mat_ground;
+  }
+  ~RightFootZConstraint() override = default;
+
+  void EvaluateConstraint(const Eigen::Ref<const drake::VectorX<double>>& x,
+                          drake::VectorX<double>* y) const override {
+    VectorXd q = x;
+    q.head(4) *= quaternion_scale_;
+
+    std::unique_ptr<drake::systems::Context<double>> context =
+          plant_->CreateDefaultContext();
+    plant_->SetPositions(context.get(), q);
+
+    VectorX<double> pt(3);
+    this->plant_->CalcPointsPositions(*context,
+                                      body_.body_frame(), Vector3d::Zero(),
+                                      plant_->world_frame(), &pt);
+    *y = (T_ground_incline_ * pt).tail(1);
+  };
+ private:
+  const MultibodyPlant<double>* plant_;
+  const drake::multibody::Body<double>& body_;
+  double quaternion_scale_;
+
+  Eigen::Matrix3d T_ground_incline_;
+};
 
 class ComHeightVelConstraint : public DirconAbstractConstraint<double> {
  public:

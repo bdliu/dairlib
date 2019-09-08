@@ -225,9 +225,9 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
 
     // Testing:
     // cout << "testing with manual init file: ";
-    // *init_file = "0_" +
-    //              to_string(sample) + string("_w.csv");
-    // cout << *init_file << endl;
+    *init_file = "0_" +
+                 to_string(sample) + string("_w.csv");
+    cout << *init_file << endl;
   }
   else if (is_get_nominal && !previous_iter_is_success) {
     // *init_file = string("0_0_w.csv");
