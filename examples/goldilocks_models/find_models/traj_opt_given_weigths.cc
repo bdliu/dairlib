@@ -1714,6 +1714,16 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   // trajopt->AddLinearConstraint(x0(pos_map.at("position[6]")) == 1);
   // trajopt->AddLinearConstraint(x0(n_q + vel_map.at("velocity[5]")) == 0);
 
+  if (is_get_nominal) {
+    cout << "Adding zero COM height acceleration constraint\n";
+    auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+                              var_scale);
+    for (int index = 0; index < num_time_samples[0] - 1; index++) {
+      auto x0 = trajopt->state(index);
+      auto x1 = trajopt->state(index + 1);
+      trajopt->AddConstraint(com_vel_constraint, {x0, x1});
+    }
+  }
 
   // cout << "Adding left foot constraint in y direction\n";
   auto left_foot_constraint = std::make_shared<LeftFootYConstraint>(
@@ -1724,7 +1734,7 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
   }
   // cout << "Adding right foot constraint in y direction\n";
   auto right_foot_constraint = std::make_shared<RightFootYConstraint>(
-                                &plant, var_scale);
+                                 &plant, var_scale);
   for (int index = 0; index < num_time_samples[0]; index++) {
     auto x = trajopt->state(index);
     trajopt->AddConstraint(right_foot_constraint, x.head(n_q));

@@ -174,16 +174,16 @@ void setRomDim(int* n_s, int* n_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
-  *n_s = 4;
-  *n_tau = 2;
+  *n_s = 2;
+  *n_tau = 0;
 }
 void setRomBMatrix(MatrixXd* B_tau, int robot_option) {
   if (robot_option == 0) {
   } else if (robot_option == 1) {
   }
   // *B_tau = MatrixXd::Identity(2, 2);
-  (*B_tau)(2, 0) = 1;
-  (*B_tau)(3, 1) = 1;
+  // (*B_tau)(2, 0) = 1;
+  // (*B_tau)(3, 1) = 1;
 }
 void setInitialTheta(VectorXd& theta_s, VectorXd& theta_sDDot,
                      int n_feature_s, int robot_option) {
@@ -219,8 +219,15 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
                      int iter, int sample, bool is_get_nominal,
                      bool previous_iter_is_success, bool has_been_all_success,
                      bool is_debug) {
-  if (is_get_nominal && previous_iter_is_success)
+  if (is_get_nominal && previous_iter_is_success) {
     *init_file = nominal_traj_init_file;
+
+    // Testing:
+    cout << "testing with manual init file: ";
+    *init_file = "0_" +
+                 to_string(sample) + string("_w.csv");
+    cout << *init_file << endl;
+  }
   else if (is_get_nominal && !previous_iter_is_success) {
     // *init_file = string("0_0_w.csv");
     *init_file = "0_" +
@@ -820,7 +827,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
   if (FLAGS_robot_option == 1) {
-    stride_length_0 = 0.185;  //0.15
+    delta_stride_length = 0.1;
+    stride_length_0 = 0.2;  //0.15
   }
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
@@ -838,16 +846,18 @@ int findGoldilocksModels(int argc, char* argv[]) {
   cout << "stride_length_0 = " << stride_length_0 << endl;
   cout << "delta_ground_incline = " << delta_ground_incline << endl;
   cout << "ground_incline_0 = " << ground_incline_0 << endl;
-  cout << "stride length ranges from "
-       << stride_length_0 - delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
-       << " to "
-       << stride_length_0 + delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
-       << endl;
-  cout << "ground incline ranges from "
-       << ground_incline_0 - delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
-       << " to "
-       << ground_incline_0 + delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
-       << endl;
+  if (FLAGS_is_stochastic) {
+    cout << "stride length ranges from "
+         << stride_length_0 - delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
+         << " to "
+         << stride_length_0 + delta_stride_length * ((N_sample_sl - 1) / 2 + 0.5)
+         << endl;
+    cout << "ground incline ranges from "
+         << ground_incline_0 - delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
+         << " to "
+         << ground_incline_0 + delta_ground_incline * ((N_sample_gi - 1) / 2 + 0.5)
+         << endl;
+  }
   VectorXd previous_ground_incline = VectorXd::Zero(N_sample);
   VectorXd previous_stride_length = VectorXd::Zero(N_sample);
 
@@ -1268,6 +1278,8 @@ int findGoldilocksModels(int argc, char* argv[]) {
           // samples_are_success = (samples_are_success & (sample_success == 1));
           double fail_rate = double(failed_sample) / double(n_sample);
           if (fail_rate > fail_threshold) {
+            samples_are_success = false;
+          } else if ((fail_rate > 0) && is_get_nominal) {
             samples_are_success = false;
           }
 
