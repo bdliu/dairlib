@@ -102,6 +102,13 @@ VectorXd DynamicsConstraint::getConstraintValueInDouble(
   VectorXd tau_i_scaled = tau_scale_ * tau_i;
   VectorXd tau_iplus1_scaled = tau_scale_ * tau_iplus1;
 
+  // cout << "s_i = " << s_i.transpose() << endl;
+  // cout << "ds_i = " << ds_i.transpose() << endl;
+  // cout << "s_iplus1 = " << s_iplus1.transpose() << endl;
+  // cout << "ds_iplus1 = " << ds_iplus1.transpose() << endl;
+  // cout << "dds(0) = " << (2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /
+  //          (h_i(0) * h_i(0))).transpose() << endl;
+
   // Get constraint value
   if (is_head_) {
     return 2 * (-3 * (s_i - s_iplus1) - h_i(0) * (ds_iplus1 + 2 * ds_i)) /

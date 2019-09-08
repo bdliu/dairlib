@@ -89,6 +89,7 @@ DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 DEFINE_int32(n_rerun, -1, "snopt might settle down at a bad sub-optimal"
              " solution, so we rerun");
+DEFINE_double(fail_threshold, 0.2, "Maximum acceptable failure rate of samples");
 
 DEFINE_int32(N_sample_sl, 1, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
@@ -223,10 +224,10 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
     *init_file = nominal_traj_init_file;
 
     // Testing:
-    cout << "testing with manual init file: ";
-    *init_file = "0_" +
-                 to_string(sample) + string("_w.csv");
-    cout << *init_file << endl;
+    // cout << "testing with manual init file: ";
+    // *init_file = "0_" +
+    //              to_string(sample) + string("_w.csv");
+    // cout << *init_file << endl;
   }
   else if (is_get_nominal && !previous_iter_is_success) {
     // *init_file = string("0_0_w.csv");
@@ -903,7 +904,7 @@ int findGoldilocksModels(int argc, char* argv[]) {
       n_rerun = 0;
     }
   }
-  double fail_threshold = 0.2;
+  double fail_threshold = FLAGS_fail_threshold;
   is_newton ? cout << "Newton method\n" : cout << "Gradient descent method\n";
   is_stochastic ? cout << "Stocastic\n" : cout << "Non-stochastic\n";
   cout << "Step size = " << h_step << endl;

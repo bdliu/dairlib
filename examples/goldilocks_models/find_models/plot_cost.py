@@ -19,7 +19,7 @@ if len(sys.argv) == 3:
     is_iter_end = 1
 
 
-n_sampel_sl = 13  # should be > 0
+n_sampel_sl = 3  # should be > 0
 n_sampel_gi = 3  # should be > 0
 batch_max = n_sampel_sl * n_sampel_gi
 delta_dist = 0.015
@@ -27,7 +27,7 @@ min_dist = 0.3 - (n_sampel_sl - 1)/2.0
 delta_incline = 0.05
 min_incline = -0.05
 
-robot_option = 0;  # 0 is five-link robot. 1 is cassie_fixed_spring
+robot_option = 1;  # 0 is five-link robot. 1 is cassie_fixed_spring
 directory = 'data/robot_' + str(robot_option) + '/'
 
 # file_name = 'c.csv'
