@@ -1622,13 +1622,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
             cout << "Found optimal theta.\n\n";
             break;
           }
-        }
-        else {
+        } else {
           if (norm_grad_cost(0) < stopping_threshold) {
             cout << "Found optimal theta.\n\n";
             break;
           }
         }
+
+        for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
       }  // end if
     }  // end if(!is_get_nominal)
   }  // end for

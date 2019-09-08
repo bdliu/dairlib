@@ -39,8 +39,8 @@ nominal_cost = 0.0
 if normalize_by_nominal_cost:
     for batch in reversed(range(batch_max)):
         cost = []
-        assert os.path.isfile(directory+'0_'+str(batch)+'_'+file_name), 'file does not exist'
-        matrix = np.genfromtxt (directory+'0_'+str(batch)+'_'+file_name, delimiter=",")
+        assert os.path.isfile(directory+'nominal_no_constraint_traj/'+'0_'+str(batch)+'_'+file_name), 'file does not exist'
+        matrix = np.genfromtxt (directory+'nominal_no_constraint_traj/'+'0_'+str(batch)+'_'+file_name, delimiter=",")
         cost.append(matrix)
 
         nominal_cost += cost[0] / batch_max;
