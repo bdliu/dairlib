@@ -4,6 +4,7 @@ import csv
 import os
 import time
 import sys
+plt.rcParams.update({'font.size': 18})
 
 only_plot_average_cost = True
 normalize_by_nominal_cost = True
@@ -88,16 +89,20 @@ while 1:
         if batch == 0:
             average_cost = [x/batch_max for x in total_cost]
             if only_plot_average_cost:
-                ax1.plot(t[0:len_total_cost],average_cost, 'b--', linewidth=2.0, label='Averaged cost')
+                ax1.plot(t[0:len_total_cost],average_cost, 'k-', linewidth=3.0, label='Averaged cost')
             else:
-                ax1.plot(t[0:len_total_cost],average_cost, 'k--', linewidth=2.0, label='Averaged cost')
+                ax1.plot(t[0:len_total_cost],average_cost, 'k--', linewidth=3.0, label='Averaged cost')
 
-    plt.xlabel('Iterations')
-    plt.ylabel('Cost')
+    plt.xlabel('Iteration')
+    plt.ylabel('Averaged sample task cost')
     if not only_plot_average_cost:
         plt.title('Cost over iterations')
         plt.legend()
     plt.draw()
+
+    # so that the label is not cut off by the window
+    # plt.tight_layout()
+    plt.gcf().subplots_adjust(bottom=0.15)
 
     plt.pause(10)
     plt.clf()
