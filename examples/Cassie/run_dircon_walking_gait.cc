@@ -834,6 +834,7 @@ class RightFootYConstraint : public DirconAbstractConstraint<double> {
 class RightFootZConstraint : public DirconAbstractConstraint<double> {
  public:
   RightFootZConstraint(const MultibodyPlant<double>* plant,
+                       double ground_incline,
                        vector<double> var_scale) :
     DirconAbstractConstraint<double>(
       1, plant->num_positions(),
@@ -843,6 +844,14 @@ class RightFootZConstraint : public DirconAbstractConstraint<double> {
     plant_(plant),
     body_(plant->GetBodyByName("toe_right")),
     quaternion_scale_(var_scale[4]) {
+
+    Eigen::AngleAxisd rollAngle(0, Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(ground_incline, Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(0, Vector3d::UnitZ());
+    Eigen::Quaterniond q = yawAngle * pitchAngle * rollAngle;
+    Eigen::Matrix3d inv_rot_mat_ground = q.matrix().transpose();
+
+    T_ground_incline_ = inv_rot_mat_ground;
   }
   ~RightFootZConstraint() override = default;
 
@@ -859,12 +868,14 @@ class RightFootZConstraint : public DirconAbstractConstraint<double> {
     this->plant_->CalcPointsPositions(*context,
                                       body_.body_frame(), Vector3d::Zero(),
                                       plant_->world_frame(), &pt);
-    *y = pt.tail(1);
+    *y = (T_ground_incline_ * pt).tail(1);
   };
  private:
   const MultibodyPlant<double>* plant_;
   const drake::multibody::Body<double>& body_;
   double quaternion_scale_;
+
+  Eigen::Matrix3d T_ground_incline_;
 };
 
 
@@ -1410,14 +1421,14 @@ void DoMain(double stride_length,
     //     trajopt->AddConstraint(com_vel_constraint, x);
     //   }
     // } else {
-      cout << "Adding COM velocity constraint\n";
-      auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
-                                var_scale);
-      for (int index = 0; index < num_time_samples[0] - 1; index++) {
-        auto x0 = trajopt->state(index);
-        auto x1 = trajopt->state(index + 1);
-        trajopt->AddConstraint(com_vel_constraint, {x0, x1});
-      }
+    cout << "Adding COM velocity constraint\n";
+    auto com_vel_constraint = std::make_shared<ComHeightVelConstraint>(&plant,
+                              var_scale);
+    for (int index = 0; index < num_time_samples[0] - 1; index++) {
+      auto x0 = trajopt->state(index);
+      auto x1 = trajopt->state(index + 1);
+      trajopt->AddConstraint(com_vel_constraint, {x0, x1});
+    }
     // }
   }
 
@@ -1437,15 +1448,15 @@ void DoMain(double stride_length,
     auto x = trajopt->state(index);
     trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
   }
-  if (ground_incline == 0) {
+  // if (ground_incline == 0) {
     cout << "Adding right foot constraint in z direction\n";
     auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
-                                     &plant, var_scale);
+                                     &plant, ground_incline, var_scale);
     for (int index = 1; index < num_time_samples[0] - 1; index++) {
       auto x = trajopt->state(index);
       trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
     }
-  }
+  // }
 
   // Periodicity constraints
   // vector<string> left_joint_names {
