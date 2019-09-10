@@ -67,6 +67,8 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
+bool is_to_improve_solution = false; // Not tested yet. So backup before you try this.
+
 DEFINE_int32(robot_option, 1, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 1, "The starting iteration #. 0 is nominal traj.");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
@@ -260,10 +262,12 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
   }
 
   // Testing:
-  // cout << "testing with manual init file: ";
-  // *init_file = to_string(iter) +  "_" +
-  //              to_string(sample) + string("_w.csv");
-  // cout << *init_file << endl;
+  if (is_to_improve_solution) {
+    // cout << "testing with manual init file: ";
+    *init_file = to_string(iter) +  "_" +
+                 to_string(sample) + string("_w.csv");
+    cout << *init_file << endl;
+  }
 
   //Testing
   if (is_debug) {
@@ -1125,6 +1129,13 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // For testing
     // if (iter == 2) break;
 
+    if (is_to_improve_solution) {
+      theta_s = readCSV(dir + to_string(iter) +
+                        string("_theta_s.csv")).col(0);
+      theta_sDDot = readCSV(dir + to_string(iter) +
+                            string("_theta_sDDot.csv")).col(0);
+    }
+
     // Print info about iteration # and current time
     auto end = std::chrono::system_clock::now();
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
@@ -1315,6 +1326,12 @@ int findGoldilocksModels(int argc, char* argv[]) {
     // cout << "Only run for 1 iteration. for testing.\n";
     // for (int i = 0; i < 100; i++) {cout << '\a';}  // making noise to notify
     // break;
+
+    // For testing
+    if (is_to_improve_solution) {
+      cout << "Not updating the parameters. for testing.\n";
+      continue;
+    }
 
     // Logic for how to iterate
     if (samples_are_success && !is_get_nominal) has_been_all_success = true;
