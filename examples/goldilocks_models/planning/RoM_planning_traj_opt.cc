@@ -60,7 +60,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   MatrixXd tau_guess,
   VectorXd x_guess_left_in_front,
   VectorXd x_guess_right_in_front,
-  bool with_init_guess) :
+  bool with_init_guess,
+  int robot_option) :
   MultipleShooting(n_tau,
                    2 * n_r,
                    std::accumulate(num_time_samples.begin(),
@@ -80,6 +81,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   n_y_(2 * n_r),
   n_x_(plant.num_positions() + plant.num_velocities()),
   plant_(plant) {
+
   DRAKE_ASSERT(minimum_timestep.size() == num_modes_);
   DRAKE_ASSERT(maximum_timestep.size() == num_modes_);
 
@@ -120,7 +122,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Initial guess
     if (with_init_guess) {
       for (int j = 0; j < mode_lengths_[i] - 1; j++) {
-        SetInitialGuess(timestep(mode_start_[i] + j), h_guess);
+        SetInitialGuess(timestep(mode_start_[i] + j), h_guess.segment(1,1));
       }
       for (int j = 0; j < mode_lengths_[i]; j++) {
         SetInitialGuess(state_vars_by_mode(i, j),
@@ -166,7 +168,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Add dynamics constraints at collocation points
     cout << "Adding dynamics constraint...\n";
     auto dyn_constraint = std::make_shared<planning::DynamicsConstraint>(
-                            n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau);
+                            n_r, n_r, n_feature_dyn, theta_dyn, n_tau, B_tau, robot_option);
     DRAKE_ASSERT(
       static_cast<int>(dyn_constraint->num_constraints()) == num_states());
     for (int j = 0; j < mode_lengths_[i] - 1; j++) {
@@ -183,7 +185,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // Add RoM-FoM mapping constraints
     cout << "Adding RoM-FoM mapping constraint...\n";
     auto kin_constraint = std::make_shared<planning::KinematicsConstraint>(
-                            n_r, n_q, n_feature_kin, theta_kin);
+                            n_r, n_q, n_feature_kin, theta_kin, robot_option);
     auto y_0 = state_vars_by_mode(i, 0);
     auto y_f = state_vars_by_mode(i, mode_lengths_[i] - 1);
     auto x_0 = x0_vars_by_mode(i);

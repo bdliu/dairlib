@@ -68,7 +68,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   std::string full_name = FindResourceOrThrow(
                             "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
-  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  plant.mutable_gravity_field().set_gravity_vector(
     -9.81 * Eigen::Vector3d::UnitZ());
   plant.WeldFrames(
     plant.world_frame(), plant.GetFrameByName("base"),
@@ -192,7 +192,8 @@ int planningWithRomAndFom(int argc, char* argv[]) {
                    tau_guess,
                    x_guess_left_in_front,
                    x_guess_right_in_front,
-                   with_init_guess);
+                   with_init_guess,
+                   FLAGS_robot_option);
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   cout << "Construction time:" << elapsed.count() << "\n";
