@@ -249,7 +249,7 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
             left_stance, n_q, n_q, n_J, plant_);
         auto Lambda = NewContinuousVariables(n_J, "Lambda" + to_string(i));
         AddConstraint(reset_map_constraint, {xf_vars_by_mode(i - 1),
-                                             xf_vars_by_mode(i),
+                                             x0_vars_by_mode(i),
                                              Lambda
                                             });
       }
