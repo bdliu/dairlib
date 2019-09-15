@@ -53,6 +53,10 @@ class RomPlanningTrajOptWithFomImpactMap :
                                      VectorXd x_guess_left_in_front,
                                      VectorXd x_guess_right_in_front,
                                      bool with_init_guess,
+                                     bool fix_duration,
+                                     bool fix_all_timestep,
+                                     bool add_x_pose_in_cost,
+                                     bool straight_leg_cost,
                                      int robot_option);
 
   ~RomPlanningTrajOptWithFomImpactMap() override {}

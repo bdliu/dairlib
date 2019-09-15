@@ -61,6 +61,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   VectorXd x_guess_left_in_front,
   VectorXd x_guess_right_in_front,
   bool with_init_guess,
+  bool fix_duration,
+  bool fix_all_timestep,
+  bool add_x_pose_in_cost,
+  bool straight_leg_cost,
   int robot_option) :
   MultipleShooting(n_tau,
                    2 * n_r,
@@ -95,14 +99,17 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   cout << "Adding cost...\n";
   auto y = this->state();
   auto tau = this->input();
-  this->AddRunningCost(y.tail(n_r).transpose()*Q * y.tail(n_r));
-  this->AddRunningCost(tau.transpose()*R * tau);
-  // Since there are mulitple q that could be mapped to the same r, I penalize
-  // on q so it get close to a certain configuration
-  MatrixXd Id = MatrixXd::Identity(1, 1);
-  VectorXd zero_1d_vec = VectorXd::Zero(1);
-  for (int i = 0; i < num_modes_; i++) {
-    this->AddQuadraticErrorCost(1*Id, zero_1d_vec, xf_vars_by_mode(i).segment(2, 1));
+  this->AddRunningCost(y.tail(n_r).transpose()* Q * y.tail(n_r));
+  this->AddRunningCost(tau.transpose()* R * tau);
+  if (!add_x_pose_in_cost) {
+    // Since there are mulitple q that could be mapped to the same r, I penalize
+    // on q so it get close to a certain configuration
+    MatrixXd Id = MatrixXd::Identity(1, 1);
+    VectorXd zero_1d_vec = VectorXd::Zero(1);
+    for (int i = 0; i < num_modes_; i++) {
+      this->AddQuadraticErrorCost(1 * Id, zero_1d_vec,
+                                  xf_vars_by_mode(i).segment(2, 1));
+    }
   }
   // for (int i = 0; i < num_modes_; i++) {
   //   this->AddQuadraticErrorCost(10*Id, zero_1d_vec, xf_vars_by_mode(i).segment(3, 1));
@@ -110,6 +117,11 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
   // for (int i = 0; i < num_modes_; i++) {
   //   this->AddQuadraticErrorCost(10*Id, zero_1d_vec, xf_vars_by_mode(i).segment(4, 1));
   // }
+
+  // Duration bound
+  if (fix_duration) {
+    AddDurationBounds(h_guess.tail(1)(0)*num_modes_, h_guess.tail(1)(0)*num_modes_);
+  }
 
   // (Initial guess and constraint) Initialization is looped over the modes
   int counter = 0;
@@ -119,10 +131,49 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     bool left_stance = (i % 2 == 0) ? true : false;
 
+    // Testing: Add cost on FOM state see if it increase convergence rate
+    if (add_x_pose_in_cost) {
+      MatrixXd Id_7 = 1 * MatrixXd::Identity(2 * n_q - 1, 2 * n_q - 1);
+      // Id_7(1,1) = 10;
+      MatrixXd Id_1 = 1 * MatrixXd::Identity(1, 1);
+
+      double torso_lean_forward_angle = 0.1;
+      VectorXd modifixed_x_guess_left_in_front = x_guess_left_in_front;
+      // modifixed_x_guess_left_in_front(2) = torso_lean_forward_angle;
+      VectorXd modifixed_x_guess_right_in_front = x_guess_right_in_front;
+      // modifixed_x_guess_right_in_front(2) = torso_lean_forward_angle;
+      if(straight_leg_cost) {
+        Id_7(5,5) = 10;
+        Id_7(6,6) = 10;
+        modifixed_x_guess_left_in_front(5) = 0;
+        modifixed_x_guess_left_in_front(6) = 0;
+        modifixed_x_guess_right_in_front(5) = 0;
+        modifixed_x_guess_right_in_front(6) = 0;
+      }
+
+      if (left_stance) {
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.tail(2 * n_q - 1),
+                                    x0_vars_by_mode(i).tail(2 * n_q - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.tail(2 * n_q - 1),
+                                    xf_vars_by_mode(i).tail(2 * n_q - 1));
+      } else {
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.tail(2 * n_q - 1),
+                                    x0_vars_by_mode(i).tail(2 * n_q - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.tail(2 * n_q - 1),
+                                    xf_vars_by_mode(i).tail(2 * n_q - 1));
+      }
+      this->AddQuadraticErrorCost(Id_1,
+                                  VectorXd::Ones(1) * desired_final_position * i / num_modes_,
+                                  x0_vars_by_mode(i).head(1));
+      this->AddQuadraticErrorCost(Id_1,
+                                  VectorXd::Ones(1) * desired_final_position * (i + 1) / num_modes_,
+                                  xf_vars_by_mode(i).head(1));
+    }
+
     // Initial guess
     if (with_init_guess) {
       for (int j = 0; j < mode_lengths_[i] - 1; j++) {
-        SetInitialGuess(timestep(mode_start_[i] + j), h_guess.segment(1,1));
+        SetInitialGuess(timestep(mode_start_[i] + j), h_guess.segment(1, 1));
       }
       for (int j = 0; j < mode_lengths_[i]; j++) {
         SetInitialGuess(state_vars_by_mode(i, j),
@@ -164,6 +215,12 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       AddLinearConstraint(timestep(mode_start_[i] + j) ==
                           timestep(mode_start_[i] + j + 1));
     }
+    // make the timesteps in each mode the same
+    if (fix_all_timestep && i != 0) {
+      AddLinearConstraint(timestep(mode_start_[i] - 1) ==
+                          timestep(mode_start_[i]));
+    }
+
 
     // Add dynamics constraints at collocation points
     cout << "Adding dynamics constraint...\n";
@@ -230,14 +287,14 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
                               left_stance, n_q, n_q, lb, ub);
     AddConstraint(guard_constraint, xf_vars_by_mode(i));
 
-    // Add periodicity constraints
+    // Add constraints for stitching FOM positins
     if (i != 0) {
       cout << "Adding (FoM position) periodicity constraint...\n";
       AddLinearConstraint(xf_vars_by_mode(i - 1).segment(0, n_q) ==
                           x0_vars_by_mode(i).segment(0, n_q));
     }
 
-    // Add reset map constraint
+    // Add (impact) discrete map constraint
     if (i != 0) {
       if (zero_touchdown_impact) {
         cout << "Adding (FoM velocity) identity reset map constraint...\n";

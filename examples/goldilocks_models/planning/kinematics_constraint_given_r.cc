@@ -8,6 +8,7 @@ namespace planning {
 KinematicsConstraintGivenR::KinematicsConstraintGivenR(
   int n_r, AutoDiffVecXd r,int n_q, int n_feature_kin,
   const VectorXd & theta_kin,
+  int robot_option,
   const std::string& description):
   Constraint(n_r,
              n_q,
@@ -18,7 +19,7 @@ KinematicsConstraintGivenR::KinematicsConstraintGivenR(
   n_r_(n_r),
   n_q_(n_q),
   theta_kin_(theta_kin),
-  kin_expression_(KinematicsExpression<AutoDiffXd>(n_r, n_feature_kin)) {
+  kin_expression_(KinematicsExpression<AutoDiffXd>(n_r, n_feature_kin, robot_option)) {
 
   // Check the theta size
   DRAKE_DEMAND(n_r * n_feature_kin == theta_kin.size());

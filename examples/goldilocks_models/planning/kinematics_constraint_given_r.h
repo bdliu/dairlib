@@ -56,6 +56,7 @@ class KinematicsConstraintGivenR : public Constraint {
  public:
   KinematicsConstraintGivenR(int n_r, AutoDiffVecXd r, int n_q, int n_feature_kin,
                              const VectorXd & theta_kin,
+                             int robot_option,
                              const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;
