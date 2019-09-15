@@ -131,7 +131,8 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     bool left_stance = (i % 2 == 0) ? true : false;
 
-    // Testing: Add cost on FOM state see if it increase convergence rate
+    // Adding cost on FOM state increases convergence rate
+    // If we only add position (not velocity) in the cost, then higher cost results in spacing out each step more evenly
     if (add_x_pose_in_cost) {
       int nq_or_nx = n_q; //n_q or 2*n_q
       MatrixXd Id_7 = 10 * MatrixXd::Identity(nq_or_nx - 1, nq_or_nx - 1);

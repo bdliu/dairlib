@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include <unistd.h> // for pausing the program for a few seconds
+
 #include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/diagram_builder.h"
@@ -387,6 +389,10 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
 
   writeCSV(dir_data + string("q_at_knots_IK.csv"), q_at_all_knots);
 
+  // Pause the system for 1 second
+  if (FLAGS_realtime_factor != 1) {
+    usleep(1000000);
+  }
 
   // Create a piecewise polynomial
   double dt = FLAGS_dt;
