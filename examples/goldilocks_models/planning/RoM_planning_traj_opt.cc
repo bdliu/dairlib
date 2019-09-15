@@ -133,9 +133,10 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
 
     // Testing: Add cost on FOM state see if it increase convergence rate
     if (add_x_pose_in_cost) {
-      MatrixXd Id_7 = 1 * MatrixXd::Identity(2 * n_q - 1, 2 * n_q - 1);
+      int nq_or_nx = n_q; //n_q or 2*n_q
+      MatrixXd Id_7 = 10 * MatrixXd::Identity(nq_or_nx - 1, nq_or_nx - 1);
       // Id_7(1,1) = 10;
-      MatrixXd Id_1 = 1 * MatrixXd::Identity(1, 1);
+      MatrixXd Id_1 = 10 * MatrixXd::Identity(1, 1);
 
       double torso_lean_forward_angle = 0.1;
       VectorXd modifixed_x_guess_left_in_front = x_guess_left_in_front;
@@ -152,15 +153,15 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
       }
 
       if (left_stance) {
-        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.tail(2 * n_q - 1),
-                                    x0_vars_by_mode(i).tail(2 * n_q - 1));
-        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.tail(2 * n_q - 1),
-                                    xf_vars_by_mode(i).tail(2 * n_q - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.head(nq_or_nx).tail(nq_or_nx - 1),
+                                    x0_vars_by_mode(i).head(nq_or_nx).tail(nq_or_nx - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.head(nq_or_nx).tail(nq_or_nx - 1),
+                                    xf_vars_by_mode(i).head(nq_or_nx).tail(nq_or_nx - 1));
       } else {
-        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.tail(2 * n_q - 1),
-                                    x0_vars_by_mode(i).tail(2 * n_q - 1));
-        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.tail(2 * n_q - 1),
-                                    xf_vars_by_mode(i).tail(2 * n_q - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_right_in_front.head(nq_or_nx).tail(nq_or_nx - 1),
+                                    x0_vars_by_mode(i).head(nq_or_nx).tail(nq_or_nx - 1));
+        this->AddQuadraticErrorCost(Id_7, modifixed_x_guess_left_in_front.head(nq_or_nx).tail(nq_or_nx - 1),
+                                    xf_vars_by_mode(i).head(nq_or_nx).tail(nq_or_nx - 1));
       }
       this->AddQuadraticErrorCost(Id_1,
                                   VectorXd::Ones(1) * desired_final_position * i / num_modes_,
