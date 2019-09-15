@@ -80,6 +80,7 @@ DEFINE_bool(is_do_inverse_kin, false, "Do inverse kinematics for presentation");
 DEFINE_bool(is_soft_constraint, true, "Put IK constraint in cost");
 DEFINE_double(soft_constraint_weight, 10, "Cost weight for soft constraint");
 DEFINE_bool(assign_des_torso_angle, true, "Assign a desired torso angle");
+DEFINE_double(d_clearance, 0, "Max angle for swing foot ground clearance");
 
 DEFINE_double(realtime_factor, 1, "Visualization realtime factor");
 
@@ -150,6 +151,7 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
   if (FLAGS_assign_des_torso_angle) {
     desired_torso = 0.1;
   }
+  double d_clearance = FLAGS_d_clearance;
 
   // Read in the parameters
   const string dir_model = "examples/goldilocks_models/planning/models/";
@@ -333,6 +335,20 @@ void visualizeFullOrderModelTraj(int argc, char* argv[]) {
         interpolated_q(2) += difference;
         interpolated_q(3) -= difference;
         interpolated_q(4) -= difference;
+      }
+      if (d_clearance > 0) {
+        double delta_angle;
+        if (j < 0.5 * FLAGS_n_nodes) {
+          delta_angle = d_clearance * 2.0 * j / FLAGS_n_nodes;
+        } else {
+          delta_angle = d_clearance * 2 - d_clearance * 2.0 * j / FLAGS_n_nodes;
+        }
+
+        if (left_stance) {
+          interpolated_q(6) += delta_angle;
+        } else {
+          interpolated_q(5) += delta_angle;
+        }
       }
       math_prog.AddQuadraticErrorCost(Id, interpolated_q, q);
       //////////////////////////////////////////////////////////////////////////
