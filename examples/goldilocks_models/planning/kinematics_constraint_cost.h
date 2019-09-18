@@ -56,6 +56,7 @@ class KinematicsConstraintCost : public Cost {
  public:
   KinematicsConstraintCost(int n_r, int n_q, int n_feature_kin,
                        const VectorXd & theta_kin, double weight,
+                       int robot_option,
                        const std::string& description = "");
   void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
               Eigen::VectorXd* y) const override;

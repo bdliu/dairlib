@@ -56,6 +56,9 @@ DEFINE_bool(print_snopt_file, false, "Print snopt output file");
 DEFINE_bool(zero_touchdown_impact, false, "Zero impact at foot touchdown");
 DEFINE_double(final_position, 2, "The final position for the robot");
 DEFINE_double(disturbance, 0, "Disturbance to FoM intial state");
+DEFINE_bool(fix_duration, false, "Fix the total time");
+DEFINE_bool(fix_all_timestep, true, "Make all timesteps the same size");
+// DEFINE_bool(add_x_pose_in_cost, false, "Add x0 and xf in the cost function");
 
 // Planning with optimal reduced order model and full order model
 // (discrete map is from full order model)
@@ -68,7 +71,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   std::string full_name = FindResourceOrThrow(
                             "examples/goldilocks_models/PlanarWalkerWithTorso.urdf");
   parser.AddModelFromFile(full_name);
-  plant.AddForceElement<drake::multibody::UniformGravityFieldElement>(
+  plant.mutable_gravity_field().set_gravity_vector(
     -9.81 * Eigen::Vector3d::UnitZ());
   plant.WeldFrames(
     plant.world_frame(), plant.GetFrameByName("base"),
@@ -158,7 +161,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
   VectorXd x_guess_left_in_front;
   VectorXd x_guess_right_in_front;
   if (with_init_guess) {
-    h_guess = readCSV(dir_and_pf + string("time_at_knots.csv")).block(1, 0, 1, 1);
+    h_guess = readCSV(dir_and_pf + string("time_at_knots.csv")).col(0);
     r_guess = readCSV(dir_and_pf + string("t_and_s.csv")).block(
                 1, 0, n_s, knots_per_mode);
     dr_guess = readCSV(dir_and_pf + string("t_and_ds.csv")).block(
@@ -192,7 +195,12 @@ int planningWithRomAndFom(int argc, char* argv[]) {
                    tau_guess,
                    x_guess_left_in_front,
                    x_guess_right_in_front,
-                   with_init_guess);
+                   with_init_guess,
+                   FLAGS_fix_duration,
+                   FLAGS_fix_all_timestep,
+                   true,
+                   false,
+                   FLAGS_robot_option);
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   cout << "Construction time:" << elapsed.count() << "\n";
@@ -201,7 +209,7 @@ int planningWithRomAndFom(int argc, char* argv[]) {
     trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                              "Print file", "snopt.out");
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
-                           "Major iterations limit", 1000);
+                           "Major iterations limit", 10000);
   trajopt->SetSolverOption(drake::solvers::SnoptSolver::id(),
                            "Verify level", 0);
 

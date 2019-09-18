@@ -52,19 +52,14 @@ class RomPlanningTrajOptWithFomImpactMap :
                                      MatrixXd tau_guess,
                                      VectorXd x_guess_left_in_front,
                                      VectorXd x_guess_right_in_front,
-                                     bool with_init_guess);
+                                     bool with_init_guess,
+                                     bool fix_duration,
+                                     bool fix_all_timestep,
+                                     bool add_x_pose_in_cost,
+                                     bool straight_leg_cost,
+                                     int robot_option);
 
   ~RomPlanningTrajOptWithFomImpactMap() override {}
-
-  /// TODO: remove when removed upstream
-  drake::trajectories::PiecewisePolynomial<double> ReconstructInputTrajectory()
-  const override {
-    return drake::trajectories::PiecewisePolynomial<double>();
-  };
-  drake::trajectories::PiecewisePolynomial<double> ReconstructStateTrajectory()
-  const override {
-    return drake::trajectories::PiecewisePolynomial<double>();
-  };
 
   /// Get the input trajectory at the solution as a
   /// %drake::trajectories::PiecewisePolynomialTrajectory%.
