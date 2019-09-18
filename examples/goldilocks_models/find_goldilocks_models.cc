@@ -67,8 +67,10 @@ using dairlib::FindResourceOrThrow;
 namespace dairlib {
 namespace goldilocks_models {
 
-bool is_to_improve_solution = false; // Not tested yet. So backup before you try this.
+// Not tested yet. So backup before you try this.
+bool is_to_improve_solution = false;
 
+// Flags
 DEFINE_int32(robot_option, 1, "0: plannar robot. 1: cassie_fixed_spring");
 DEFINE_int32(iter_start, 1, "The starting iteration #. 0 is nominal traj.");
 DEFINE_string(init_file, "w0.csv", "Initial Guess for Trajectory Optimization");
@@ -91,7 +93,8 @@ DEFINE_bool(is_multithread, true, "Use multi-thread or not");
 DEFINE_int32(n_thread_to_use, -1, "# of threads you want to use");
 DEFINE_int32(n_rerun, -1, "snopt might settle down at a bad sub-optimal"
              " solution, so we rerun");
-DEFINE_double(fail_threshold, 0.2, "Maximum acceptable failure rate of samples");
+DEFINE_double(fail_threshold, 0.2,
+              "Maximum acceptable failure rate of samples");
 
 DEFINE_int32(N_sample_sl, 1, "Sampling # for stride length");
 DEFINE_int32(N_sample_gi, 1, "Sampling # for ground incline");
@@ -1227,8 +1230,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
             stride_length = previous_stride_length(sample);
             ground_incline = previous_ground_incline(sample);
           }
-
+          // Store tasks in files so we can use it in visualization
           prefix = to_string(iter) +  "_" + to_string(sample) + "_";
+          writeCSV(dir + prefix + string("stride_length.csv"),
+                   stride_length * MatrixXd::Ones(1, 1));
+          writeCSV(dir + prefix + string("ground_incline.csv"),
+                   ground_incline * MatrixXd::Ones(1, 1));
+
+          // Get file name of initial seed
           string init_file_pass_in;
           getInitFileName(&init_file_pass_in, init_file, iter, sample,
                           is_get_nominal,
