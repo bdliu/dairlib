@@ -1740,12 +1740,12 @@ void cassieTrajOpt(const MultibodyPlant<double> & plant,
     trajopt->AddConstraint(right_foot_constraint, x.head(n_q));
   }
   // cout << "Adding right foot constraint in z direction\n";
-  auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
-                                   &plant, ground_incline, var_scale);
-  for (int index = 1; index < num_time_samples[0] - 1; index++) {
-    auto x = trajopt->state(index);
-    trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
-  }
+  // auto right_foot_z_constraint = std::make_shared<RightFootZConstraint>(
+  //                                  &plant, ground_incline, var_scale);
+  // for (int index = 1; index < num_time_samples[0] - 1; index++) {
+  //   auto x = trajopt->state(index);
+  //   trajopt->AddConstraint(right_foot_z_constraint, x.head(n_q));
+  // }
 
 
   // Periodicity constraints

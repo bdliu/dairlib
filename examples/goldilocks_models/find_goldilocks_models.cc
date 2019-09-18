@@ -227,9 +227,9 @@ void getInitFileName(string * init_file, const string & nominal_traj_init_file,
 
     // Testing:
     // cout << "testing with manual init file: ";
-    *init_file = "0_" +
-                 to_string(sample) + string("_w.csv");
-    cout << *init_file << endl;
+    // *init_file = "0_" +
+    //              to_string(sample) + string("_w.csv");
+    // cout << *init_file << endl;
   }
   else if (is_get_nominal && !previous_iter_is_success) {
     // *init_file = string("0_0_w.csv");
@@ -839,11 +839,14 @@ int findGoldilocksModels(int argc, char* argv[]) {
   double delta_stride_length = 0.03 / 2;
   double stride_length_0 = 0.3;
   if (FLAGS_robot_option == 1) {
-    delta_stride_length = 0.1;
+    delta_stride_length = 0.033;
     stride_length_0 = 0.2;  //0.15
   }
   double delta_ground_incline = 0.1 / 2;
   double ground_incline_0 = 0;
+  if (FLAGS_robot_option == 1) {
+    delta_ground_incline = 0.08;
+  }
   double duration;
   if (FLAGS_robot_option == 0) {
     duration = 0.746;  // Fix the duration now since we add cost ourselves
