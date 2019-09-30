@@ -397,7 +397,7 @@ void simpleTrajOpt(double stride_length, double duration, int iter,
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(.1);
     simulator.Initialize();
-    simulator.StepTo(pp_xtraj.end_time());
+    simulator.AdvanceTo(pp_xtraj.end_time());
   }
 
   return ;

@@ -181,7 +181,7 @@ vector<VectorXd> GetCassieInitGuessForQ(int N,
       drake::systems::Simulator<double> simulator(*diagram);
       simulator.set_target_realtime_rate(.1);
       simulator.Initialize();
-      simulator.StepTo(1.0 / N);
+      simulator.AdvanceTo(1.0 / N);
     }
   }
 

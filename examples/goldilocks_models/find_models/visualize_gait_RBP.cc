@@ -73,7 +73,7 @@ void visualizeGait() {
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(1);
     simulator.Initialize();
-    simulator.StepTo(pp_traj.end_time());
+    simulator.AdvanceTo(pp_traj.end_time());
   }
 
   return;

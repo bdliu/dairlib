@@ -118,7 +118,7 @@ void visualizeFullOrderModelPose(int argc, char* argv[]) {
     drake::systems::Simulator<double> simulator(*diagram);
     simulator.set_target_realtime_rate(1);
     simulator.Initialize();
-    simulator.StepTo(pp_xtraj.end_time());
+    simulator.AdvanceTo(pp_xtraj.end_time());
 
     if((is_head == FLAGS_end_is_head) && (mode == FLAGS_end_mode))
       continue;

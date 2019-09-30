@@ -1,17 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-cc_binary(
-    name = "simple_traj_opt_RBP",
-    srcs = ["simple_traj_opt_RBP.cc"],
-    data = glob(["examples/goldilocks_models/PlanarWalkerWithTorso.urdf"]),
-    deps = [
-        "//systems/goldilocks_models",
-        "//attic/systems/trajectory_optimization:dircon",
-        "//solvers:optimization_utils",
-        "@drake//:drake_shared_library",
-        "@gflags",
-    ],
-)
 
 cc_binary(
     name = "simple_traj_opt_MBP",
@@ -92,24 +80,24 @@ cc_library(
 )
 
 
-cc_binary(
-    name = "kinematics_expression_test",
-    srcs = ["kinematics_expression_test.cc"],
-    deps = [
-        ":kinematics_expression",
-        "//common",
-        "@drake//:drake_shared_library",
-    ],
-)
+# cc_binary(
+#     name = "kinematics_expression_test",
+#     srcs = ["kinematics_expression_test.cc"],
+#     deps = [
+#         ":kinematics_expression",
+#         "//common",
+#         "@drake//:drake_shared_library",
+#     ],
+# )
 
 
-cc_binary(
-    name = "dynamics_expression_test",
-    srcs = ["dynamics_expression_test.cc"],
-    deps = [
-        ":dynamics_expression",
-    ],
-)
+# cc_binary(
+#     name = "dynamics_expression_test",
+#     srcs = ["dynamics_expression_test.cc"],
+#     deps = [
+#         ":dynamics_expression",
+#     ],
+# )
 
 
 
