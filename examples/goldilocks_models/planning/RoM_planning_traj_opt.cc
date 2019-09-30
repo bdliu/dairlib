@@ -135,9 +135,9 @@ RomPlanningTrajOptWithFomImpactMap::RomPlanningTrajOptWithFomImpactMap(
     // If we only add position (not velocity) in the cost, then higher cost results in spacing out each step more evenly
     if (add_x_pose_in_cost) {
       int nq_or_nx = n_q; //n_q or 2*n_q
-      MatrixXd Id_7 = 10 * MatrixXd::Identity(nq_or_nx - 1, nq_or_nx - 1);
+      MatrixXd Id_7 = 100 * MatrixXd::Identity(nq_or_nx - 1, nq_or_nx - 1);
       // Id_7(1,1) = 10;
-      MatrixXd Id_1 = 10 * MatrixXd::Identity(1, 1);
+      MatrixXd Id_1 = 100 * MatrixXd::Identity(1, 1);
 
       double torso_lean_forward_angle = 0.1;
       VectorXd modifixed_x_guess_left_in_front = x_guess_left_in_front;
