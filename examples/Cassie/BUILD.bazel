@@ -89,6 +89,7 @@ cc_binary(
             "@drake//:drake_shared_library",
             ":cassie_utils",
             "@gflags",
+            "//multibody:utils",
             ]
 )
 
@@ -311,3 +312,17 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "benchmark_dynamics",
+    srcs = ["test/benchmark_dynamics.cc"],
+    deps = [
+        ":cassie_urdf",
+        "//common",
+        "//multibody:utils",
+        "//systems/primitives",
+        "//systems:robot_lcm_systems",
+        "//systems/sensors:sim_cassie_sensor_aggregator",
+        "@drake//:drake_shared_library",
+        "@gflags",
+        ],
+)

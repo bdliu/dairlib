@@ -105,6 +105,14 @@ void OscTrackingData::PrintFeedbackAndDesiredValues(VectorXd dv) {
   cout << "  ddy_command_sol = " << (J_ * dv + JdotV_).transpose() << endl;
 }
 
+void OscTrackingData::AddState(int state) {
+  // Avoid repeated states
+  for (auto const & element : state_) {
+    DRAKE_DEMAND(element != state);
+  }
+  state_.push_back(state);
+}
+
 // Run this function in OSC constructor to make sure that users constructed
 // OscTrackingData correctly.
 void OscTrackingData::CheckOscTrackingData() {
@@ -131,6 +139,10 @@ ComTrackingData::ComTrackingData(string name,
     const RigidBodyTree<double>* tree_w_spr,
     const RigidBodyTree<double>* tree_wo_spr) : OscTrackingData(name, n_r,
           K_p, K_d, W, tree_w_spr, tree_wo_spr) {
+}
+
+void ComTrackingData::AddStateToTrack(int state){
+    AddState(state);
 }
 
 void ComTrackingData::UpdateYAndError(const VectorXd& x_w_spr,
@@ -188,7 +200,7 @@ void TransTaskSpaceTrackingData::AddPointToTrack(std::string body_name,
 }
 void TransTaskSpaceTrackingData::AddStateAndPointToTrack(int state,
     std::string body_name, Vector3d pt_on_body) {
-  state_.push_back(state);
+  AddState(state);
   AddPointToTrack(body_name, pt_on_body);
 }
 
@@ -253,7 +265,7 @@ void RotTaskSpaceTrackingData::AddFrameToTrack(std::string body_name,
 }
 void RotTaskSpaceTrackingData::AddStateAndFrameToTrack(int state,
     std::string body_name, Isometry3d frame_pose) {
-  state_.push_back(state);
+  AddState(state);
   AddFrameToTrack(body_name, frame_pose);
 }
 
@@ -273,7 +285,7 @@ void RotTaskSpaceTrackingData::UpdateYAndError(const VectorXd& x_w_spr,
   // Get relative quaternion (from current to desired)
   Quaterniond relative_qaut = (y_quat_des * y_quat.inverse()).normalized();
   double theta = 2 * acos(relative_qaut.w());
-  Vector3d rot_axis = relative_qaut.vec() / sin(theta / 2);
+  Vector3d rot_axis = relative_qaut.vec().normalized();
 
   error_y_ = theta * rot_axis;
 }
@@ -338,7 +350,7 @@ void JointSpaceTrackingData::AddJointToTrack(std::string joint_pos_name,
 }
 void JointSpaceTrackingData::AddStateAndJointToTrack(int state,
     std::string joint_pos_name, std::string joint_vel_name) {
-  state_.push_back(state);
+  AddState(state);
   AddJointToTrack(joint_pos_name, joint_vel_name);
 }
 

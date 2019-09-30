@@ -12,8 +12,8 @@ workspace(name = "dairlib")
 #  export DAIRLIB_LOCAL_DRAKE_PATH=/home/user/workspace/drake
 
 # Choose a revision of Drake to use.
-DRAKE_COMMIT = "998adab4669aad9af2797a9b8526b2242f0f3210"
-DRAKE_CHECKSUM = "3d51e1c8ff56332db24a736ace7e174d51850b38a31ae6e768e367e0f7df5d2c"
+DRAKE_COMMIT = "799b83da9fe3d85371ec17eea92e4d31a23144e0"
+DRAKE_CHECKSUM = "86491e40c085635a6da8c939ee157bcdc4a82e452092cdcd596f597ac1553708"
 # Before changing the COMMIT, temporarily uncomment the next line so that Bazel
 # displays the suggested new value for the CHECKSUM.
 # DRAKE_CHECKSUM = "0" * 64

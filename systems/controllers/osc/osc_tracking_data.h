@@ -93,6 +93,7 @@ class OscTrackingData {
 
  protected:
   int GetStateIdx() {return state_idx_;};
+  void AddState(int state);
 
   // Feedback output, jacobian and dJ/dt * v
   Eigen::VectorXd error_y_;
@@ -166,6 +167,9 @@ class ComTrackingData final : public OscTrackingData {
 
   ComTrackingData() {}  // Default constructor
 
+  // If state is not specified, it will track COM for all states
+  void AddStateToTrack(int state);
+
  private:
   void UpdateYAndError(const Eigen::VectorXd& x_w_spr,
                        KinematicsCache<double>& cache_w_spr) final;
@@ -205,7 +209,15 @@ class TaskSpaceTrackingData : public OscTrackingData {
 /// (translational position) in the task space.
 
 /// AddPointToTrack() should be called to specify what is the point that
-/// follows the desired trajectory
+/// follows the desired trajectory.
+
+/// If users want to track the trajectory only in some states of the finite
+/// state machine, they should use AddStateAndPointToTrack().
+/// Also, at most one point (of the body) can follow the desired trajectory, so
+/// state_ elements can not repeat, and the length of state_ must be the same as
+/// pt_on_body_'s if state_ is not empty.
+/// This also means that AddPointToTrack and AddStateAndPointToTrack cannot be
+/// called one after another for the same TrackingData.
 class TransTaskSpaceTrackingData final : public TaskSpaceTrackingData {
  public:
   TransTaskSpaceTrackingData(std::string name, int n_r,
@@ -245,6 +257,14 @@ class TransTaskSpaceTrackingData final : public TaskSpaceTrackingData {
 
 /// AddFrameToTrack() should be called to specify what is the frame that
 /// follows the desired trajectory
+
+/// If users want to track the trajectory only in some states of the finite
+/// state machine, they should use AddStateAndFrameToTrack().
+/// Also, at most one point (of the body) can follow the desired trajectory, so
+/// state_ elements can not repeat, and the length of state_ must be the same as
+/// frame_pose_'s if state_ is not empty.
+/// This also means that AddFrameToTrack and AddStateAndFrameToTrack cannot be
+/// called one after another for the same TrackingData.
 class RotTaskSpaceTrackingData final : public TaskSpaceTrackingData {
  public:
   RotTaskSpaceTrackingData(std::string name, int n_r,
@@ -284,6 +304,14 @@ class RotTaskSpaceTrackingData final : public TaskSpaceTrackingData {
 
 /// AddJointToTrack() should be called to specify which joint to track.
 /// Note that one instance of `JointSpaceTrackingData` allows to track 1 joint.
+
+/// If users want to track the trajectory only in some states of the finite
+/// state machine, they should use AddStateAndJointToTrack().
+/// Also, at most one point (of the body) can follow the desired trajectory, so
+/// state_ elements can not repeat, and the length of state_ must be the same as
+/// joint_idx's if state_ is not empty.
+/// This also means that AddJointToTrack and AddStateAndJointToTrack cannot be
+/// called one after another for the same TrackingData.
 class JointSpaceTrackingData final : public OscTrackingData {
  public:
   JointSpaceTrackingData(std::string name,

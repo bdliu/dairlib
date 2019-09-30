@@ -69,7 +69,7 @@ void DirconAbstractConstraint<T>::DoEval(
 template <>
 void DirconAbstractConstraint<AutoDiffXd>::DoEval(
     const Eigen::Ref<const AutoDiffVecXd>& x, AutoDiffVecXd* y) const {
-  EvaluateConstraint(x,y);
+  EvaluateConstraint(x, y);
 }
 
 template <>
@@ -83,10 +83,10 @@ void DirconAbstractConstraint<double>::DoEval(
     VectorXd yi(this->num_constraints());
     EvaluateConstraint(x_val,&y0);
 
-    MatrixXd dy = MatrixXd(y0.size(),x_val.size());
+    MatrixXd dy = MatrixXd(y0.size(), x_val.size());
     for (int i=0; i < x_val.size(); i++) {
       x_val(i) += dx;
-      EvaluateConstraint(x_val,&yi);
+      EvaluateConstraint(x_val, &yi);
       x_val(i) -= dx;
       dy.col(i) = (yi - y0)/dx;
     }
@@ -368,14 +368,47 @@ DirconKinematicConstraint<T>::DirconKinematicConstraint(
       input_scale_{var_scale[1]},
       force_scale_{var_scale[2]},
       quaternion_scale_{var_scale[4]} {
-  relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
-  int j = 0;
-  for (int i=0; i < num_kinematic_constraints_; i++) {
-    if (is_constraint_relative_[i]) {
-      relative_map_(i, j) = 1;
-      j++;
+  // ***Set sparsity pattern***
+  std::vector<std::pair<int, int>> sparsity;
+  // Acceleration constraints are dense in decision variables
+  for (int i = 0; i < num_kinematic_constraints_; i++) {
+    for (int j = 0; j < this->num_vars(); j++) {
+      sparsity.push_back({i, j});
     }
   }
+
+  // Velocity constraint depends on q and v only
+  if (type_ == kAll || type == kAccelAndVel) {
+    for (int i = 0; i < num_kinematic_constraints_; i++) {
+      for (int j = 0; j < num_states_; j++) {
+        sparsity.push_back({i + num_kinematic_constraints_, j});
+      }
+    }
+  }
+
+  // Position constraint only depends on q and any offset variables
+  // Set relative map in the same loop
+  if (type == kAll) {
+    relative_map_ = MatrixXd::Zero(num_kinematic_constraints_, n_relative_);
+    int k = 0;
+
+    for (int i = 0; i < num_kinematic_constraints_; i++) {
+      for (int j = 0; j < num_positions_; j++) {
+        sparsity.push_back({i + 2* num_kinematic_constraints_, j});
+      }
+
+      if (is_constraint_relative_[i]) {
+        relative_map_(i, k) = 1;
+        // ith constraint depends on kth offset variable
+        sparsity.push_back({i + 2* num_kinematic_constraints_,
+            num_states_ + num_inputs_ + num_kinematic_constraints_ + k});
+
+        k++;
+      }
+    }
+  }
+
+  this->SetGradientSparsityPattern(sparsity);
 }
 
 template <typename T>
