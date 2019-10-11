@@ -58,7 +58,7 @@ group "1.simulated-robot" {
 
 group "0.operator" {
     cmd "3.state-visualizer-real-robot" {
-        exec = "bazel-bin/examples/Cassie/cassie_state_visualizer --floating_base=true --channel NETWORK_CASSIE_STATE_DISPATCHER";
+        exec = "bazel-bin/examples/Cassie/visualizer --floating_base=true --channel NETWORK_CASSIE_STATE_DISPATCHER";
         host = "localhost";
     }
     cmd "2.drake-director-real-robot" {
@@ -69,16 +69,12 @@ group "0.operator" {
         exec = "bazel-bin/examples/Cassie/visualizer --floating_base=false";
         host = "localhost";
     }
-    cmd "4.state-visualizer-floating" {
+    cmd "4.state-visualizer (from dispatcher)" {
+        exec = "bazel-bin/examples/Cassie/visualizer --floating_base=true --channel=CASSIE_STATE_DISPATCHER";
+        host = "localhost";
+    }
+    cmd "5.state-visualizer (from simulation)" {
         exec = "bazel-bin/examples/Cassie/visualizer --floating_base=true";
-        host = "localhost";
-    }
-    cmd "4.state-visualizer-RBT (from dispatcher)" {
-        exec = "bazel-bin/examples/Cassie/cassie_state_visualizer --floating_base=true --channel=CASSIE_STATE_DISPATCHER";
-        host = "localhost";
-    }
-    cmd "4.state-visualizer-RBT (from simulation)" {
-        exec = "bazel-bin/examples/Cassie/cassie_state_visualizer --floating_base=true";
         host = "localhost";
     }
     cmd "0.drake-director" {
@@ -89,7 +85,7 @@ group "0.operator" {
 
 group "3.cassie-robot" {
     cmd "0.dispatcher-robot-out-real-robot" {
-        exec = "bazel-bin/examples/Cassie/dispatcher_robot_out --port 25001 --address 10.10.10.100";
+        exec = "bazel-bin/examples/Cassie/dispatcher_robot_out --port 25001 --address 10.10.10.100 --test_mode=0";
         host = "dair-cassie";
     }
     cmd "1.dispatcher-robot-in-real-robot" {
@@ -138,12 +134,16 @@ script "start-operator-MBP" {
 script "start-operator-RBP (dispatched)" {
     start cmd "0.drake-director";
     wait ms 3000;
-    start cmd "4.state-visualizer-RBT (from simulation)";
+    start cmd "5.state-visualizer (from simulation)";
 }
 script "start-operator-RBP (no dispatcher)" {
     start cmd "0.drake-director";
     wait ms 3000;
+<<<<<<< HEAD
     start cmd "4.state-visualizer-RBT (from simulation)";
+=======
+    start cmd "5.state-visualizer (from simulation)";
+>>>>>>> upstream/osc-testing
 }
 
 script "run-drake-pd-control" {
@@ -205,6 +205,11 @@ script "start-operator-real-robot" {
     start cmd "2.drake-director-real-robot";
     wait ms 3000;
     start cmd "3.state-visualizer-real-robot";
+}
+
+script "dispatcher-real-robot" {
+    start cmd "0.dispatcher-robot-out-real-robot";
+    start cmd "1.dispatcher-robot-in-real-robot";
 }
 
 script "run-real-robot-pd-control" {

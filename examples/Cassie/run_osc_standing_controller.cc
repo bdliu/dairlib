@@ -21,6 +21,8 @@
 #include "systems/controllers/osc/operational_space_control.h"
 #include "examples/Cassie/osc/standing_com_traj.h"
 
+DEFINE_double(height, .89, "The desired height (m)");
+
 namespace dairlib {
 
 using std::cout;
@@ -40,6 +42,7 @@ using systems::controllers::ComTrackingData;
 using systems::controllers::TransTaskSpaceTrackingData;
 using systems::controllers::RotTaskSpaceTrackingData;
 using systems::controllers::JointSpaceTrackingData;
+using drake::systems::TriggerType;
 
 // Currently the controller runs at the rate between 500 Hz and 200 Hz, so the
 // publish rate of the robot state needs to be less than 200 Hz. Otherwise, the
@@ -87,18 +90,13 @@ int DoMain(int argc, char* argv[]) {
   const std::string channel_u = "CASSIE_INPUT";
 
   // Create state receiver.
-  auto state_sub = builder.AddSystem(
-                     LcmSubscriberSystem::Make<dairlib::lcmt_robot_output>(
-                       channel_x, lcm));
   auto state_receiver = builder.AddSystem<systems::RobotOutputReceiver>(
                           tree_with_springs);
-  builder.Connect(state_sub->get_output_port(),
-                  state_receiver->get_input_port(0));
 
   // Create command sender.
   auto command_pub = builder.AddSystem(
                        LcmPublisherSystem::Make<dairlib::lcmt_robot_input>(
-                         channel_u, lcm, 1.0 / FLAGS_publish_rate));
+                         channel_u, lcm, {TriggerType::kForced}));
   auto command_sender = builder.AddSystem<systems::RobotCommandSender>(
                           tree_with_springs);
 
@@ -114,7 +112,8 @@ int DoMain(int argc, char* argv[]) {
   // Create desired center of mass traj
   auto com_traj_generator =
       builder.AddSystem<cassie::osc::StandingComTraj>(
-        tree_with_springs, pelvis_idx, left_toe_idx, right_toe_idx);
+          tree_with_springs, pelvis_idx, left_toe_idx, right_toe_idx,
+          FLAGS_height);
   builder.Connect(state_receiver->get_output_port(0),
                   com_traj_generator->get_input_port_state());
 
@@ -125,12 +124,12 @@ int DoMain(int argc, char* argv[]) {
   // Cost
   // cout << "Adding cost\n";
   int n_v = tree_without_springs.get_num_velocities();
-  MatrixXd Q_accel = 0.00002 * MatrixXd::Identity(n_v, n_v);
+  MatrixXd Q_accel = 10 * MatrixXd::Identity(n_v, n_v);
   osc->SetAccelerationCostForAllJoints(Q_accel);
   // Soft constraint
   // cout << "Adding constraint\n";
   // We don't want this to be too big, cause we want tracking error to be important
-  double w_contact_relax = 200;
+  double w_contact_relax = 20000;
   osc->SetWeightOfSoftContactConstraint(w_contact_relax);
   // Firction coefficient
   double mu = 0.8;
@@ -141,14 +140,30 @@ int DoMain(int argc, char* argv[]) {
   osc->AddContactPoint("toe_left", rear_contact_disp);
   osc->AddContactPoint("toe_right", front_contact_disp);
   osc->AddContactPoint("toe_right", rear_contact_disp);
+
   // Center of mass tracking
-  // cout << "Adding center of mass tracking\n";
+  // Weighting x-y higher than z, as they are more important to balancing
   MatrixXd W_com = MatrixXd::Identity(3, 3);
-  W_com(0, 0) = 200;//2
-  W_com(1, 1) = 200;//2
-  W_com(2, 2) = 2000;//2000
-  MatrixXd K_p_com = 50 * MatrixXd::Identity(3, 3);
-  MatrixXd K_d_com = 10 * MatrixXd::Identity(3, 3);
+  W_com(0, 0) = 2000;
+  W_com(1, 1) = 2000;
+  W_com(2, 2) = 200;
+
+  // Set xy PD gains so they do not effect  passive LIPM dynamics at capture
+  // point, when x = sqrt(l/g) * xdot
+  // Passive dynamics: xddot = g/l * x
+  //
+  // -Kp * x - Kd * xdot =
+  // -Kp * x + Kd * sqrt(g/l) * x = g/l * x
+  // Kp = sqrt(g/l) * Kd - g/l
+  double xy_scale = 10;
+  double g_over_l = 9.81/FLAGS_height;
+  MatrixXd K_p_com = (xy_scale*sqrt(g_over_l)  - g_over_l) *
+      MatrixXd::Identity(3, 3);
+  MatrixXd K_d_com = xy_scale * MatrixXd::Identity(3, 3);
+
+  K_p_com(2, 2) = 10;
+  K_d_com(2, 2) = 10;
+
   ComTrackingData center_of_mass_traj("com_traj", 3,
       K_p_com, K_d_com, W_com * FLAGS_cost_weight_multiplier,
       &tree_with_springs, &tree_without_springs);
@@ -157,10 +172,10 @@ int DoMain(int argc, char* argv[]) {
   // cout << "Adding pelvis rotation tracking\n";
   double w_pelvis_balance = 200;
   double w_heading = 200;
-  double k_p_pelvis_balance = 100;
-  double k_d_pelvis_balance = 80;
-  double k_p_heading = 50;
-  double k_d_heading = 40;
+  double k_p_pelvis_balance = 10;
+  double k_d_pelvis_balance = 10;
+  double k_p_heading = 10;
+  double k_d_heading = 10;
   Matrix3d W_pelvis = MatrixXd::Identity(3, 3);
   W_pelvis(0, 0) = w_pelvis_balance;
   W_pelvis(1, 1) = w_pelvis_balance;
@@ -206,21 +221,58 @@ int DoMain(int argc, char* argv[]) {
                   osc->get_tracking_data_input_port("com_traj"));
 
   // Create the diagram and context
-  auto diagram = builder.Build();
-  auto context = diagram->CreateDefaultContext();
+  auto owned_diagram = builder.Build();
+  auto context = owned_diagram->CreateDefaultContext();
 
-  /// Use the simulator to drive at a fixed rate
-  /// If set_publish_every_time_step is true, this publishes twice
-  /// Set realtime rate. Otherwise, runs as fast as possible
-  auto stepper = std::make_unique<drake::systems::Simulator<double>>(*diagram,
-                 std::move(context));
-  stepper->set_publish_every_time_step(false);
-  stepper->set_publish_at_initialization(false);
-  stepper->set_target_realtime_rate(1.0);
-  stepper->Initialize();
+  // Create the simulator
+  const auto& diagram = *owned_diagram;
+  drake::systems::Simulator<double> simulator(std::move(owned_diagram),
+      std::move(context));
+  auto& diagram_context = simulator.get_mutable_context();
+
+  auto& state_receiver_context =
+      diagram.GetMutableSubsystemContext(*state_receiver, &diagram_context);
+
+  // Wait for the first message.
+  drake::log()->info("Waiting for first state message on " + channel_x);
+  drake::lcm::Subscriber<dairlib::lcmt_robot_output> state_sub(lcm,
+      channel_x);
+  LcmHandleSubscriptionsUntil(lcm, [&]() {
+    return state_sub.count() > 0;
+  });
+
+  // Initialize the context based on the first message.
+  const double t0 = state_sub.message().utime * 1e-6;
+  diagram_context.SetTime(t0);
+  auto& input_value = state_receiver->get_input_port(0).FixValue(
+                        &state_receiver_context, state_sub.message());
 
   drake::log()->info("controller started");
-  stepper->StepTo(FLAGS_end_time);
+  while (true) {
+    // Wait for an lcmt_robot_output message.
+    state_sub.clear();
+    LcmHandleSubscriptionsUntil(lcm, [&]() {
+      return state_sub.count() > 0;
+    });
+    // Write the lcmt_robot_output message into the context and advance.
+    input_value.GetMutableData()->set_value(state_sub.message());
+    const double time = state_sub.message().utime * 1e-6;
+
+    // Check if we are very far ahead or behind
+    // (likely due to a restart of the driving clock)
+    if (time > simulator.get_context().get_time() + 1.0 ||
+        time < simulator.get_context().get_time() - 1.0) {
+      std::cout << "Controller time is " << simulator.get_context().get_time()
+          << ", but stepping to " << time << std::endl;
+      std::cout << "Difference is too large, resetting controller time." <<
+          std::endl;
+      simulator.get_mutable_context().SetTime(time);
+    }
+
+    simulator.AdvanceTo(time);
+    // Force-publish via the diagram
+    diagram.Publish(diagram_context);
+  }
 
   return 0;
 }
